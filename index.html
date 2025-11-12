@@ -803,13 +803,19 @@
             const fechaRecibo = order['FECHA DE RECIBO DE LA F8'];
             if (!fechaRecibo) return 0;
             
-            const fechaReciboDate = new Date(fechaRecibo);
+            // Parsear fecha de recibo
+            const fechaReciboDate = new Date(fechaRecibo.split(' ')[0]);
+            if (isNaN(fechaReciboDate.getTime())) return 0;
+            
             const fechaActual = new Date();
             
             if (order['FECHA DE ENTREGA REAL']) {
-                const fechaEntrega = new Date(order['FECHA DE ENTREGA REAL']);
-                const diffTime = Math.abs(fechaEntrega - fechaReciboDate);
-                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                // Parsear fecha de entrega
+                const fechaEntrega = new Date(order['FECHA DE ENTREGA REAL'].split(' ')[0]);
+                if (!isNaN(fechaEntrega.getTime())) {
+                    const diffTime = Math.abs(fechaEntrega - fechaReciboDate);
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
             }
             
             const diffTime = Math.abs(fechaActual - fechaReciboDate);
@@ -890,7 +896,7 @@
             document.getElementById('totalAsignado').textContent = totalAsignado.toLocaleString();
         }
 
-        // Actualizar gráficos con datos REALES - CORREGIDO
+        // Actualizar gráficos con datos REALES - VERSIÓN 1 (MÍNIMA)
         function updateCharts() {
             updateEvolutionChart();
             updateStatusChart();
@@ -899,13 +905,16 @@
         function updateEvolutionChart() {
             const ctx = document.getElementById('evolutionChart').getContext('2d');
             
-            // CORRECCIÓN: Usar FECHA DE RECIBO DE LA F8 para recibidos y FECHA DE ENTREGA REAL para completados
-            const receivedDates = [...new Set(currentData.map(item => {
+            // Usar filteredData para que responda a los filtros
+            const dataToUse = filteredData;
+            
+            // Extraer fechas de recepción y entrega
+            const receivedDates = [...new Set(dataToUse.map(item => {
                 const fecha = item['FECHA DE RECIBO DE LA F8'];
-                return fecha ? fecha.split(' ')[0] : null; // Tomar solo la parte de la fecha
+                return fecha ? fecha.split(' ')[0] : null;
             }))].filter(date => date);
             
-            const completedDates = [...new Set(currentData.map(item => {
+            const completedDates = [...new Set(dataToUse.map(item => {
                 const fecha = item['FECHA DE ENTREGA REAL'];
                 return fecha ? fecha.split(' ')[0] : null;
             }))].filter(date => date);
@@ -915,14 +924,14 @@
             const displayDates = allDates.slice(-15); // Últimos 15 días
             
             const receivedData = displayDates.map(date => 
-                currentData.filter(item => {
+                dataToUse.filter(item => {
                     const itemDate = item['FECHA DE RECIBO DE LA F8'];
                     return itemDate && itemDate.split(' ')[0] === date;
                 }).length
             );
             
             const completedData = displayDates.map(date => 
-                currentData.filter(item => {
+                dataToUse.filter(item => {
                     const itemDate = item['FECHA DE ENTREGA REAL'];
                     return itemDate && itemDate.split(' ')[0] === date;
                 }).length
@@ -985,8 +994,11 @@
         function updateStatusChart() {
             const ctx = document.getElementById('statusChart').getContext('2d');
             
+            // Usar filteredData para que responda a los filtros
+            const dataToUse = filteredData;
+            
             const statusCounts = {};
-            currentData.forEach(order => {
+            dataToUse.forEach(order => {
                 const estado = order['ESTADO'] || determineEstado(order);
                 statusCounts[estado] = (statusCounts[estado] || 0) + 1;
             });
