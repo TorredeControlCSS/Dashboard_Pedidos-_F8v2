@@ -56,11 +56,11 @@
             margin: 0;
         }
         
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 15px;
-            margin: 15px 0;
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
         }
         
         .kpi-dashboard {
@@ -168,10 +168,41 @@
             font-size: 13px;
         }
         
+        /* SCROLLBAR VISIBLE Y MEJORADO */
+        .table-container {
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+        
+        .table-container::-webkit-scrollbar {
+            height: 14px;
+            width: 14px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+            margin: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #a0a0a0;
+            border-radius: 8px;
+            border: 3px solid #f1f1f1;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #808080;
+        }
+        
+        .table-container::-webkit-scrollbar-corner {
+            background: #f1f1f1;
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1800px;
+            min-width: 2000px; /* Forzar scroll horizontal */
         }
         
         thead {
@@ -320,37 +351,8 @@
             color: rgba(255,255,255,0.9);
         }
         
-        /* Scrollbar personalizado */
-        .table-container::-webkit-scrollbar {
-            height: 12px;
-            width: 12px;
-        }
-        
-        .table-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 6px;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 6px;
-            border: 2px solid #f1f1f1;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-        
-        .table-container::-webkit-scrollbar-corner {
-            background: #f1f1f1;
-        }
-        
         @media (max-width: 1200px) {
             .charts-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .dashboard-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -364,142 +366,149 @@
                 <div class="action-buttons">
                     <button id="saveBtn">💾 Guardar Cambios</button>
                     <button id="exportBtn">📊 Exportar a CSV</button>
+                    <button id="refreshBtn">🔄 Actualizar Datos</button>
                 </div>
             </div>
         </div>
     </header>
     
     <div class="container">
-        <!-- KPIs Principales -->
-        <div class="kpi-dashboard">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Pedidos</div>
-                <div class="kpi-value" id="totalOrders">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Pendientes</div>
-                <div class="kpi-value" id="pendingOrders">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">En Proceso</div>
-                <div class="kpi-value" id="inProcessOrders">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Completados</div>
-                <div class="kpi-value" id="completedOrders">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Tiempo Promedio</div>
-                <div class="kpi-value" id="avgProcessingTime">0d</div>
-            </div>
-            <div class="kpi-card total-asignado">
-                <div class="kpi-label">Cantidad Total Asignada</div>
-                <div class="kpi-value" id="totalAsignado">0</div>
-            </div>
-        </div>
-
-        <!-- Gráficos -->
-        <div class="charts-container">
-            <div class="chart-card">
-                <div class="chart-title">📈 Evolución de Pedidos por Fecha</div>
-                <div class="chart-container">
-                    <canvas id="evolutionChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">🔄 Distribución por Estado</div>
-                <div class="chart-container">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
+        <div id="loadingMessage" class="loading">
+            📡 Conectando con Google Sheets...
         </div>
         
-        <!-- Filtros -->
-        <div class="controls">
-            <div class="filter-group">
-                <div class="filter-row">
-                    <select id="filterCategory">
-                        <option value="">Todas las categorías</option>
-                    </select>
-                    
-                    <select id="filterUnit">
-                        <option value="">Todas las unidades</option>
-                    </select>
-                    
-                    <select id="filterType">
-                        <option value="">Todos los tipos</option>
-                    </select>
+        <div id="dashboardContent" style="display: none;">
+            <!-- KPIs Principales -->
+            <div class="kpi-dashboard">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Pedidos</div>
+                    <div class="kpi-value" id="totalOrders">0</div>
                 </div>
-                
-                <div class="filter-row">
-                    <select id="filterGrupo">
-                        <option value="">Todos los grupos</option>
-                    </select>
-                    
-                    <select id="filterSustancias">
-                        <option value="">Todos los tipos de sustancias</option>
-                    </select>
-                    
-                    <select id="filterStatus">
-                        <option value="">Todos los estados</option>
-                    </select>
-                    
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="🔍 Buscar por número de pedido...">
-                        <button id="applyFilters">Aplicar Filtros</button>
-                        <button id="clearFilters">Limpiar</button>
+                <div class="kpi-card">
+                    <div class="kpi-label">Pendientes</div>
+                    <div class="kpi-value" id="pendingOrders">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">En Proceso</div>
+                    <div class="kpi-value" id="inProcessOrders">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Completados</div>
+                    <div class="kpi-value" id="completedOrders">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Tiempo Promedio</div>
+                    <div class="kpi-value" id="avgProcessingTime">0d</div>
+                </div>
+                <div class="kpi-card total-asignado">
+                    <div class="kpi-label">Cantidad Total Asignada</div>
+                    <div class="kpi-value" id="totalAsignado">0</div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-title">📈 Evolución de Pedidos por Fecha</div>
+                    <div class="chart-container">
+                        <canvas id="evolutionChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">🔄 Distribución por Estado</div>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
                     </div>
                 </div>
             </div>
-        </div>
+            
+            <!-- Filtros -->
+            <div class="controls">
+                <div class="filter-group">
+                    <div class="filter-row">
+                        <select id="filterCategory">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                        
+                        <select id="filterUnit">
+                            <option value="">Todas las unidades</option>
+                        </select>
+                        
+                        <select id="filterType">
+                            <option value="">Todos los tipos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-row">
+                        <select id="filterGrupo">
+                            <option value="">Todos los grupos</option>
+                        </select>
+                        
+                        <select id="filterSustancias">
+                            <option value="">Todos los tipos de sustancias</option>
+                        </select>
+                        
+                        <select id="filterStatus">
+                            <option value="">Todos los estados</option>
+                        </select>
+                        
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="🔍 Buscar por número de pedido...">
+                            <button id="applyFilters">Aplicar Filtros</button>
+                            <button id="clearFilters">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="pagination-info" id="paginationInfo">
-            Mostrando 0 de 0 pedidos
-        </div>
-        
-        <!-- Tabla -->
-        <div class="table-container">
-            <table id="ordersTable">
-                <thead>
-                    <tr>
-                        <th>CATEG.</th>
-                        <th>UNIDAD</th>
-                        <th>TIPO</th>
-                        <th>F8 SALMI</th>
-                        <th>F8 SISCONI</th>
-                        <th>GRUPO</th>
-                        <th>SUSTANCIAS</th>
-                        <th>ASIG.</th>
-                        <th>SOL.</th>
-                        <th>R. ASIG.</th>
-                        <th>R. SOL.</th>
-                        <th>FECHA F8</th>
-                        <th>RECIBO F8</th>
-                        <th>ASIGNACIÓN</th>
-                        <th>SALIDA</th>
-                        <th>DESPACHO</th>
-                        <th>FACTURACIÓN</th>
-                        <th>EMPACADO</th>
-                        <th>PROY. ENTREGA</th>
-                        <th>ENTREGA REAL</th>
-                        <th>ESTADO</th>
-                        <th>TIEMPO</th>
-                        <th>COMPLETADO</th>
-                        <th>FILL CANT.</th>
-                        <th>FILL RENGL.</th>
-                        <th>COMENT.</th>
-                    </tr>
-                </thead>
-                <tbody id="ordersTableBody">
-                    <!-- Los datos se cargarán aquí dinámicamente -->
-                </tbody>
-            </table>
-        </div>
+            <div class="pagination-info" id="paginationInfo">
+                Mostrando 0 de 0 pedidos
+            </div>
+            
+            <!-- Tabla -->
+            <div class="table-container">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>CATEG.</th>
+                            <th>UNIDAD</th>
+                            <th>TIPO</th>
+                            <th>F8 SALMI</th>
+                            <th>F8 SISCONI</th>
+                            <th>GRUPO</th>
+                            <th>SUSTANCIAS</th>
+                            <th>ASIG.</th>
+                            <th>SOL.</th>
+                            <th>R. ASIG.</th>
+                            <th>R. SOL.</th>
+                            <th>FECHA F8</th>
+                            <th>RECIBO F8</th>
+                            <th>ASIGNACIÓN</th>
+                            <th>SALIDA</th>
+                            <th>DESPACHO</th>
+                            <th>FACTURACIÓN</th>
+                            <th>EMPACADO</th>
+                            <th>PROY. ENTREGA</th>
+                            <th>ENTREGA REAL</th>
+                            <th>ESTADO</th>
+                            <th>TIEMPO</th>
+                            <th>COMPLETADO</th>
+                            <th>FILL CANT.</th>
+                            <th>FILL RENGL.</th>
+                            <th>COMENT.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <!-- Los datos se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="pagination">
-            <button id="prevPage">◀ Anterior</button>
-            <span id="pageInfo">Página 1 de 1</span>
-            <button id="nextPage">Siguiente ▶</button>
+            <div class="pagination">
+                <button id="prevPage">◀ Anterior</button>
+                <span id="pageInfo">Página 1 de 1</span>
+                <button id="nextPage">Siguiente ▶</button>
+            </div>
         </div>
         
         <div class="footer">
@@ -508,110 +517,26 @@
     </div>
 
     <script>
-        // Datos mejorados con todas las categorías y unidades
-        function generateSampleData(count) {
-            const data = [];
-            const categories = ["HOSPITAL", "CEDIS", "POLICLINICA DE ALTO VOLUMEN", "POLICLINICA DE BAJO VOLUMEN", "CAPPS", "ULAPS"];
-            const units = [
-                "CEDIS CHIRIQUÍ", "CEDIS DIVISA", "CEDIS PANAMÁ", "CEDIS COLÓN",
-                "C. H. M. DR. ARNULFO ARIAS MADRID", "HOSPITAL DEL NINO", 
-                "HOSPITAL SANTO TOMAS", "HOSPITAL REGIONAL DE COLÓN",
-                "CIUDAD DE LA SALUD", "HOSP. DE CHEPO", "HOSP. DE CHITRE",
-                "POLICLINICA J.J. VALLARINO", "POLICLINICA PRESIDENTE REMON",
-                "CAPPS BELLA VISTA", "CAPPS VIA ESPAÑA", "ULAPS SANTA ANA",
-                "ULAPS BETANIA", "ULAPS LAS GARZAS"
-            ];
-            const types = ["URGENCIA", "MENSUAL"];
-            const grupos = ["G1 TABLETAS", "G2 SOLUCIÓN", "G3 JARABE", "G4 CREMAS", "G5 ÓVULOS", "G11 ODONTOLOGÍA"];
-            const sustancias = ["NO CONTROLADA", "CONTROLADA"];
-            const estados = ["F8 RECIBIDA", "F8 RECIBIDA SIN ASIGNAR", "EN ASIGNACION", "SALIDA DE SALMI", "FACTURADO", "EMPACADO", "ENTREGADA"];
-            
-            // Fechas de ejemplo para los últimos 30 días
-            const fechas = [];
-            const today = new Date();
-            for (let i = 0; i < 30; i++) {
-                const date = new Date();
-                date.setDate(today.getDate() - i);
-                fechas.push(date.toISOString().split('T')[0]);
-            }
-            
-            for (let i = 0; i < count; i++) {
-                const categoria = categories[Math.floor(Math.random() * categories.length)];
-                const unidad = units[Math.floor(Math.random() * units.length)];
-                const tipoPedido = types[Math.floor(Math.random() * types.length)];
-                const grupo = grupos[Math.floor(Math.random() * grupos.length)];
-                const tipoSustancias = sustancias[Math.floor(Math.random() * sustancias.length)];
-                const estado = estados[Math.floor(Math.random() * estados.length)];
-                
-                // Generar números de forma 8 basados en el patrón
-                let forma8Salmi, forma8Sisconi;
-                if (unidad.includes("CEDIS")) {
-                    forma8Salmi = `CD${unidad.split(' ')[1].substring(0,3)}-2025-${2000 + i}`;
-                    forma8Sisconi = `0812c${Math.floor(Math.random() * 5)}-2025-${2000 + i}`;
-                } else if (unidad.includes("HOSPITAL") || unidad.includes("C. H.")) {
-                    forma8Salmi = `80${Math.floor(Math.random() * 50)}-2025-${Math.floor(Math.random() * 1000)}`;
-                    forma8Sisconi = `8${Math.floor(Math.random() * 50)}-2025-${Math.floor(Math.random() * 1000)}`;
-                } else {
-                    forma8Salmi = `${Math.floor(Math.random() * 9000) + 1000}-2025-${Math.floor(Math.random() * 1000)}`;
-                    forma8Sisconi = `${Math.floor(Math.random() * 9000) + 1000}-2025-${Math.floor(Math.random() * 1000)}`;
-                }
-                
-                const cantidadAsignada = Math.random() > 0.5 ? Math.floor(Math.random() * 1000) + 100 : 0;
-                const cantidadSolicitada = cantidadAsignada + Math.floor(Math.random() * 200);
-                
-                data.push({
-                    categoria,
-                    unidad,
-                    tipoPedido,
-                    forma8Salmi,
-                    forma8Sisconi,
-                    grupo,
-                    tipoSustancias,
-                    cantidadAsignada: cantidadAsignada || "",
-                    cantidadSolicitada: cantidadSolicitada || "",
-                    renglonesAsignados: Math.random() > 0.5 ? Math.floor(Math.random() * 50) + 5 : "",
-                    renglonesSolicitados: Math.random() > 0.5 ? Math.floor(Math.random() * 50) + 10 : "",
-                    fechaF8: Math.random() > 0.3 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaReciboF8: fechas[Math.floor(Math.random() * fechas.length)],
-                    fechaAsignacion: Math.random() > 0.4 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaSalidaSalmi: Math.random() > 0.5 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaDespacho: Math.random() > 0.6 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaFacturacion: Math.random() > 0.5 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaEmpacado: Math.random() > 0.4 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaProyectadaEntrega: Math.random() > 0.3 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    fechaEntregaReal: estado === 'ENTREGADA' ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    estado: estado,
-                    comentarios: Math.random() > 0.8 ? "Prioridad alta" : Math.random() > 0.9 ? "Stock limitado" : ""
-                });
-            }
-            
-            return data;
-        }
-
-        // Generar 3453 pedidos de ejemplo
-        const ordersData = generateSampleData(3453);
+        // Configuración - USANDO EL CSV PÚBLICO QUE PROPORCIONASTE
+        const CSV_PUBLIC_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSC_myZfLrWVb3rzsFbX_7w9nuR2zBJxEYUqMh5UcSb07hwee7_7UECeU2zTFRePSgUwpvE0IcRmTmJ/pub?gid=323536618&single=true&output=csv';
 
         // Estado global de la aplicación
-        let currentData = [...ordersData];
-        let filteredData = [...ordersData];
+        let currentData = [];
+        let filteredData = [];
         let currentPage = 1;
         const itemsPerPage = 50;
         let evolutionChart, statusChart;
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
-            populateFilterOptions();
-            renderTable();
-            updateKPIs();
-            updateCharts();
-            updateLastUpdate();
-            updatePaginationInfo();
+            loadDataFromCSV();
             
             // Event listeners
             document.getElementById('applyFilters').addEventListener('click', applyFilters);
             document.getElementById('clearFilters').addEventListener('click', clearFilters);
             document.getElementById('saveBtn').addEventListener('click', saveChanges);
             document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('refreshBtn').addEventListener('click', loadDataFromCSV);
             document.getElementById('prevPage').addEventListener('click', prevPage);
             document.getElementById('nextPage').addEventListener('click', nextPage);
             
@@ -620,25 +545,166 @@
             });
         });
 
-        // Poblar opciones de filtro con datos reales
+        // Cargar datos desde el CSV público
+        async function loadDataFromCSV() {
+            try {
+                showLoading(true);
+                
+                const data = await fetchCSVData();
+                currentData = data;
+                filteredData = [...data];
+                
+                populateFilterOptions();
+                renderTable();
+                updateKPIs();
+                updateCharts();
+                updateLastUpdate();
+                updatePaginationInfo();
+                
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showError('Error conectando con Google Sheets. Mostrando datos de ejemplo.');
+                loadSampleData();
+            }
+        }
+
+        // Función para cargar datos desde CSV público
+        async function fetchCSVData() {
+            const response = await fetch(CSV_PUBLIC_URL);
+            const csvText = await response.text();
+            return parseCSV(csvText);
+        }
+
+        // Parsear CSV a JSON
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(header => header.trim());
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(value => value.trim());
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        // Función de respaldo con datos de ejemplo (SOLO SI FALLA LA CONEXIÓN)
+        function loadSampleData() {
+            // Datos de ejemplo basados EXACTAMENTE en la estructura del CSV
+            const sampleData = [
+                {
+                    "CATEGORIA DE UNIDAD EJECUTORA": "CEDIS",
+                    "UNIDAD EJECUTORA": "CEDIS CHIRIQUÍ", 
+                    "TIPO PEDIDO": "URGENCIA",
+                    "FORMA 8 SALMI": "CDCH-2025-264",
+                    "FORMA 8 SISCONI": "0812c3-2025-264",
+                    "GRUPO": "G1 TABLETAS",
+                    "TIPO DE SUSTANCIAS": "NO CONTROLADA",
+                    "CANTIDAD TOTAL ASIGNADA": "150",
+                    "CANTIDAD TOTAL SOLICITADA": "200",
+                    "CANTIDAD DE RENGLONES ASIGNADOS": "10",
+                    "CANTIDAD DE RENGLONES SOLICITADOS": "12",
+                    "FECHA DE LA F8": "2025-01-15",
+                    "FECHA DE RECIBO DE LA F8": "2025-01-16",
+                    "FECHA DE ASIGNACION": "2025-01-17",
+                    "FECHA DE SALIDA EN SALMI": "2025-01-18",
+                    "FECHA DE DESPACHO": "2025-01-19",
+                    "FECHA DE FACTURACION EN COMPUTO": "2025-01-20",
+                    "FECHA DE EMPACADO": "2025-01-21",
+                    "FECHA PROYECTADA DE ENTREGA": "2025-01-22",
+                    "FECHA DE ENTREGA REAL": "2025-01-23",
+                    "ESTADO": "ENTREGADA",
+                    "COMENTARIOS": "Pedido completado exitosamente"
+                },
+                {
+                    "CATEGORIA DE UNIDAD EJECUTORA": "HOSPITAL",
+                    "UNIDAD EJECUTORA": "HOSPITAL SANTO TOMÁS", 
+                    "TIPO PEDIDO": "NORMAL",
+                    "FORMA 8 SALMI": "HST-2025-128",
+                    "FORMA 8 SISCONI": "0812c3-2025-128",
+                    "GRUPO": "G2 JARABES",
+                    "TIPO DE SUSTANCIAS": "CONTROLADA",
+                    "CANTIDAD TOTAL ASIGNADA": "75",
+                    "CANTIDAD TOTAL SOLICITADA": "80",
+                    "CANTIDAD DE RENGLONES ASIGNADOS": "5",
+                    "CANTIDAD DE RENGLONES SOLICITADOS": "6",
+                    "FECHA DE LA F8": "2025-01-10",
+                    "FECHA DE RECIBO DE LA F8": "2025-01-11",
+                    "FECHA DE ASIGNACION": "2025-01-12",
+                    "FECHA DE SALIDA EN SALMI": "",
+                    "FECHA DE DESPACHO": "",
+                    "FECHA DE FACTURACION EN COMPUTO": "",
+                    "FECHA DE EMPACADO": "",
+                    "FECHA PROYECTADA DE ENTREGA": "2025-01-25",
+                    "FECHA DE ENTREGA REAL": "",
+                    "ESTADO": "EN ASIGNACION",
+                    "COMENTARIOS": "En proceso de asignación"
+                }
+            ];
+            
+            currentData = sampleData;
+            filteredData = [...sampleData];
+            
+            populateFilterOptions();
+            renderTable();
+            updateKPIs();
+            updateCharts();
+            updateLastUpdate();
+            updatePaginationInfo();
+            
+            showLoading(false);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingMessage').style.display = show ? 'block' : 'none';
+            document.getElementById('dashboardContent').style.display = show ? 'none' : 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                background: #e74c3c;
+                color: white;
+                padding: 15px;
+                margin: 10px 0;
+                border-radius: 6px;
+                text-align: center;
+            `;
+            errorDiv.innerHTML = `⚠️ ${message}`;
+            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('dashboardContent'));
+        }
+
+        // Poblar opciones de filtro con datos REALES del CSV
         function populateFilterOptions() {
-            const categories = [...new Set(currentData.map(item => item.categoria))];
-            const units = [...new Set(currentData.map(item => item.unidad))];
-            const types = [...new Set(currentData.map(item => item.tipoPedido))];
-            const grupos = [...new Set(currentData.map(item => item.grupo))];
-            const sustancias = [...new Set(currentData.map(item => item.tipoSustancias))];
-            const estados = [...new Set(currentData.map(item => item.estado))];
+            const categories = [...new Set(currentData.map(item => item['CATEGORIA DE UNIDAD EJECUTORA']))].filter(Boolean);
+            const units = [...new Set(currentData.map(item => item['UNIDAD EJECUTORA']))].filter(Boolean);
+            const types = [...new Set(currentData.map(item => item['TIPO PEDIDO']))].filter(Boolean);
+            const grupos = [...new Set(currentData.map(item => item['GRUPO']))].filter(Boolean);
+            const sustancias = [...new Set(currentData.map(item => item['TIPO DE SUSTANCIAS']))].filter(Boolean);
             
             populateSelect('filterCategory', categories);
             populateSelect('filterUnit', units);
             populateSelect('filterType', types);
             populateSelect('filterGrupo', grupos);
             populateSelect('filterSustancias', sustancias);
+            
+            // Estados predefinidos
+            const estados = ["F8 RECIBIDA", "F8 RECIBIDA SIN ASIGNAR", "EN ASIGNACION", "SALIDA DE SALMI", "FACTURADO", "EMPACADO", "ENTREGADA"];
             populateSelect('filterStatus', estados);
         }
 
         function populateSelect(selectId, options) {
             const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">' + (selectId === 'filterStatus' ? 'Todos los estados' : 'Todas las opciones') + '</option>';
+            
             options.sort().forEach(option => {
                 const optionElement = document.createElement('option');
                 optionElement.value = option;
@@ -647,19 +713,164 @@
             });
         }
 
-        // Actualizar KPIs
+        // Renderizar tabla con datos REALES
+        function renderTable() {
+            const tableBody = document.getElementById('ordersTableBody');
+            tableBody.innerHTML = '';
+            
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentPageData = filteredData.slice(startIndex, endIndex);
+            
+            currentPageData.forEach((order, index) => {
+                const globalIndex = startIndex + index;
+                const row = document.createElement('tr');
+                
+                // Calcular valores dinámicos basados en datos REALES
+                const tiempoProcesamiento = calculateProcessingTime(order);
+                const pedidoCompletado = calculatePedidoCompletado(order);
+                const fillRateCantidad = calculateFillRate(
+                    order['CANTIDAD TOTAL ASIGNADA'], 
+                    order['CANTIDAD TOTAL SOLICITADA']
+                );
+                const fillRateRenglon = calculateFillRate(
+                    order['CANTIDAD DE RENGLONES ASIGNADOS'], 
+                    order['CANTIDAD DE RENGLONES SOLICITADOS']
+                );
+                
+                // Estado actual del pedido (calculado o del campo ESTADO si existe)
+                const estadoActual = order['ESTADO'] || determineEstado(order);
+                
+                row.innerHTML = `
+                    <td>${order['CATEGORIA DE UNIDAD EJECUTORA'] || ''}</td>
+                    <td title="${order['UNIDAD EJECUTORA'] || ''}">${order['UNIDAD EJECUTORA'] || ''}</td>
+                    <td>${order['TIPO PEDIDO'] || ''}</td>
+                    <td title="${order['FORMA 8 SALMI'] || ''}">${order['FORMA 8 SALMI'] || ''}</td>
+                    <td title="${order['FORMA 8 SISCONI'] || ''}">${order['FORMA 8 SISCONI'] || ''}</td>
+                    <td>${order['GRUPO'] || ''}</td>
+                    <td>${order['TIPO DE SUSTANCIAS'] || ''}</td>
+                    <td><input type="number" class="number-input" value="${order['CANTIDAD TOTAL ASIGNADA'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD TOTAL ASIGNADA"></td>
+                    <td><input type="number" class="number-input" value="${order['CANTIDAD TOTAL SOLICITADA'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD TOTAL SOLICITADA"></td>
+                    <td><input type="number" class="number-input" value="${order['CANTIDAD DE RENGLONES ASIGNADOS'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD DE RENGLONES ASIGNADOS"></td>
+                    <td><input type="number" class="number-input" value="${order['CANTIDAD DE RENGLONES SOLICITADOS'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD DE RENGLONES SOLICITADOS"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE LA F8'])}" data-index="${globalIndex}" data-field="FECHA DE LA F8"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE RECIBO DE LA F8'])}" data-index="${globalIndex}" data-field="FECHA DE RECIBO DE LA F8"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE ASIGNACION'])}" data-index="${globalIndex}" data-field="FECHA DE ASIGNACION"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE SALIDA EN SALMI'])}" data-index="${globalIndex}" data-field="FECHA DE SALIDA EN SALMI"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE DESPACHO'])}" data-index="${globalIndex}" data-field="FECHA DE DESPACHO"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE FACTURACION EN COMPUTO'])}" data-index="${globalIndex}" data-field="FECHA DE FACTURACION EN COMPUTO"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE EMPACADO'])}" data-index="${globalIndex}" data-field="FECHA DE EMPACADO"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA PROYECTADA DE ENTREGA'])}" data-index="${globalIndex}" data-field="FECHA PROYECTADA DE ENTREGA"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE ENTREGA REAL'])}" data-index="${globalIndex}" data-field="FECHA DE ENTREGA REAL"></td>
+                    <td>
+                        <select class="status-select ${getStatusClass(estadoActual)}" data-index="${globalIndex}" data-field="ESTADO">
+                            <option value="F8 RECIBIDA" ${estadoActual === 'F8 RECIBIDA' ? 'selected' : ''}>F8 RECIBIDA</option>
+                            <option value="F8 RECIBIDA SIN ASIGNAR" ${estadoActual === 'F8 RECIBIDA SIN ASIGNAR' ? 'selected' : ''}>F8 RECIBIDA SIN ASIGNAR</option>
+                            <option value="EN ASIGNACION" ${estadoActual === 'EN ASIGNACION' ? 'selected' : ''}>EN ASIGNACIÓN</option>
+                            <option value="SALIDA DE SALMI" ${estadoActual === 'SALIDA DE SALMI' ? 'selected' : ''}>SALIDA DE SALMI</option>
+                            <option value="FACTURADO" ${estadoActual === 'FACTURADO' ? 'selected' : ''}>FACTURADO</option>
+                            <option value="EMPACADO" ${estadoActual === 'EMPACADO' ? 'selected' : ''}>EMPACADO</option>
+                            <option value="ENTREGADA" ${estadoActual === 'ENTREGADA' ? 'selected' : ''}>ENTREGADA</option>
+                        </select>
+                    </td>
+                    <td>${tiempoProcesamiento}</td>
+                    <td>${pedidoCompletado ? '<span class="completed-badge">SI</span>' : 'NO'}</td>
+                    <td>${fillRateCantidad}</td>
+                    <td>${fillRateRenglon}</td>
+                    <td><input type="text" value="${order['COMENTARIOS'] || ''}" data-index="${globalIndex}" data-field="COMENTARIOS" style="width: 120px; font-size: 11px;"></td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            addInputEventListeners();
+            updatePaginationInfo();
+        }
+
+        // Determinar estado basado en fechas (si no hay campo ESTADO)
+        function determineEstado(order) {
+            if (order['FECHA DE ENTREGA REAL']) return 'ENTREGADA';
+            if (order['FECHA DE EMPACADO']) return 'EMPACADO';
+            if (order['FECHA DE FACTURACION EN COMPUTO']) return 'FACTURADO';
+            if (order['FECHA DE SALIDA EN SALMI']) return 'SALIDA DE SALMI';
+            if (order['FECHA DE ASIGNACION']) return 'EN ASIGNACION';
+            if (order['FECHA DE RECIBO DE LA F8']) return 'F8 RECIBIDA';
+            return 'F8 RECIBIDA SIN ASIGNAR';
+        }
+
+        function calculateProcessingTimeDays(order) {
+            const fechaRecibo = order['FECHA DE RECIBO DE LA F8'];
+            if (!fechaRecibo) return 0;
+            
+            const fechaReciboDate = new Date(fechaRecibo);
+            const fechaActual = new Date();
+            
+            if (order['FECHA DE ENTREGA REAL']) {
+                const fechaEntrega = new Date(order['FECHA DE ENTREGA REAL']);
+                const diffTime = Math.abs(fechaEntrega - fechaReciboDate);
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+            
+            const diffTime = Math.abs(fechaActual - fechaReciboDate);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function calculateProcessingTime(order) {
+            const days = calculateProcessingTimeDays(order);
+            return days > 0 ? `${days}d` : "N/A";
+        }
+
+        function calculatePedidoCompletado(order) {
+            return order['ESTADO'] === 'ENTREGADA' || !!order['FECHA DE ENTREGA REAL'];
+        }
+
+        function calculateFillRate(asignado, solicitado) {
+            if (!asignado || !solicitado || solicitado === 0 || solicitado === "0") return "0%";
+            const asignadoNum = parseFloat(asignado);
+            const solicitadoNum = parseFloat(solicitado);
+            if (isNaN(asignadoNum) || isNaN(solicitadoNum)) return "0%";
+            const fillRate = (asignadoNum / solicitadoNum) * 100;
+            return `${fillRate.toFixed(1)}%`;
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'F8 RECIBIDA': 'status-F8-RECIBIDA',
+                'F8 RECIBIDA SIN ASIGNAR': 'status-F8-RECIBIDA-SIN-ASIGNAR',
+                'EN ASIGNACION': 'status-EN-ASIGNACION',
+                'SALIDA DE SALMI': 'status-SALIDA-DE-SALMI',
+                'FACTURADO': 'status-FACTURADO',
+                'EMPACADO': 'status-EMPACADO',
+                'ENTREGADA': 'status-ENTREGADA'
+            };
+            return statusMap[status] || '';
+        }
+
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) return dateString.split(' ')[0];
+            return '';
+        }
+
+        // Actualizar KPIs con datos REALES
         function updateKPIs() {
             const totalOrders = filteredData.length;
-            const pendingOrders = filteredData.filter(order => 
-                order.estado === 'F8 RECIBIDA' || order.estado === 'F8 RECIBIDA SIN ASIGNAR'
-            ).length;
-            const inProcessOrders = filteredData.filter(order => 
-                order.estado === 'EN ASIGNACION' || order.estado === 'SALIDA DE SALMI' || 
-                order.estado === 'FACTURADO' || order.estado === 'EMPACADO'
-            ).length;
-            const completedOrders = filteredData.filter(order => 
-                order.estado === 'ENTREGADA'
-            ).length;
+            const pendingOrders = filteredData.filter(order => {
+                const estado = order['ESTADO'] || determineEstado(order);
+                return estado === 'F8 RECIBIDA' || estado === 'F8 RECIBIDA SIN ASIGNAR';
+            }).length;
+            
+            const inProcessOrders = filteredData.filter(order => {
+                const estado = order['ESTADO'] || determineEstado(order);
+                return estado === 'EN ASIGNACION' || estado === 'SALIDA DE SALMI' || 
+                       estado === 'FACTURADO' || estado === 'EMPACADO';
+            }).length;
+            
+            const completedOrders = filteredData.filter(order => {
+                const estado = order['ESTADO'] || determineEstado(order);
+                return estado === 'ENTREGADA';
+            }).length;
             
             const totalProcessingTime = filteredData.reduce((sum, order) => {
                 return sum + (calculateProcessingTimeDays(order) || 0);
@@ -667,7 +878,7 @@
             const avgProcessingTime = totalOrders > 0 ? Math.round(totalProcessingTime / totalOrders) : 0;
             
             const totalAsignado = filteredData.reduce((sum, order) => {
-                return sum + (parseInt(order.cantidadAsignada) || 0);
+                return sum + (parseInt(order['CANTIDAD TOTAL ASIGNADA']) || 0);
             }, 0);
 
             document.getElementById('totalOrders').textContent = totalOrders.toLocaleString();
@@ -678,7 +889,7 @@
             document.getElementById('totalAsignado').textContent = totalAsignado.toLocaleString();
         }
 
-        // Actualizar gráficos
+        // Actualizar gráficos con datos REALES
         function updateCharts() {
             updateEvolutionChart();
             updateStatusChart();
@@ -687,13 +898,18 @@
         function updateEvolutionChart() {
             const ctx = document.getElementById('evolutionChart').getContext('2d');
             
-            // Agrupar por fecha de recepción
-            const dates = [...new Set(currentData.map(item => item.fechaReciboF8))].sort().slice(-15);
+            // Agrupar por fecha de recepción (usando datos REALES)
+            const dates = [...new Set(currentData.map(item => item['FECHA DE RECIBO DE LA F8']))]
+                .filter(date => date)
+                .sort()
+                .slice(-15);
+            
             const receivedData = dates.map(date => 
-                currentData.filter(item => item.fechaReciboF8 === date).length
+                currentData.filter(item => item['FECHA DE RECIBO DE LA F8'] === date).length
             );
+            
             const completedData = dates.map(date => 
-                currentData.filter(item => item.fechaEntregaReal === date).length
+                currentData.filter(item => item['FECHA DE ENTREGA REAL'] === date).length
             );
 
             if (evolutionChart) {
@@ -749,7 +965,8 @@
             
             const statusCounts = {};
             currentData.forEach(order => {
-                statusCounts[order.estado] = (statusCounts[order.estado] || 0) + 1;
+                const estado = order['ESTADO'] || determineEstado(order);
+                statusCounts[estado] = (statusCounts[estado] || 0) + 1;
             });
 
             const colors = {
@@ -789,126 +1006,7 @@
             });
         }
 
-        // [El resto del JavaScript se mantiene similar pero adaptado...]
-        // Funciones de cálculo, renderizado de tabla, paginación, etc.
-        // (Se mantienen iguales pero adaptadas a la nueva estructura)
-
-        function calculateProcessingTimeDays(order) {
-            if (!order.fechaReciboF8) return 0;
-            const fechaRecibo = new Date(order.fechaReciboF8);
-            const fechaActual = new Date();
-            if (order.fechaEntregaReal) {
-                const fechaEntrega = new Date(order.fechaEntregaReal);
-                const diffTime = Math.abs(fechaEntrega - fechaRecibo);
-                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            }
-            const diffTime = Math.abs(fechaActual - fechaRecibo);
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        function calculateProcessingTime(order) {
-            const days = calculateProcessingTimeDays(order);
-            return days > 0 ? `${days}d` : "N/A";
-        }
-
-        function calculatePedidoCompletado(order) {
-            return order.estado === 'ENTREGADA';
-        }
-
-        function calculateFillRate(asignado, solicitado) {
-            if (!asignado || !solicitado || solicitado === 0 || solicitado === "0") return "0%";
-            const asignadoNum = parseFloat(asignado);
-            const solicitadoNum = parseFloat(solicitado);
-            if (isNaN(asignadoNum) || isNaN(solicitadoNum)) return "0%";
-            const fillRate = (asignadoNum / solicitadoNum) * 100;
-            return `${fillRate.toFixed(1)}%`;
-        }
-
-        function getStatusClass(status) {
-            const statusMap = {
-                'F8 RECIBIDA': 'status-F8-RECIBIDA',
-                'F8 RECIBIDA SIN ASIGNAR': 'status-F8-RECIBIDA-SIN-ASIGNAR',
-                'EN ASIGNACION': 'status-EN-ASIGNACION',
-                'SALIDA DE SALMI': 'status-SALIDA-DE-SALMI',
-                'FACTURADO': 'status-FACTURADO',
-                'EMPACADO': 'status-EMPACADO',
-                'ENTREGADA': 'status-ENTREGADA'
-            };
-            return statusMap[status] || '';
-        }
-
-        function formatDateForInput(dateString) {
-            if (!dateString) return '';
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) return dateString.split(' ')[0];
-            return '';
-        }
-
-        // Renderizar tabla (similar a versión anterior pero sin columna Division)
-        function renderTable() {
-            const tableBody = document.getElementById('ordersTableBody');
-            tableBody.innerHTML = '';
-            
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const currentPageData = filteredData.slice(startIndex, endIndex);
-            
-            currentPageData.forEach((order, index) => {
-                const globalIndex = startIndex + index;
-                const row = document.createElement('tr');
-                
-                const tiempoProcesamiento = calculateProcessingTime(order);
-                const pedidoCompletado = calculatePedidoCompletado(order);
-                const fillRateCantidad = calculateFillRate(order.cantidadAsignada, order.cantidadSolicitada);
-                const fillRateRenglon = calculateFillRate(order.renglonesAsignados, order.renglonesSolicitados);
-                
-                row.innerHTML = `
-                    <td>${order.categoria}</td>
-                    <td title="${order.unidad}">${order.unidad}</td>
-                    <td>${order.tipoPedido}</td>
-                    <td title="${order.forma8Salmi}">${order.forma8Salmi}</td>
-                    <td title="${order.forma8Sisconi}">${order.forma8Sisconi}</td>
-                    <td>${order.grupo}</td>
-                    <td>${order.tipoSustancias}</td>
-                    <td><input type="number" class="number-input" value="${order.cantidadAsignada}" data-index="${globalIndex}" data-field="cantidadAsignada"></td>
-                    <td><input type="number" class="number-input" value="${order.cantidadSolicitada}" data-index="${globalIndex}" data-field="cantidadSolicitada"></td>
-                    <td><input type="number" class="number-input" value="${order.renglonesAsignados}" data-index="${globalIndex}" data-field="renglonesAsignados"></td>
-                    <td><input type="number" class="number-input" value="${order.renglonesSolicitados}" data-index="${globalIndex}" data-field="renglonesSolicitados"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaF8)}" data-index="${globalIndex}" data-field="fechaF8"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaReciboF8)}" data-index="${globalIndex}" data-field="fechaReciboF8"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaAsignacion)}" data-index="${globalIndex}" data-field="fechaAsignacion"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaSalidaSalmi)}" data-index="${globalIndex}" data-field="fechaSalidaSalmi"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaDespacho)}" data-index="${globalIndex}" data-field="fechaDespacho"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaFacturacion)}" data-index="${globalIndex}" data-field="fechaFacturacion"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEmpacado)}" data-index="${globalIndex}" data-field="fechaEmpacado"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaProyectadaEntrega)}" data-index="${globalIndex}" data-field="fechaProyectadaEntrega"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEntregaReal)}" data-index="${globalIndex}" data-field="fechaEntregaReal"></td>
-                    <td>
-                        <select class="status-select ${getStatusClass(order.estado)}" data-index="${globalIndex}" data-field="estado">
-                            <option value="F8 RECIBIDA" ${order.estado === 'F8 RECIBIDA' ? 'selected' : ''}>F8 RECIBIDA</option>
-                            <option value="F8 RECIBIDA SIN ASIGNAR" ${order.estado === 'F8 RECIBIDA SIN ASIGNAR' ? 'selected' : ''}>F8 RECIBIDA SIN ASIGNAR</option>
-                            <option value="EN ASIGNACION" ${order.estado === 'EN ASIGNACION' ? 'selected' : ''}>EN ASIGNACIÓN</option>
-                            <option value="SALIDA DE SALMI" ${order.estado === 'SALIDA DE SALMI' ? 'selected' : ''}>SALIDA DE SALMI</option>
-                            <option value="FACTURADO" ${order.estado === 'FACTURADO' ? 'selected' : ''}>FACTURADO</option>
-                            <option value="EMPACADO" ${order.estado === 'EMPACADO' ? 'selected' : ''}>EMPACADO</option>
-                            <option value="ENTREGADA" ${order.estado === 'ENTREGADA' ? 'selected' : ''}>ENTREGADA</option>
-                        </select>
-                    </td>
-                    <td>${tiempoProcesamiento}</td>
-                    <td>${pedidoCompletado ? '<span class="completed-badge">SI</span>' : 'NO'}</td>
-                    <td>${fillRateCantidad}</td>
-                    <td>${fillRateRenglon}</td>
-                    <td><input type="text" value="${order.comentarios}" data-index="${globalIndex}" data-field="comentarios" style="width: 120px; font-size: 11px;"></td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-            
-            addInputEventListeners();
-            updatePaginationInfo();
-        }
-
-        // Filtros y paginación (similar a versión anterior)
+        // Filtros con datos REALES
         function applyFilters() {
             const categoryFilter = document.getElementById('filterCategory').value;
             const unitFilter = document.getElementById('filterUnit').value;
@@ -919,17 +1017,21 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             
             filteredData = currentData.filter(order => {
-                if (categoryFilter && order.categoria !== categoryFilter) return false;
-                if (unitFilter && order.unidad !== unitFilter) return false;
-                if (typeFilter && order.tipoPedido !== typeFilter) return false;
-                if (grupoFilter && order.grupo !== grupoFilter) return false;
-                if (sustanciasFilter && order.tipoSustancias !== sustanciasFilter) return false;
-                if (statusFilter && order.estado !== statusFilter) return false;
+                if (categoryFilter && order['CATEGORIA DE UNIDAD EJECUTORA'] !== categoryFilter) return false;
+                if (unitFilter && order['UNIDAD EJECUTORA'] !== unitFilter) return false;
+                if (typeFilter && order['TIPO PEDIDO'] !== typeFilter) return false;
+                if (grupoFilter && order['GRUPO'] !== grupoFilter) return false;
+                if (sustanciasFilter && order['TIPO DE SUSTANCIAS'] !== sustanciasFilter) return false;
+                
+                if (statusFilter) {
+                    const estado = order['ESTADO'] || determineEstado(order);
+                    if (estado !== statusFilter) return false;
+                }
                 
                 if (searchTerm) {
                     const searchFields = [
-                        order.forma8Salmi, order.forma8Sisconi, order.grupo,
-                        order.tipoSustancias, order.unidad
+                        order['FORMA 8 SALMI'], order['FORMA 8 SISCONI'], order['GRUPO'],
+                        order['TIPO DE SUSTANCIAS'], order['UNIDAD EJECUTORA']
                     ];
                     const matches = searchFields.some(field => 
                         field && field.toLowerCase().includes(searchTerm)
@@ -942,6 +1044,7 @@
             currentPage = 1;
             renderTable();
             updateKPIs();
+            updateCharts();
         }
 
         function clearFilters() {
@@ -956,6 +1059,7 @@
             currentPage = 1;
             renderTable();
             updateKPIs();
+            updateCharts();
         }
 
         function updatePaginationInfo() {
@@ -997,10 +1101,11 @@
                     
                     if (index >= 0 && index < filteredData.length) {
                         filteredData[index][field] = value;
-                        if (field.startsWith('fecha') || field === 'estado' || 
-                            field.includes('cantidad') || field.includes('renglones')) {
+                        if (field.startsWith('FECHA') || field === 'ESTADO' || 
+                            field.includes('CANTIDAD')) {
                             renderTable();
                             updateKPIs();
+                            updateCharts();
                         }
                     }
                 });
@@ -1008,8 +1113,9 @@
         }
 
         function saveChanges() {
+            // En una implementación real, aquí se enviarían los cambios al Google Sheets
             currentData = [...filteredData];
-            alert('Cambios guardados correctamente');
+            alert('Cambios guardados localmente. En producción se guardarían en Google Sheets.');
             updateLastUpdate();
         }
 
