@@ -52,10 +52,38 @@
             margin: 0;
         }
         
+        .kpi-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: 10px 0;
+        }
+        
+        .kpi-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        
         .controls {
             display: flex;
             gap: 10px;
             margin: 20px 0;
+            flex-wrap: wrap;
         }
         
         .filter-group {
@@ -89,6 +117,8 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             overflow: hidden;
             margin-bottom: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
         
         table {
@@ -104,9 +134,10 @@
         }
         
         th, td {
-            padding: 12px 15px;
+            padding: 8px 10px;
             text-align: left;
             border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
         }
         
         tbody tr:hover {
@@ -115,9 +146,10 @@
         
         .status-select {
             width: 100%;
-            padding: 6px;
+            padding: 4px;
             border-radius: 4px;
             border: 1px solid #ddd;
+            font-size: 0.8rem;
         }
         
         .status-F8-RECIBIDA {
@@ -150,11 +182,11 @@
         }
         
         .progress-bar {
-            height: 8px;
+            height: 6px;
             background-color: #eee;
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
-            margin-top: 5px;
+            margin-top: 3px;
         }
         
         .progress-fill {
@@ -164,17 +196,19 @@
         
         .date-input {
             width: 100%;
-            padding: 6px;
+            padding: 4px;
             border-radius: 4px;
             border: 1px solid #ddd;
+            font-size: 0.8rem;
         }
         
         .number-input {
             width: 100%;
-            padding: 6px;
+            padding: 4px;
             border-radius: 4px;
             border: 1px solid #ddd;
             text-align: right;
+            font-size: 0.8rem;
         }
         
         .footer {
@@ -184,13 +218,30 @@
             font-size: 0.9rem;
         }
         
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .pagination button {
+            padding: 8px 15px;
+        }
+        
+        .pagination-info {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
         @media (max-width: 1200px) {
             .table-container {
                 overflow-x: auto;
             }
             
             table {
-                min-width: 1200px;
+                min-width: 2000px;
             }
         }
     </style>
@@ -209,6 +260,34 @@
     </header>
     
     <div class="container">
+        <!-- KPIs de Seguimiento -->
+        <div class="kpi-dashboard">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Pedidos</div>
+                <div class="kpi-value" id="totalOrders">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Pendientes</div>
+                <div class="kpi-value" id="pendingOrders">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">En Proceso</div>
+                <div class="kpi-value" id="inProcessOrders">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Completados</div>
+                <div class="kpi-value" id="completedOrders">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Tiempo Promedio</div>
+                <div class="kpi-value" id="avgProcessingTime">0d</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Fill Rate Promedio</div>
+                <div class="kpi-value" id="avgFillRate">0%</div>
+            </div>
+        </div>
+        
         <div class="controls">
             <div class="filter-group">
                 <select id="filterCategory">
@@ -249,37 +328,41 @@
                 <button id="clearFilters">Limpiar Filtros</button>
             </div>
         </div>
+
+        <div class="pagination-info" id="paginationInfo">
+            Mostrando 0 de 0 pedidos
+        </div>
         
         <div class="table-container">
             <table id="ordersTable">
                 <thead>
                     <tr>
-                        <th>CATEGORIA DE UNIDAD EJECUTORA</th>
+                        <th>CATEGORIA</th>
                         <th>UNIDAD EJECUTORA</th>
                         <th>TIPO PEDIDO</th>
                         <th>FORMA 8 SALMI</th>
                         <th>FORMA 8 SISCONI</th>
                         <th>DIVISION</th>
                         <th>GRUPO</th>
-                        <th>TIPO DE SUSTANCIAS</th>
-                        <th>CANTIDAD TOTAL ASIGNADA</th>
-                        <th>CANTIDAD TOTAL SOLICITADA</th>
-                        <th>CANTIDAD DE RENGLONES ASIGNADOS</th>
-                        <th>CANTIDAD DE RENGLONES SOLICITADOS</th>
-                        <th>FECHA DE LA F8</th>
-                        <th>FECHA DE RECIBO DE LA F8</th>
-                        <th>FECHA DE ASIGNACION</th>
-                        <th>FECHA DE SALIDA EN SALMI</th>
-                        <th>FECHA DE DESPACHO</th>
-                        <th>FECHA DE FACTURACION EN COMPUTO</th>
-                        <th>FECHA DE EMPACADO</th>
-                        <th>FECHA PROYECTADA DE ENTREGA</th>
-                        <th>FECHA DE ENTREGA REAL</th>
+                        <th>TIPO SUSTANCIAS</th>
+                        <th>CANT. TOTAL ASIG.</th>
+                        <th>CANT. TOTAL SOL.</th>
+                        <th>RENGL. ASIG.</th>
+                        <th>RENGL. SOL.</th>
+                        <th>FECHA F8</th>
+                        <th>FECHA RECIBO F8</th>
+                        <th>FECHA ASIGNACION</th>
+                        <th>FECHA SALIDA SALMI</th>
+                        <th>FECHA DESPACHO</th>
+                        <th>FECHA FACTURACION</th>
+                        <th>FECHA EMPACADO</th>
+                        <th>F. PROY. ENTREGA</th>
+                        <th>F. ENTREGA REAL</th>
                         <th>ESTADO</th>
-                        <th>TIEMPO DE PROCESAMIENTO</th>
+                        <th>TIEMPO PROC.</th>
                         <th>% AVANCE</th>
-                        <th>FILL RATE POR CANTIDAD</th>
-                        <th>FILL RATE POR RENGLON</th>
+                        <th>FILL RATE CANT.</th>
+                        <th>FILL RATE RENGL.</th>
                         <th>COMENTARIOS</th>
                     </tr>
                 </thead>
@@ -288,6 +371,12 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="pagination">
+            <button id="prevPage">Anterior</button>
+            <span id="pageInfo">Página 1 de 1</span>
+            <button id="nextPage">Siguiente</button>
+        </div>
         
         <div class="footer">
             <p>Sistema de seguimiento de pedidos de medicamentos - Actualizado: <span id="lastUpdate"></span></p>
@@ -295,118 +384,127 @@
     </div>
 
     <script>
-        // Datos de ejemplo basados en el archivo proporcionado
-        const ordersData = [
-            {
-                categoria: "CEDIS",
-                unidad: "CEDIS CHIRIQUÍ",
-                tipoPedido: "URGENCIA",
-                forma8Salmi: "CDCH-2025-264",
-                forma8Sisconi: "0812c3-2025-264",
-                division: "MEDICAMENTOS",
-                grupo: "G1 TABLETAS",
-                tipoSustancias: "NO CONTROLADA",
-                cantidadAsignada: "",
-                cantidadSolicitada: "",
-                renglonesAsignados: "",
-                renglonesSolicitados: "",
-                fechaF8: "",
-                fechaReciboF8: "2025-11-06 00:00:00",
-                fechaAsignacion: "",
-                fechaSalidaSalmi: "",
-                fechaDespacho: "",
-                fechaFacturacion: "",
-                fechaEmpacado: "",
-                fechaProyectadaEntrega: "",
-                fechaEntregaReal: "",
-                estado: "F8 RECIBIDA",
-                comentarios: ""
-            },
-            {
-                categoria: "CEDIS",
-                unidad: "CEDIS CHIRIQUÍ",
-                tipoPedido: "URGENCIA",
-                forma8Salmi: "CDCH-2025-266",
-                forma8Sisconi: "0812c3-2025-266",
-                division: "MEDICAMENTOS",
-                grupo: "G2 SOLUCIÓN",
-                tipoSustancias: "NO CONTROLADA",
-                cantidadAsignada: "",
-                cantidadSolicitada: "",
-                renglonesAsignados: "",
-                renglonesSolicitados: "",
-                fechaF8: "",
-                fechaReciboF8: "2025-11-06 00:00:00",
-                fechaAsignacion: "",
-                fechaSalidaSalmi: "",
-                fechaDespacho: "",
-                fechaFacturacion: "",
-                fechaEmpacado: "",
-                fechaProyectadaEntrega: "",
-                fechaEntregaReal: "",
-                estado: "F8 RECIBIDA",
-                comentarios: ""
-            },
-            {
-                categoria: "CEDIS",
-                unidad: "CEDIS CHIRIQUÍ",
-                tipoPedido: "URGENCIA",
-                forma8Salmi: "CDCH-2025-267",
-                forma8Sisconi: "0812c3-2025-267",
-                division: "MEDICAMENTOS",
-                grupo: "G2 SOLUCIÓN",
-                tipoSustancias: "NO CONTROLADA",
-                cantidadAsignada: "",
-                cantidadSolicitada: "",
-                renglonesAsignados: "",
-                renglonesSolicitados: "",
-                fechaF8: "",
-                fechaReciboF8: "2025-11-06 00:00:00",
-                fechaAsignacion: "",
-                fechaSalidaSalmi: "",
-                fechaDespacho: "",
-                fechaFacturacion: "",
-                fechaEmpacado: "",
-                fechaProyectadaEntrega: "",
-                fechaEntregaReal: "",
-                estado: "F8 RECIBIDA",
-                comentarios: ""
-            },
-            // Más datos aquí...
-        ];
+        // Función para generar datos de ejemplo basados en el patrón del archivo
+        function generateSampleData(count) {
+            const data = [];
+            const categories = ["CEDIS", "HOSPITAL"];
+            const units = [
+                "CEDIS CHIRIQUÍ", "CEDIS DIVISA", 
+                "C. H. M. DR. ARNULFO ARIAS MADRID", 
+                "CIUDAD DE LA SALUD", "HOSP. DE CHEPO"
+            ];
+            const types = ["URGENCIA", "MENSUAL"];
+            const divisions = ["MEDICAMENTOS", "ODONTOLOGÍA"];
+            const grupos = ["G1 TABLETAS", "G2 SOLUCIÓN", "G3 JARABE", "G4 CREMAS", "G5 ÓVULOS", "G11 ODONTOLOGÍA"];
+            const sustancias = ["NO CONTROLADA", "CONTROLADA"];
+            
+            // Fechas de ejemplo
+            const fechas = [
+                "2025-11-06", "2025-10-28", "2025-10-21", "2025-10-20", 
+                "2025-09-08", "2025-09-01", "2025-10-08", "2025-10-02",
+                "2025-09-24", "2025-09-22", "2025-09-19", "2025-09-17",
+                "2025-09-10", "2025-09-03", "2025-10-29", "2025-10-24"
+            ];
+            
+            for (let i = 0; i < count; i++) {
+                const categoria = categories[Math.floor(Math.random() * categories.length)];
+                const unidad = units[Math.floor(Math.random() * units.length)];
+                const tipoPedido = types[Math.floor(Math.random() * types.length)];
+                const division = divisions[Math.floor(Math.random() * divisions.length)];
+                const grupo = division === "ODONTOLOGÍA" ? "G11 ODONTOLOGÍA" : grupos[Math.floor(Math.random() * 5)];
+                const tipoSustancias = sustancias[Math.floor(Math.random() * sustancias.length)];
+                
+                // Generar números de forma 8 basados en el patrón
+                let forma8Salmi, forma8Sisconi;
+                if (unidad === "CEDIS CHIRIQUÍ") {
+                    forma8Salmi = `CDCH-2025-${2000 + i}`;
+                    forma8Sisconi = `0812c3-2025-${2000 + i}`;
+                } else if (unidad === "CEDIS DIVISA") {
+                    forma8Salmi = `CDDI-2025-${200 + i}`;
+                    forma8Sisconi = `0812c2-2025-${200 + i}`;
+                } else if (unidad.includes("ARNULFO ARIAS")) {
+                    forma8Salmi = `8031-2025-${Math.floor(Math.random() * 100)}`;
+                    forma8Sisconi = `831-2025-${Math.floor(Math.random() * 100)}`;
+                } else if (unidad === "CIUDAD DE LA SALUD") {
+                    forma8Salmi = `8107-2025-${2000 + i}`;
+                    forma8Sisconi = `8107-2025-${2000 + i}`;
+                } else if (unidad === "HOSP. DE CHEPO") {
+                    forma8Salmi = `8047-2025-${3000 + i}`;
+                    forma8Sisconi = `847-2025-${3000 + i}`;
+                }
+                
+                data.push({
+                    categoria,
+                    unidad,
+                    tipoPedido,
+                    forma8Salmi,
+                    forma8Sisconi,
+                    division,
+                    grupo,
+                    tipoSustancias,
+                    cantidadAsignada: Math.random() > 0.7 ? Math.floor(Math.random() * 1000) : "",
+                    cantidadSolicitada: Math.random() > 0.7 ? Math.floor(Math.random() * 1000) : "",
+                    renglonesAsignados: Math.random() > 0.7 ? Math.floor(Math.random() * 50) : "",
+                    renglonesSolicitados: Math.random() > 0.7 ? Math.floor(Math.random() * 50) : "",
+                    fechaF8: Math.random() > 0.8 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaReciboF8: fechas[Math.floor(Math.random() * fechas.length)],
+                    fechaAsignacion: Math.random() > 0.6 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaSalidaSalmi: Math.random() > 0.7 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaDespacho: Math.random() > 0.8 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaFacturacion: Math.random() > 0.7 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaEmpacado: Math.random() > 0.6 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaProyectadaEntrega: Math.random() > 0.5 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    fechaEntregaReal: Math.random() > 0.3 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
+                    estado: ["F8 RECIBIDA", "F8 RECIBIDA SIN ASIGNAR", "EN ASIGNACION", "SALIDA DE SALMI", "FACTURADO", "EMPACADO", "ENTREGADA"][Math.floor(Math.random() * 7)],
+                    comentarios: Math.random() > 0.9 ? "Comentario de ejemplo" : ""
+                });
+            }
+            
+            return data;
+        }
+
+        // Generar 3453 pedidos de ejemplo
+        const ordersData = generateSampleData(3453);
 
         // Estado global de la aplicación
         let currentData = [...ordersData];
         let filteredData = [...ordersData];
+        let currentPage = 1;
+        const itemsPerPage = 50;
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
             renderTable();
+            updateKPIs();
             updateLastUpdate();
+            updatePaginationInfo();
             
-            // Event listeners para los filtros
+            // Event listeners
             document.getElementById('applyFilters').addEventListener('click', applyFilters);
             document.getElementById('clearFilters').addEventListener('click', clearFilters);
             document.getElementById('saveBtn').addEventListener('click', saveChanges);
             document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('prevPage').addEventListener('click', prevPage);
+            document.getElementById('nextPage').addEventListener('click', nextPage);
             
-            // Aplicar filtros al presionar Enter en el campo de búsqueda
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    applyFilters();
-                }
+                if (e.key === 'Enter') applyFilters();
             });
         });
 
-        // Renderizar la tabla con los datos
+        // Renderizar la tabla con paginación
         function renderTable() {
             const tableBody = document.getElementById('ordersTableBody');
             tableBody.innerHTML = '';
             
-            filteredData.forEach((order, index) => {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentPageData = filteredData.slice(startIndex, endIndex);
+            
+            currentPageData.forEach((order, index) => {
+                const globalIndex = startIndex + index;
                 const row = document.createElement('tr');
                 
-                // Calcular valores dinámicos
                 const tiempoProcesamiento = calculateProcessingTime(order);
                 const porcentajeAvance = calculateProgressPercentage(order);
                 const fillRateCantidad = calculateFillRate(order.cantidadAsignada, order.cantidadSolicitada);
@@ -421,21 +519,21 @@
                     <td>${order.division}</td>
                     <td>${order.grupo}</td>
                     <td>${order.tipoSustancias}</td>
-                    <td><input type="number" class="number-input" value="${order.cantidadAsignada}" data-index="${index}" data-field="cantidadAsignada"></td>
-                    <td><input type="number" class="number-input" value="${order.cantidadSolicitada}" data-index="${index}" data-field="cantidadSolicitada"></td>
-                    <td><input type="number" class="number-input" value="${order.renglonesAsignados}" data-index="${index}" data-field="renglonesAsignados"></td>
-                    <td><input type="number" class="number-input" value="${order.renglonesSolicitados}" data-index="${index}" data-field="renglonesSolicitados"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaF8)}" data-index="${index}" data-field="fechaF8"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaReciboF8)}" data-index="${index}" data-field="fechaReciboF8"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaAsignacion)}" data-index="${index}" data-field="fechaAsignacion"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaSalidaSalmi)}" data-index="${index}" data-field="fechaSalidaSalmi"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaDespacho)}" data-index="${index}" data-field="fechaDespacho"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaFacturacion)}" data-index="${index}" data-field="fechaFacturacion"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEmpacado)}" data-index="${index}" data-field="fechaEmpacado"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaProyectadaEntrega)}" data-index="${index}" data-field="fechaProyectadaEntrega"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEntregaReal)}" data-index="${index}" data-field="fechaEntregaReal"></td>
+                    <td><input type="number" class="number-input" value="${order.cantidadAsignada}" data-index="${globalIndex}" data-field="cantidadAsignada"></td>
+                    <td><input type="number" class="number-input" value="${order.cantidadSolicitada}" data-index="${globalIndex}" data-field="cantidadSolicitada"></td>
+                    <td><input type="number" class="number-input" value="${order.renglonesAsignados}" data-index="${globalIndex}" data-field="renglonesAsignados"></td>
+                    <td><input type="number" class="number-input" value="${order.renglonesSolicitados}" data-index="${globalIndex}" data-field="renglonesSolicitados"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaF8)}" data-index="${globalIndex}" data-field="fechaF8"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaReciboF8)}" data-index="${globalIndex}" data-field="fechaReciboF8"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaAsignacion)}" data-index="${globalIndex}" data-field="fechaAsignacion"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaSalidaSalmi)}" data-index="${globalIndex}" data-field="fechaSalidaSalmi"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaDespacho)}" data-index="${globalIndex}" data-field="fechaDespacho"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaFacturacion)}" data-index="${globalIndex}" data-field="fechaFacturacion"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEmpacado)}" data-index="${globalIndex}" data-field="fechaEmpacado"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaProyectadaEntrega)}" data-index="${globalIndex}" data-field="fechaProyectadaEntrega"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEntregaReal)}" data-index="${globalIndex}" data-field="fechaEntregaReal"></td>
                     <td>
-                        <select class="status-select ${getStatusClass(order.estado)}" data-index="${index}" data-field="estado">
+                        <select class="status-select ${getStatusClass(order.estado)}" data-index="${globalIndex}" data-field="estado">
                             <option value="F8 RECIBIDA" ${order.estado === 'F8 RECIBIDA' ? 'selected' : ''}>F8 RECIBIDA</option>
                             <option value="F8 RECIBIDA SIN ASIGNAR" ${order.estado === 'F8 RECIBIDA SIN ASIGNAR' ? 'selected' : ''}>F8 RECIBIDA SIN ASIGNAR</option>
                             <option value="EN ASIGNACION" ${order.estado === 'EN ASIGNACION' ? 'selected' : ''}>EN ASIGNACIÓN</option>
@@ -454,68 +552,90 @@
                     </td>
                     <td>${fillRateCantidad}</td>
                     <td>${fillRateRenglon}</td>
-                    <td><input type="text" value="${order.comentarios}" data-index="${index}" data-field="comentarios"></td>
+                    <td><input type="text" value="${order.comentarios}" data-index="${globalIndex}" data-field="comentarios" style="width: 120px; font-size: 0.8rem;"></td>
                 `;
                 
                 tableBody.appendChild(row);
             });
             
-            // Agregar event listeners a los inputs después de renderizar
             addInputEventListeners();
+            updatePaginationInfo();
         }
 
-        // Calcular tiempo de procesamiento
-        function calculateProcessingTime(order) {
-            if (!order.fechaReciboF8) return "N/A";
+        // Actualizar KPIs
+        function updateKPIs() {
+            const totalOrders = filteredData.length;
+            const pendingOrders = filteredData.filter(order => 
+                order.estado === 'F8 RECIBIDA' || order.estado === 'F8 RECIBIDA SIN ASIGNAR'
+            ).length;
+            const inProcessOrders = filteredData.filter(order => 
+                order.estado === 'EN ASIGNACION' || order.estado === 'SALIDA DE SALMI' || 
+                order.estado === 'FACTURADO' || order.estado === 'EMPACADO'
+            ).length;
+            const completedOrders = filteredData.filter(order => 
+                order.estado === 'ENTREGADA'
+            ).length;
             
+            const totalProcessingTime = filteredData.reduce((sum, order) => {
+                return sum + (calculateProcessingTimeDays(order) || 0);
+            }, 0);
+            const avgProcessingTime = totalOrders > 0 ? Math.round(totalProcessingTime / totalOrders) : 0;
+            
+            const totalFillRate = filteredData.reduce((sum, order) => {
+                const fillRate = parseFloat(calculateFillRate(order.cantidadAsignada, order.cantidadSolicitada)) || 0;
+                return sum + fillRate;
+            }, 0);
+            const avgFillRate = totalOrders > 0 ? (totalFillRate / totalOrders).toFixed(1) : 0;
+            
+            document.getElementById('totalOrders').textContent = totalOrders.toLocaleString();
+            document.getElementById('pendingOrders').textContent = pendingOrders.toLocaleString();
+            document.getElementById('inProcessOrders').textContent = inProcessOrders.toLocaleString();
+            document.getElementById('completedOrders').textContent = completedOrders.toLocaleString();
+            document.getElementById('avgProcessingTime').textContent = `${avgProcessingTime}d`;
+            document.getElementById('avgFillRate').textContent = `${avgFillRate}%`;
+        }
+
+        // Funciones de cálculo (igual que antes)
+        function calculateProcessingTimeDays(order) {
+            if (!order.fechaReciboF8) return 0;
             const fechaRecibo = new Date(order.fechaReciboF8);
             const fechaActual = new Date();
-            
-            // Si hay fecha de entrega real, usar esa
             if (order.fechaEntregaReal) {
                 const fechaEntrega = new Date(order.fechaEntregaReal);
                 const diffTime = Math.abs(fechaEntrega - fechaRecibo);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return `${diffDays} días`;
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
-            
-            // Si no, calcular desde la fecha de recepción hasta hoy
             const diffTime = Math.abs(fechaActual - fechaRecibo);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return `${diffDays} días`;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
-        // Calcular porcentaje de avance
+        function calculateProcessingTime(order) {
+            const days = calculateProcessingTimeDays(order);
+            return days > 0 ? `${days}d` : "N/A";
+        }
+
         function calculateProgressPercentage(order) {
             const dateFields = [
                 'fechaF8', 'fechaReciboF8', 'fechaAsignacion', 
                 'fechaSalidaSalmi', 'fechaDespacho', 'fechaFacturacion', 
                 'fechaEmpacado', 'fechaProyectadaEntrega', 'fechaEntregaReal'
             ];
-            
             let completedFields = 0;
-            
             dateFields.forEach(field => {
                 if (order[field]) completedFields++;
             });
-            
             return Math.round((completedFields / dateFields.length) * 100);
         }
 
-        // Calcular fill rate
         function calculateFillRate(asignado, solicitado) {
-            if (!asignado || !solicitado || solicitado === 0) return "N/A";
-            
+            if (!asignado || !solicitado || solicitado === 0 || solicitado === "0") return "0%";
             const asignadoNum = parseFloat(asignado);
             const solicitadoNum = parseFloat(solicitado);
-            
-            if (isNaN(asignadoNum) || isNaN(solicitadoNum)) return "N/A";
-            
+            if (isNaN(asignadoNum) || isNaN(solicitadoNum)) return "0%";
             const fillRate = (asignadoNum / solicitadoNum) * 100;
-            return `${fillRate.toFixed(2)}%`;
+            return `${fillRate.toFixed(1)}%`;
         }
 
-        // Obtener clase CSS para el estado
         function getStatusClass(status) {
             const statusMap = {
                 'F8 RECIBIDA': 'status-F8-RECIBIDA',
@@ -526,28 +646,17 @@
                 'EMPACADO': 'status-EMPACADO',
                 'ENTREGADA': 'status-ENTREGADA'
             };
-            
             return statusMap[status] || '';
         }
 
-        // Formatear fecha para input type="date"
         function formatDateForInput(dateString) {
             if (!dateString) return '';
-            
-            // Si ya está en formato YYYY-MM-DD
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                return dateString;
-            }
-            
-            // Si está en formato con hora
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
-                return dateString.split(' ')[0];
-            }
-            
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) return dateString.split(' ')[0];
             return '';
         }
 
-        // Aplicar filtros
+        // Filtros y paginación
         function applyFilters() {
             const categoryFilter = document.getElementById('filterCategory').value;
             const unitFilter = document.getElementById('filterUnit').value;
@@ -556,97 +665,106 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             
             filteredData = currentData.filter(order => {
-                // Filtros por selección
                 if (categoryFilter && order.categoria !== categoryFilter) return false;
                 if (unitFilter && order.unidad !== unitFilter) return false;
                 if (typeFilter && order.tipoPedido !== typeFilter) return false;
                 if (statusFilter && order.estado !== statusFilter) return false;
                 
-                // Filtro de búsqueda
                 if (searchTerm) {
                     const searchFields = [
-                        order.forma8Salmi,
-                        order.forma8Sisconi,
-                        order.division,
-                        order.grupo,
-                        order.tipoSustancias
+                        order.forma8Salmi, order.forma8Sisconi, order.division,
+                        order.grupo, order.tipoSustancias, order.unidad
                     ];
-                    
                     const matches = searchFields.some(field => 
                         field && field.toLowerCase().includes(searchTerm)
                     );
-                    
                     if (!matches) return false;
                 }
-                
                 return true;
             });
             
+            currentPage = 1;
             renderTable();
+            updateKPIs();
         }
 
-        // Limpiar filtros
         function clearFilters() {
             document.getElementById('filterCategory').value = '';
             document.getElementById('filterUnit').value = '';
             document.getElementById('filterType').value = '';
             document.getElementById('filterStatus').value = '';
             document.getElementById('searchInput').value = '';
-            
             filteredData = [...currentData];
+            currentPage = 1;
             renderTable();
+            updateKPIs();
         }
 
-        // Agregar event listeners a los inputs
+        function updatePaginationInfo() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            const startItem = (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
+            
+            document.getElementById('paginationInfo').textContent = 
+                `Mostrando ${startItem}-${endItem} de ${filteredData.length.toLocaleString()} pedidos`;
+            document.getElementById('pageInfo').textContent = 
+                `Página ${currentPage} de ${totalPages}`;
+            
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        }
+
         function addInputEventListeners() {
             const inputs = document.querySelectorAll('input, select');
-            
             inputs.forEach(input => {
                 input.addEventListener('change', function() {
                     const index = parseInt(this.getAttribute('data-index'));
                     const field = this.getAttribute('data-field');
                     const value = this.value;
                     
-                    // Actualizar el dato en el array
                     if (index >= 0 && index < filteredData.length) {
                         filteredData[index][field] = value;
-                        
-                        // Si el campo actualizado afecta cálculos, volver a renderizar la fila
                         if (field.startsWith('fecha') || field === 'estado' || 
                             field.includes('cantidad') || field.includes('renglones')) {
                             renderTable();
+                            updateKPIs();
                         }
                     }
                 });
             });
         }
 
-        // Guardar cambios
         function saveChanges() {
-            // En una implementación real, aquí se enviarían los datos al servidor
-            // Por ahora, solo actualizamos currentData y mostramos un mensaje
             currentData = [...filteredData];
             alert('Cambios guardados correctamente');
             updateLastUpdate();
         }
 
-        // Exportar a CSV
         function exportToCSV() {
-            // En una implementación real, aquí se generaría y descargaría un archivo CSV
             alert('Funcionalidad de exportación a CSV - En desarrollo');
         }
 
-        // Actualizar fecha de última actualización
         function updateLastUpdate() {
             const now = new Date();
             const formattedDate = now.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
             });
-            
             document.getElementById('lastUpdate').textContent = formattedDate;
         }
     </script>
