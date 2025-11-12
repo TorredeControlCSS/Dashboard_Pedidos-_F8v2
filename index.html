@@ -713,7 +713,7 @@
             });
         }
 
-        // Renderizar tabla con datos REALES
+        // Renderizar tabla con datos REALES - CORREGIDA
         function renderTable() {
             const tableBody = document.getElementById('ordersTableBody');
             tableBody.innerHTML = '';
@@ -754,7 +754,8 @@
                     <td><input type="number" class="number-input" value="${order['CANTIDAD DE RENGLONES ASIGNADOS'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD DE RENGLONES ASIGNADOS"></td>
                     <td><input type="number" class="number-input" value="${order['CANTIDAD DE RENGLONES SOLICITADOS'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD DE RENGLONES SOLICITADOS"></td>
                     <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE LA F8'])}" data-index="${globalIndex}" data-field="FECHA DE LA F8"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE RECIBO DE LA F8'])}" data-index="${globalIndex}" data-field="FECHA DE RECIBO DE LA F8"></td>
+                    <!-- CORRECCIÓN: Fecha de Recibo como texto, no editable -->
+                    <td>${order['FECHA DE RECIBO DE LA F8'] || ''}</td>
                     <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE ASIGNACION'])}" data-index="${globalIndex}" data-field="FECHA DE ASIGNACION"></td>
                     <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE SALIDA EN SALMI'])}" data-index="${globalIndex}" data-field="FECHA DE SALIDA EN SALMI"></td>
                     <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE DESPACHO'])}" data-index="${globalIndex}" data-field="FECHA DE DESPACHO"></td>
@@ -889,7 +890,7 @@
             document.getElementById('totalAsignado').textContent = totalAsignado.toLocaleString();
         }
 
-        // Actualizar gráficos con datos REALES
+        // Actualizar gráficos con datos REALES - CORREGIDO
         function updateCharts() {
             updateEvolutionChart();
             updateStatusChart();
@@ -898,18 +899,33 @@
         function updateEvolutionChart() {
             const ctx = document.getElementById('evolutionChart').getContext('2d');
             
-            // Agrupar por fecha de recepción (usando datos REALES)
-            const dates = [...new Set(currentData.map(item => item['FECHA DE RECIBO DE LA F8']))]
-                .filter(date => date)
-                .sort()
-                .slice(-15);
+            // CORRECCIÓN: Usar FECHA DE RECIBO DE LA F8 para recibidos y FECHA DE ENTREGA REAL para completados
+            const receivedDates = [...new Set(currentData.map(item => {
+                const fecha = item['FECHA DE RECIBO DE LA F8'];
+                return fecha ? fecha.split(' ')[0] : null; // Tomar solo la parte de la fecha
+            }))].filter(date => date);
             
-            const receivedData = dates.map(date => 
-                currentData.filter(item => item['FECHA DE RECIBO DE LA F8'] === date).length
+            const completedDates = [...new Set(currentData.map(item => {
+                const fecha = item['FECHA DE ENTREGA REAL'];
+                return fecha ? fecha.split(' ')[0] : null;
+            }))].filter(date => date);
+            
+            // Combinar y ordenar todas las fechas únicas
+            const allDates = [...new Set([...receivedDates, ...completedDates])].sort();
+            const displayDates = allDates.slice(-15); // Últimos 15 días
+            
+            const receivedData = displayDates.map(date => 
+                currentData.filter(item => {
+                    const itemDate = item['FECHA DE RECIBO DE LA F8'];
+                    return itemDate && itemDate.split(' ')[0] === date;
+                }).length
             );
             
-            const completedData = dates.map(date => 
-                currentData.filter(item => item['FECHA DE ENTREGA REAL'] === date).length
+            const completedData = displayDates.map(date => 
+                currentData.filter(item => {
+                    const itemDate = item['FECHA DE ENTREGA REAL'];
+                    return itemDate && itemDate.split(' ')[0] === date;
+                }).length
             );
 
             if (evolutionChart) {
@@ -919,7 +935,7 @@
             evolutionChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: dates,
+                    labels: displayDates,
                     datasets: [
                         {
                             label: 'Pedidos Recibidos',
@@ -953,6 +969,12 @@
                             title: {
                                 display: true,
                                 text: 'Cantidad de Pedidos'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha'
                             }
                         }
                     }
