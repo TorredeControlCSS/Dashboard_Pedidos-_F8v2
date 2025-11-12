@@ -3,774 +3,652 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Gestión de Pedidos - Editable</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Dashboard - Preparación de Pedidos de Medicamentos</title>
     <style>
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
-            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
             --light-color: #ecf0f1;
-            --success-color: #2ecc71;
+            --dark-color: #34495e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background-color: #f5f7fa;
             color: #333;
+            line-height: 1.6;
         }
         
-        .dashboard-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 1.5rem 0;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
         }
         
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
-            margin-bottom: 1.5rem;
-            height: 100%;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-        }
-        
-        .card-header {
+        header {
             background-color: var(--primary-color);
             color: white;
-            border-radius: 10px 10px 0 0 !important;
-            font-weight: 600;
+            padding: 15px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
-        .metric-card {
-            text-align: center;
-            padding: 1.5rem;
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .metric-value {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0.5rem 0;
+        h1 {
+            font-size: 1.8rem;
+            margin: 0;
         }
         
-        .metric-label {
-            font-size: 0.9rem;
-            color: #6c757d;
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
         }
         
-        .progress {
-            height: 10px;
-            margin-top: 10px;
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
-        .status-badge {
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
+        select, input, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
         }
         
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
         
-        .status-completed {
-            background-color: #d1edff;
-            color: #0c5460;
+        button:hover {
+            background-color: #2980b9;
         }
         
-        .status-delayed {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-in-process {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-        
-        .filter-section {
+        .table-container {
             background-color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 20px;
         }
         
-        .data-table {
-            font-size: 0.75rem;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
         
-        .data-table th {
-            background-color: var(--light-color);
-            font-weight: 600;
+        thead {
+            background-color: var(--primary-color);
+            color: white;
             position: sticky;
             top: 0;
         }
         
-        .chart-container {
-            position: relative;
-            height: 300px;
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-select {
             width: 100%;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
         }
         
-        .loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
+        .status-F8-RECIBIDA {
+            background-color: #e8f5e9;
         }
         
-        .last-update {
-            font-size: 0.8rem;
-            color: #6c757d;
+        .status-F8-RECIBIDA-SIN-ASIGNAR {
+            background-color: #fff3e0;
+        }
+        
+        .status-EN-ASIGNACION {
+            background-color: #e3f2fd;
+        }
+        
+        .status-SALIDA-DE-SALMI {
+            background-color: #f3e5f5;
+        }
+        
+        .status-FACTURADO {
+            background-color: #e8eaf6;
+        }
+        
+        .status-EMPACADO {
+            background-color: #e0f2f1;
+        }
+        
+        .status-ENTREGADA {
+            background-color: #e8f5e9;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--success-color);
+        }
+        
+        .date-input {
+            width: 100%;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .number-input {
+            width: 100%;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
             text-align: right;
         }
         
-        .table-container {
-            max-height: 600px;
-            overflow-y: auto;
+        .footer {
+            text-align: center;
+            padding: 15px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
         }
         
-        .action-btn {
-            margin: 0 2px;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-        }
-        
-        .debug-info {
-            font-size: 0.7rem;
-            color: #6c757d;
-            background-color: #f8f9fa;
-            padding: 0.5rem;
-            border-radius: 5px;
-            margin-top: 0.5rem;
-        }
-        
-        .form-number {
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .editable-field {
-            background-color: #fff3cd;
-            border: 1px dashed #ffc107;
-            border-radius: 3px;
-            padding: 2px 4px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .editable-field:hover {
-            background-color: #ffeaa7;
-            border: 1px solid #fdcb6e;
-        }
-        
-        .editable-field:focus {
-            background-color: white;
-            border: 2px solid #3498db;
-            outline: none;
-        }
-        
-        .save-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.7rem;
-        }
-        
-        .save-btn:hover {
-            background-color: #218838;
-        }
-        
-        .cancel-btn {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.7rem;
-            margin-left: 5px;
-        }
-        
-        .cancel-btn:hover {
-            background-color: #5a6268;
-        }
-        
-        .edit-mode {
-            background-color: #e8f5e8 !important;
+        @media (max-width: 1200px) {
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 1200px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-header">
+    <header>
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard de Gestión de Pedidos</h1>
-                    <p class="mb-0">Sistema de seguimiento y actualización en tiempo real</p>
-                </div>
-                <div class="col-md-6 text-end">
-                    <button id="refresh-btn" class="btn btn-light me-2">
-                        <i class="fas fa-sync-alt"></i> Actualizar
-                    </button>
-                    <button id="edit-mode-btn" class="btn btn-warning">
-                        <i class="fas fa-edit"></i> Modo Edición
-                    </button>
+            <div class="header-content">
+                <h1>Dashboard - Preparación de Pedidos de Medicamentos</h1>
+                <div>
+                    <button id="saveBtn">Guardar Cambios</button>
+                    <button id="exportBtn">Exportar a CSV</button>
                 </div>
             </div>
         </div>
-    </div>
-
+    </header>
+    
     <div class="container">
-        <!-- Filtros -->
-        <div class="filter-section">
-            <div class="row">
-                <div class="col-md-2">
-                    <label for="date-range" class="form-label">Rango de Fechas</label>
-                    <select class="form-select" id="date-range">
-                        <option value="7">Últimos 7 días</option>
-                        <option value="30" selected>Últimos 30 días</option>
-                        <option value="90">Últimos 3 meses</option>
-                        <option value="365">Último año</option>
-                        <option value="all">Todos</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="status-filter" class="form-label">Estado</label>
-                    <select class="form-select" id="status-filter">
-                        <option value="all" selected>Todos los estados</option>
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="En Proceso">En Proceso</option>
-                        <option value="Completado">Completado</option>
-                        <option value="Retrasado">Retrasado</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="division-filter" class="form-label">División</label>
-                    <select class="form-select" id="division-filter">
-                        <option value="all" selected>Todas las divisiones</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="executor-filter" class="form-label">Unidad Ejecutora</label>
-                    <select class="form-select" id="executor-filter">
-                        <option value="all" selected>Todas las unidades</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="category-filter" class="form-label">Categoría UE</label>
-                    <select class="form-select" id="category-filter">
-                        <option value="all" selected>Todas las categorías</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="search" class="form-label">Buscar</label>
-                    <input type="text" class="form-control" id="search" placeholder="Buscar por forma 8...">
-                </div>
-            </div>
-            <div class="debug-info mt-2">
-                <span id="data-info">Esperando datos...</span>
-                <span id="edit-info" class="text-warning" style="display: none;"><i class="fas fa-exclamation-triangle"></i> Modo edición activo - Los cambios se guardan localmente</span>
+        <div class="controls">
+            <div class="filter-group">
+                <select id="filterCategory">
+                    <option value="">Todas las categorías</option>
+                    <option value="CEDIS">CEDIS</option>
+                    <option value="HOSPITAL">HOSPITAL</option>
+                </select>
+                
+                <select id="filterUnit">
+                    <option value="">Todas las unidades</option>
+                    <option value="CEDIS CHIRIQUÍ">CEDIS CHIRIQUÍ</option>
+                    <option value="CEDIS DIVISA">CEDIS DIVISA</option>
+                    <option value="C. H. M. DR. ARNULFO ARIAS MADRID">C. H. M. DR. ARNULFO ARIAS MADRID</option>
+                    <option value="CIUDAD DE LA SALUD">CIUDAD DE LA SALUD</option>
+                    <option value="HOSP. DE CHEPO">HOSP. DE CHEPO</option>
+                </select>
+                
+                <select id="filterType">
+                    <option value="">Todos los tipos</option>
+                    <option value="URGENCIA">URGENCIA</option>
+                    <option value="MENSUAL">MENSUAL</option>
+                </select>
+                
+                <select id="filterStatus">
+                    <option value="">Todos los estados</option>
+                    <option value="F8 RECIBIDA">F8 RECIBIDA</option>
+                    <option value="F8 RECIBIDA SIN ASIGNAR">F8 RECIBIDA SIN ASIGNAR</option>
+                    <option value="EN ASIGNACION">EN ASIGNACIÓN</option>
+                    <option value="SALIDA DE SALMI">SALIDA DE SALMI</option>
+                    <option value="FACTURADO">FACTURADO</option>
+                    <option value="EMPACADO">EMPACADO</option>
+                    <option value="ENTREGADA">ENTREGADA</option>
+                </select>
+                
+                <input type="text" id="searchInput" placeholder="Buscar...">
+                
+                <button id="applyFilters">Aplicar Filtros</button>
+                <button id="clearFilters">Limpiar Filtros</button>
             </div>
         </div>
-
-        <!-- Métricas principales -->
-        <div class="row">
-            <div class="col-md-3">
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <div class="metric-label">Total de Pedidos</div>
-                        <div class="metric-value" id="total-orders">--</div>
-                        <div class="text-success">
-                            <small><i class="fas fa-arrow-up"></i> <span id="growth-rate">--</span>% activos</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <div class="metric-label">Pedidos Pendientes</div>
-                        <div class="metric-value" id="pending-orders">--</div>
-                        <div class="progress">
-                            <div class="progress-bar bg-warning" role="progressbar" id="pending-progress" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <div class="metric-label">Formas 8 Activas</div>
-                        <div class="metric-value" id="active-forms">--</div>
-                        <div class="metric-label">SALMI + SISCONI</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card">
-                    <div class="card-body">
-                        <div class="metric-label">Tasa de Completitud</div>
-                        <div class="metric-value" id="completion-rate">--</div>
-                        <div class="progress">
-                            <div class="progress-bar bg-success" role="progressbar" id="completion-progress" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        
+        <div class="table-container">
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>CATEGORIA DE UNIDAD EJECUTORA</th>
+                        <th>UNIDAD EJECUTORA</th>
+                        <th>TIPO PEDIDO</th>
+                        <th>FORMA 8 SALMI</th>
+                        <th>FORMA 8 SISCONI</th>
+                        <th>DIVISION</th>
+                        <th>GRUPO</th>
+                        <th>TIPO DE SUSTANCIAS</th>
+                        <th>CANTIDAD TOTAL ASIGNADA</th>
+                        <th>CANTIDAD TOTAL SOLICITADA</th>
+                        <th>CANTIDAD DE RENGLONES ASIGNADOS</th>
+                        <th>CANTIDAD DE RENGLONES SOLICITADOS</th>
+                        <th>FECHA DE LA F8</th>
+                        <th>FECHA DE RECIBO DE LA F8</th>
+                        <th>FECHA DE ASIGNACION</th>
+                        <th>FECHA DE SALIDA EN SALMI</th>
+                        <th>FECHA DE DESPACHO</th>
+                        <th>FECHA DE FACTURACION EN COMPUTO</th>
+                        <th>FECHA DE EMPACADO</th>
+                        <th>FECHA PROYECTADA DE ENTREGA</th>
+                        <th>FECHA DE ENTREGA REAL</th>
+                        <th>ESTADO</th>
+                        <th>TIEMPO DE PROCESAMIENTO</th>
+                        <th>% AVANCE</th>
+                        <th>FILL RATE POR CANTIDAD</th>
+                        <th>FILL RATE POR RENGLON</th>
+                        <th>COMENTARIOS</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <!-- Los datos se cargarán aquí dinámicamente -->
+                </tbody>
+            </table>
         </div>
-
-        <!-- Tabla de pedidos EDITABLE -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>Lista de Pedidos - <span class="text-warning">Haga clic en cualquier campo para editar</span></span>
-                <span class="last-update" id="last-update">Última actualización: --</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-container">
-                    <table class="table table-hover data-table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>Forma 8 SALMI</th>
-                                <th>Forma 8 SISCONI</th>
-                                <th>Categoría UE</th>
-                                <th>Unidad Ejecutora</th>
-                                <th>Tipo Pedido</th>
-                                <th>División</th>
-                                <th>Grupo</th>
-                                <th>Tipo Sustancias</th>
-                                <th>Cant. Asignada</th>
-                                <th>Cant. Solicitada</th>
-                                <th>Rm. Asignados</th>
-                                <th>Fecha Recepción</th>
-                                <th>Fecha Salida</th>
-                                <th>Fecha Disponición</th>
-                                <th>Fecha Facturación</th>
-                                <th>Fecha Empacado</th>
-                                <th>Fecha Entrega</th>
-                                <th>Tiempo Estable</th>
-                                <th>% Procesamiento</th>
-                                <th>Coef. Anexo U1</th>
-                                <th>Coef. V/L</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orders-table-body">
-                            <tr>
-                                <td colspan="23" class="text-center">
-                                    <div class="loading-spinner">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Cargando datos...</span>
-                                        </div>
-                                        <span class="ms-2">Conectando con Google Sheets...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        
+        <div class="footer">
+            <p>Sistema de seguimiento de pedidos de medicamentos - Actualizado: <span id="lastUpdate"></span></p>
         </div>
     </div>
 
     <script>
-        // URL de Google Sheets (solo lectura)
-        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSC_myZfLrWVb3rzsFbX_7w9nuR2zBJxEYUqMh5UcSb07hwee7_7UECeU2zTFRePSgUwpvE0IcRmTmJ/pub?gid=323536618&single=true&output=csv';
-        
-        // Variables globales
-        let ordersData = [];
-        let ordersChart, statusChart;
-        let isEditMode = false;
-        let currentEditRow = null;
-        let currentEditField = null;
-        let originalValue = null;
-        
-        // Inicializar dashboard
+        // Datos de ejemplo basados en el archivo proporcionado
+        const ordersData = [
+            {
+                categoria: "CEDIS",
+                unidad: "CEDIS CHIRIQUÍ",
+                tipoPedido: "URGENCIA",
+                forma8Salmi: "CDCH-2025-264",
+                forma8Sisconi: "0812c3-2025-264",
+                division: "MEDICAMENTOS",
+                grupo: "G1 TABLETAS",
+                tipoSustancias: "NO CONTROLADA",
+                cantidadAsignada: "",
+                cantidadSolicitada: "",
+                renglonesAsignados: "",
+                renglonesSolicitados: "",
+                fechaF8: "",
+                fechaReciboF8: "2025-11-06 00:00:00",
+                fechaAsignacion: "",
+                fechaSalidaSalmi: "",
+                fechaDespacho: "",
+                fechaFacturacion: "",
+                fechaEmpacado: "",
+                fechaProyectadaEntrega: "",
+                fechaEntregaReal: "",
+                estado: "F8 RECIBIDA",
+                comentarios: ""
+            },
+            {
+                categoria: "CEDIS",
+                unidad: "CEDIS CHIRIQUÍ",
+                tipoPedido: "URGENCIA",
+                forma8Salmi: "CDCH-2025-266",
+                forma8Sisconi: "0812c3-2025-266",
+                division: "MEDICAMENTOS",
+                grupo: "G2 SOLUCIÓN",
+                tipoSustancias: "NO CONTROLADA",
+                cantidadAsignada: "",
+                cantidadSolicitada: "",
+                renglonesAsignados: "",
+                renglonesSolicitados: "",
+                fechaF8: "",
+                fechaReciboF8: "2025-11-06 00:00:00",
+                fechaAsignacion: "",
+                fechaSalidaSalmi: "",
+                fechaDespacho: "",
+                fechaFacturacion: "",
+                fechaEmpacado: "",
+                fechaProyectadaEntrega: "",
+                fechaEntregaReal: "",
+                estado: "F8 RECIBIDA",
+                comentarios: ""
+            },
+            {
+                categoria: "CEDIS",
+                unidad: "CEDIS CHIRIQUÍ",
+                tipoPedido: "URGENCIA",
+                forma8Salmi: "CDCH-2025-267",
+                forma8Sisconi: "0812c3-2025-267",
+                division: "MEDICAMENTOS",
+                grupo: "G2 SOLUCIÓN",
+                tipoSustancias: "NO CONTROLADA",
+                cantidadAsignada: "",
+                cantidadSolicitada: "",
+                renglonesAsignados: "",
+                renglonesSolicitados: "",
+                fechaF8: "",
+                fechaReciboF8: "2025-11-06 00:00:00",
+                fechaAsignacion: "",
+                fechaSalidaSalmi: "",
+                fechaDespacho: "",
+                fechaFacturacion: "",
+                fechaEmpacado: "",
+                fechaProyectadaEntrega: "",
+                fechaEntregaReal: "",
+                estado: "F8 RECIBIDA",
+                comentarios: ""
+            },
+            // Más datos aquí...
+        ];
+
+        // Estado global de la aplicación
+        let currentData = [...ordersData];
+        let filteredData = [...ordersData];
+
+        // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Iniciando dashboard editable...');
-            loadData();
+            renderTable();
+            updateLastUpdate();
             
-            // Configurar eventos
-            document.getElementById('refresh-btn').addEventListener('click', loadData);
-            document.getElementById('edit-mode-btn').addEventListener('click', toggleEditMode);
-            document.getElementById('date-range').addEventListener('change', updateDashboard);
-            document.getElementById('status-filter').addEventListener('change', updateDashboard);
-            document.getElementById('division-filter').addEventListener('change', updateDashboard);
-            document.getElementById('executor-filter').addEventListener('change', updateDashboard);
-            document.getElementById('category-filter').addEventListener('change', updateDashboard);
-            document.getElementById('search').addEventListener('input', updateDashboard);
+            // Event listeners para los filtros
+            document.getElementById('applyFilters').addEventListener('click', applyFilters);
+            document.getElementById('clearFilters').addEventListener('click', clearFilters);
+            document.getElementById('saveBtn').addEventListener('click', saveChanges);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            
+            // Aplicar filtros al presionar Enter en el campo de búsqueda
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
         });
-        
-        // Alternar modo edición
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            const btn = document.getElementById('edit-mode-btn');
-            const editInfo = document.getElementById('edit-info');
+
+        // Renderizar la tabla con los datos
+        function renderTable() {
+            const tableBody = document.getElementById('ordersTableBody');
+            tableBody.innerHTML = '';
             
-            if (isEditMode) {
-                btn.innerHTML = '<i class="fas fa-save"></i> Guardar Todo';
-                btn.className = 'btn btn-success';
-                editInfo.style.display = 'inline';
-                document.getElementById('orders-table-body').classList.add('edit-mode');
-            } else {
-                btn.innerHTML = '<i class="fas fa-edit"></i> Modo Edición';
-                btn.className = 'btn btn-warning';
-                editInfo.style.display = 'none';
-                document.getElementById('orders-table-body').classList.remove('edit-mode');
-                // Aquí podrías agregar lógica para guardar todos los cambios
-                saveAllChanges();
+            filteredData.forEach((order, index) => {
+                const row = document.createElement('tr');
+                
+                // Calcular valores dinámicos
+                const tiempoProcesamiento = calculateProcessingTime(order);
+                const porcentajeAvance = calculateProgressPercentage(order);
+                const fillRateCantidad = calculateFillRate(order.cantidadAsignada, order.cantidadSolicitada);
+                const fillRateRenglon = calculateFillRate(order.renglonesAsignados, order.renglonesSolicitados);
+                
+                row.innerHTML = `
+                    <td>${order.categoria}</td>
+                    <td>${order.unidad}</td>
+                    <td>${order.tipoPedido}</td>
+                    <td>${order.forma8Salmi}</td>
+                    <td>${order.forma8Sisconi}</td>
+                    <td>${order.division}</td>
+                    <td>${order.grupo}</td>
+                    <td>${order.tipoSustancias}</td>
+                    <td><input type="number" class="number-input" value="${order.cantidadAsignada}" data-index="${index}" data-field="cantidadAsignada"></td>
+                    <td><input type="number" class="number-input" value="${order.cantidadSolicitada}" data-index="${index}" data-field="cantidadSolicitada"></td>
+                    <td><input type="number" class="number-input" value="${order.renglonesAsignados}" data-index="${index}" data-field="renglonesAsignados"></td>
+                    <td><input type="number" class="number-input" value="${order.renglonesSolicitados}" data-index="${index}" data-field="renglonesSolicitados"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaF8)}" data-index="${index}" data-field="fechaF8"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaReciboF8)}" data-index="${index}" data-field="fechaReciboF8"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaAsignacion)}" data-index="${index}" data-field="fechaAsignacion"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaSalidaSalmi)}" data-index="${index}" data-field="fechaSalidaSalmi"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaDespacho)}" data-index="${index}" data-field="fechaDespacho"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaFacturacion)}" data-index="${index}" data-field="fechaFacturacion"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEmpacado)}" data-index="${index}" data-field="fechaEmpacado"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaProyectadaEntrega)}" data-index="${index}" data-field="fechaProyectadaEntrega"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order.fechaEntregaReal)}" data-index="${index}" data-field="fechaEntregaReal"></td>
+                    <td>
+                        <select class="status-select ${getStatusClass(order.estado)}" data-index="${index}" data-field="estado">
+                            <option value="F8 RECIBIDA" ${order.estado === 'F8 RECIBIDA' ? 'selected' : ''}>F8 RECIBIDA</option>
+                            <option value="F8 RECIBIDA SIN ASIGNAR" ${order.estado === 'F8 RECIBIDA SIN ASIGNAR' ? 'selected' : ''}>F8 RECIBIDA SIN ASIGNAR</option>
+                            <option value="EN ASIGNACION" ${order.estado === 'EN ASIGNACION' ? 'selected' : ''}>EN ASIGNACIÓN</option>
+                            <option value="SALIDA DE SALMI" ${order.estado === 'SALIDA DE SALMI' ? 'selected' : ''}>SALIDA DE SALMI</option>
+                            <option value="FACTURADO" ${order.estado === 'FACTURADO' ? 'selected' : ''}>FACTURADO</option>
+                            <option value="EMPACADO" ${order.estado === 'EMPACADO' ? 'selected' : ''}>EMPACADO</option>
+                            <option value="ENTREGADA" ${order.estado === 'ENTREGADA' ? 'selected' : ''}>ENTREGADA</option>
+                        </select>
+                    </td>
+                    <td>${tiempoProcesamiento}</td>
+                    <td>
+                        ${porcentajeAvance}%
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${porcentajeAvance}%"></div>
+                        </div>
+                    </td>
+                    <td>${fillRateCantidad}</td>
+                    <td>${fillRateRenglon}</td>
+                    <td><input type="text" value="${order.comentarios}" data-index="${index}" data-field="comentarios"></td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Agregar event listeners a los inputs después de renderizar
+            addInputEventListeners();
+        }
+
+        // Calcular tiempo de procesamiento
+        function calculateProcessingTime(order) {
+            if (!order.fechaReciboF8) return "N/A";
+            
+            const fechaRecibo = new Date(order.fechaReciboF8);
+            const fechaActual = new Date();
+            
+            // Si hay fecha de entrega real, usar esa
+            if (order.fechaEntregaReal) {
+                const fechaEntrega = new Date(order.fechaEntregaReal);
+                const diffTime = Math.abs(fechaEntrega - fechaRecibo);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return `${diffDays} días`;
             }
             
-            updateTable(ordersData); // Refrescar tabla para mostrar campos editables
+            // Si no, calcular desde la fecha de recepción hasta hoy
+            const diffTime = Math.abs(fechaActual - fechaRecibo);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return `${diffDays} días`;
         }
-        
-        // Cargar datos desde Google Sheets
-        async function loadData() {
-            try {
-                showLoadingState();
-                updateDataInfo('Conectando con Google Sheets...');
-                
-                const response = await fetch(SHEET_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-                }
-                
-                const csvText = await response.text();
-                
-                if (!csvText || csvText.trim().length === 0) {
-                    throw new Error('El archivo CSV está vacío');
-                }
-                
-                // Procesar los datos
-                ordersData = parseCSV(csvText);
-                
-                if (ordersData.length === 0) {
-                    createSampleData();
-                    updateDataInfo('Usando datos de ejemplo (no se encontraron datos reales)');
-                } else {
-                    updateDataInfo(`Cargados ${ordersData.length} pedidos correctamente`);
-                }
-                
-                // Cargar cambios guardados localmente
-                loadLocalChanges();
-                
-                updateLastUpdateTime();
-                populateFilters();
-                updateDashboard();
-                
-            } catch (error) {
-                console.error('Error al cargar los datos:', error);
-                createSampleData();
-                updateDataInfo('Error al cargar datos reales. Usando datos de ejemplo: ' + error.message);
-                updateLastUpdateTime();
-                populateFilters();
-                updateDashboard();
-            }
-        }
-        
-        // Cargar cambios guardados localmente
-        function loadLocalChanges() {
-            const savedChanges = localStorage.getItem('pedidosChanges');
-            if (savedChanges) {
-                const changes = JSON.parse(savedChanges);
-                changes.forEach(change => {
-                    const order = ordersData.find(o => 
-                        o['Forma 8 SALMI'] === change.formaSALMI && 
-                        o['Forma 8 SISCONI'] === change.formaSISCONI
-                    );
-                    if (order) {
-                        order[change.field] = change.value;
-                    }
-                });
-                updateDataInfo(`Cargados ${changes.length} cambios locales`);
-            }
-        }
-        
-        // Guardar todos los cambios localmente
-        function saveAllChanges() {
-            // Esta función guardaría todos los cambios si tuvieramos un backend
-            updateDataInfo('Los cambios se han guardado localmente. Para guardar permanentemente, se necesita conexión con servidor.');
-        }
-        
-        // Crear datos de ejemplo
-        function createSampleData() {
-            ordersData = [];
-            const divisions = ['SALMI', 'FARMACIA', 'LABORATORIO', 'QUIRÓFANO'];
-            const executors = ['CSW Central', 'CSW Norte', 'CSW Sur', 'CSW Este'];
-            const categories = ['CATEGORÍA A', 'CATEGORÍA B', 'CATEGORÍA C'];
-            const orderTypes = ['Urgente', 'Programado', 'Rutina'];
-            const substances = ['Medicamentos', 'Materiales', 'Equipos', 'Reactivos'];
-            const statuses = ['Pendiente', 'En Proceso', 'Completado', 'Retrasado'];
-            
-            for (let i = 1; i <= 30; i++) {
-                const formaSALMI = `SALMI-${(2024000 + i).toString()}`;
-                const formaSISCONI = `SISCONI-${(2024000 + i).toString()}`;
-                const category = categories[Math.floor(Math.random() * categories.length)];
-                const executor = executors[Math.floor(Math.random() * executors.length)];
-                
-                const order = {
-                    'Forma 8 SALMI': formaSALMI,
-                    'Forma 8 SISCONI': formaSISCONI,
-                    'Categoría Unidad Ejecutora': category,
-                    'Unidad Ejecutora': executor,
-                    'Tipo de Pedido': orderTypes[Math.floor(Math.random() * orderTypes.length)],
-                    'División': divisions[Math.floor(Math.random() * divisions.length)],
-                    'Grupo': `GRP${Math.floor(Math.random() * 5) + 1}`,
-                    'Tipo Sustancias': substances[Math.floor(Math.random() * substances.length)],
-                    'Cantidad Total Asignada': Math.floor(Math.random() * 1000) + 100,
-                    'Cantidad Total Solicitada': Math.floor(Math.random() * 1200) + 100,
-                    'Rm. Asignados': Math.floor(Math.random() * 50) + 5,
-                    'Fecha Recepción F8': randomDate(new Date(2024, 0, 1), new Date()),
-                    'Fecha Salida': '',
-                    'Fecha Disponición': '',
-                    'Fecha Facturación': '',
-                    'Fecha Empacado': '',
-                    'Fecha Entrega Real': '',
-                    'Tiempo Estable': Math.floor(Math.random() * 10) + 1,
-                    '% Procesamiento': Math.floor(Math.random() * 100),
-                    'Coeficiente Anexo: U1': (Math.random() * 2).toFixed(2),
-                    'Coeficiente V/L': (Math.random() * 1.5).toFixed(2),
-                    'Estado': statuses[Math.floor(Math.random() * statuses.length)]
-                };
-                ordersData.push(order);
-            }
-        }
-        
-        // Función para generar fechas aleatorias
-        function randomDate(start, end) {
-            const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-            return date.toISOString().split('T')[0];
-        }
-        
-        // Parsear CSV a JSON
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) return [];
-            
-            const firstLine = lines[0];
-            let delimiter = ',';
-            if (firstLine.includes(';') && firstLine.split(';').length > firstLine.split(',').length) {
-                delimiter = ';';
-            }
-            
-            const headers = firstLine.split(delimiter).map(header => 
-                header.trim().replace(/^"|"$/g, '')
-            );
-            
-            const data = [];
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue;
-                
-                const values = parseCSVLine(lines[i], delimiter);
-                const entry = {};
-                
-                headers.forEach((header, index) => {
-                    let value = values[index] ? values[index].trim().replace(/^"|"$/g, '') : '';
-                    
-                    if (!isNaN(value) && value !== '' && value.trim() !== '') {
-                        value = Number(value);
-                    }
-                    
-                    entry[header] = value;
-                });
-                
-                if (!entry.Estado) {
-                    entry.Estado = determineStatus(entry);
-                }
-                
-                data.push(entry);
-            }
-            
-            return data;
-        }
-        
-        // Función para parsear líneas CSV
-        function parseCSVLine(line, delimiter) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                const nextChar = line[i + 1];
-                
-                if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
-                        current += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === delimiter && !inQuotes) {
-                    result.push(current);
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            
-            result.push(current);
-            return result;
-        }
-        
-        // Función para hacer un campo editable
-        function makeFieldEditable(cell, value, rowIndex, fieldName) {
-            if (isEditMode && isEditableField(fieldName)) {
-                cell.innerHTML = `<span class="editable-field" 
-                    onclick="startEdit(this, ${rowIndex}, '${fieldName}')">${value || 'Click para editar'}</span>`;
-            } else {
-                cell.textContent = value || 'N/A';
-            }
-        }
-        
-        // Determinar si un campo es editable
-        function isEditableField(fieldName) {
-            const editableFields = [
-                'Cantidad Total Asignada', 'Cantidad Total Solicitada', 'Rm. Asignados',
-                'Fecha Salida', 'Fecha Disponición', 'Fecha Facturación', 
-                'Fecha Empacado', 'Fecha Entrega Real', 'Tiempo Estable',
-                '% Procesamiento', 'Coeficiente Anexo: U1', 'Coeficiente V/L', 'Estado'
+
+        // Calcular porcentaje de avance
+        function calculateProgressPercentage(order) {
+            const dateFields = [
+                'fechaF8', 'fechaReciboF8', 'fechaAsignacion', 
+                'fechaSalidaSalmi', 'fechaDespacho', 'fechaFacturacion', 
+                'fechaEmpacado', 'fechaProyectadaEntrega', 'fechaEntregaReal'
             ];
-            return editableFields.some(field => fieldName.includes(field));
+            
+            let completedFields = 0;
+            
+            dateFields.forEach(field => {
+                if (order[field]) completedFields++;
+            });
+            
+            return Math.round((completedFields / dateFields.length) * 100);
         }
-        
-        // Iniciar edición de un campo
-        function startEdit(element, rowIndex, fieldName) {
-            if (!isEditMode) return;
+
+        // Calcular fill rate
+        function calculateFillRate(asignado, solicitado) {
+            if (!asignado || !solicitado || solicitado === 0) return "N/A";
             
-            // Cancelar edición anterior si existe
-            if (currentEditRow !== null) {
-                cancelEdit();
-            }
+            const asignadoNum = parseFloat(asignado);
+            const solicitadoNum = parseFloat(solicitado);
             
-            currentEditRow = rowIndex;
-            currentEditField = fieldName;
-            originalValue = ordersData[rowIndex][fieldName] || '';
+            if (isNaN(asignadoNum) || isNaN(solicitadoNum)) return "N/A";
             
-            const isDateField = fieldName.includes('Fecha');
-            const inputType = isDateField ? 'date' : 'text';
-            
-            element.innerHTML = `
-                <input type="${inputType}" 
-                       value="${originalValue}" 
-                       class="form-control form-control-sm"
-                       onkeypress="handleKeyPress(event, ${rowIndex}, '${fieldName}')"
-                       style="min-width: 80px;">
-                <div class="mt-1">
-                    <button class="save-btn" onclick="saveEdit(${rowIndex}, '${fieldName}')">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button class="cancel-btn" onclick="cancelEdit()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-            
-            // Enfocar el input
-            const input = element.querySelector('input');
-            if (input) input.focus();
+            const fillRate = (asignadoNum / solicitadoNum) * 100;
+            return `${fillRate.toFixed(2)}%`;
         }
-        
-        // Manejar tecla Enter
-        function handleKeyPress(event, rowIndex, fieldName) {
-            if (event.key === 'Enter') {
-                saveEdit(rowIndex, fieldName);
-            } else if (event.key === 'Escape') {
-                cancelEdit();
-            }
-        }
-        
-        // Guardar edición
-        function saveEdit(rowIndex, fieldName) {
-            const input = document.querySelector(`[onkeypress="handleKeyPress(event, ${rowIndex}, '${fieldName}')"]`);
-            if (!input) return;
-            
-            const newValue = input.value;
-            ordersData[rowIndex][fieldName] = newValue;
-            
-            // Guardar cambio localmente
-            saveChangeLocal(ordersData[rowIndex], fieldName, newValue);
-            
-            // Actualizar estado automáticamente si es una fecha de entrega
-            if (fieldName === 'Fecha Entrega Real' && newValue) {
-                ordersData[rowIndex]['Estado'] = 'Completado';
-            }
-            
-            // Recalcular porcentaje de procesamiento si es necesario
-            updateProcessingPercentage(rowIndex);
-            
-            currentEditRow = null;
-            currentEditField = null;
-            originalValue = null;
-            
-            updateDashboard(); // Refrescar dashboard con nuevos datos
-        }
-        
-        // Actualizar porcentaje de procesamiento
-        function updateProcessingPercentage(rowIndex) {
-            const order = ordersData[rowIndex];
-            const completedFields = [
-                order['Fecha Salida'],
-                order['Fecha Disponición'], 
-                order['Fecha Facturación'],
-                order['Fecha Empacado'],
-                order['Fecha Entrega Real']
-            ].filter(field => field).length;
-            
-            order['% Procesamiento'] = Math.round((completedFields / 5) * 100);
-        }
-        
-        // Guardar cambio localmente
-        function saveChangeLocal(order, fieldName, newValue) {
-            const change = {
-                formaSALMI: order['Forma 8 SALMI'],
-                formaSISCONI: order['Forma 8 SISCONI'],
-                field: fieldName,
-                value: newValue,
-                timestamp: new Date().toISOString()
+
+        // Obtener clase CSS para el estado
+        function getStatusClass(status) {
+            const statusMap = {
+                'F8 RECIBIDA': 'status-F8-RECIBIDA',
+                'F8 RECIBIDA SIN ASIGNAR': 'status-F8-RECIBIDA-SIN-ASIGNAR',
+                'EN ASIGNACION': 'status-EN-ASIGNACION',
+                'SALIDA DE SALMI': 'status-SALIDA-DE-SALMI',
+                'FACTURADO': 'status-FACTURADO',
+                'EMPACADO': 'status-EMPACADO',
+                'ENTREGADA': 'status-ENTREGADA'
             };
             
-            let changes = JSON.parse(localStorage.getItem('pedidosChanges') || '[]');
-            changes.push(change);
-            localStorage.setItem('pedidosChanges', JSON.stringify(changes));
+            return statusMap[status] || '';
         }
-        
-        // Cancelar edición
-        function cancelEdit() {
-            if (currentEditRow !== null && currentEditField !== null) {
-                ordersData[currentEditRow][currentEditField] = originalValue;
-                currentEditRow = null;
-                currentEditField = null;
-                originalValue = null;
-                updateDashboard();
-            }
-        }
-        
-        // Las funciones restantes (populateFilters, updateDashboard, filterData, etc.)
-        // se mantienen similares pero adaptadas para trabajar con el modo edición
-        
-        // [Aquí irían el resto de las funciones: populateFilters, updateDashboard, filterData, 
-        // determineStatus, updateMetrics, updateCharts, formatDate, etc.]
-        // Por brevedad, mantengo la estructura básica
 
+        // Formatear fecha para input type="date"
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            
+            // Si ya está en formato YYYY-MM-DD
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateString;
+            }
+            
+            // Si está en formato con hora
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+                return dateString.split(' ')[0];
+            }
+            
+            return '';
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const unitFilter = document.getElementById('filterUnit').value;
+            const typeFilter = document.getElementById('filterType').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredData = currentData.filter(order => {
+                // Filtros por selección
+                if (categoryFilter && order.categoria !== categoryFilter) return false;
+                if (unitFilter && order.unidad !== unitFilter) return false;
+                if (typeFilter && order.tipoPedido !== typeFilter) return false;
+                if (statusFilter && order.estado !== statusFilter) return false;
+                
+                // Filtro de búsqueda
+                if (searchTerm) {
+                    const searchFields = [
+                        order.forma8Salmi,
+                        order.forma8Sisconi,
+                        order.division,
+                        order.grupo,
+                        order.tipoSustancias
+                    ];
+                    
+                    const matches = searchFields.some(field => 
+                        field && field.toLowerCase().includes(searchTerm)
+                    );
+                    
+                    if (!matches) return false;
+                }
+                
+                return true;
+            });
+            
+            renderTable();
+        }
+
+        // Limpiar filtros
+        function clearFilters() {
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterUnit').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('searchInput').value = '';
+            
+            filteredData = [...currentData];
+            renderTable();
+        }
+
+        // Agregar event listeners a los inputs
+        function addInputEventListeners() {
+            const inputs = document.querySelectorAll('input, select');
+            
+            inputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    const field = this.getAttribute('data-field');
+                    const value = this.value;
+                    
+                    // Actualizar el dato en el array
+                    if (index >= 0 && index < filteredData.length) {
+                        filteredData[index][field] = value;
+                        
+                        // Si el campo actualizado afecta cálculos, volver a renderizar la fila
+                        if (field.startsWith('fecha') || field === 'estado' || 
+                            field.includes('cantidad') || field.includes('renglones')) {
+                            renderTable();
+                        }
+                    }
+                });
+            });
+        }
+
+        // Guardar cambios
+        function saveChanges() {
+            // En una implementación real, aquí se enviarían los datos al servidor
+            // Por ahora, solo actualizamos currentData y mostramos un mensaje
+            currentData = [...filteredData];
+            alert('Cambios guardados correctamente');
+            updateLastUpdate();
+        }
+
+        // Exportar a CSV
+        function exportToCSV() {
+            // En una implementación real, aquí se generaría y descargaría un archivo CSV
+            alert('Funcionalidad de exportación a CSV - En desarrollo');
+        }
+
+        // Actualizar fecha de última actualización
+        function updateLastUpdate() {
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            document.getElementById('lastUpdate').textContent = formattedDate;
+        }
     </script>
 </body>
 </html>
