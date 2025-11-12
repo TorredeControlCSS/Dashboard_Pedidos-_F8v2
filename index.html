@@ -235,13 +235,22 @@
             margin-bottom: 10px;
         }
         
+        .completed-badge {
+            background-color: var(--success-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
         @media (max-width: 1200px) {
             .table-container {
                 overflow-x: auto;
             }
             
             table {
-                min-width: 2000px;
+                min-width: 2500px;
             }
         }
     </style>
@@ -292,34 +301,30 @@
             <div class="filter-group">
                 <select id="filterCategory">
                     <option value="">Todas las categorías</option>
-                    <option value="CEDIS">CEDIS</option>
-                    <option value="HOSPITAL">HOSPITAL</option>
                 </select>
                 
                 <select id="filterUnit">
                     <option value="">Todas las unidades</option>
-                    <option value="CEDIS CHIRIQUÍ">CEDIS CHIRIQUÍ</option>
-                    <option value="CEDIS DIVISA">CEDIS DIVISA</option>
-                    <option value="C. H. M. DR. ARNULFO ARIAS MADRID">C. H. M. DR. ARNULFO ARIAS MADRID</option>
-                    <option value="CIUDAD DE LA SALUD">CIUDAD DE LA SALUD</option>
-                    <option value="HOSP. DE CHEPO">HOSP. DE CHEPO</option>
                 </select>
                 
                 <select id="filterType">
                     <option value="">Todos los tipos</option>
-                    <option value="URGENCIA">URGENCIA</option>
-                    <option value="MENSUAL">MENSUAL</option>
+                </select>
+                
+                <select id="filterDivision">
+                    <option value="">Todas las divisiones</option>
+                </select>
+                
+                <select id="filterGrupo">
+                    <option value="">Todos los grupos</option>
+                </select>
+                
+                <select id="filterSustancias">
+                    <option value="">Todos los tipos de sustancias</option>
                 </select>
                 
                 <select id="filterStatus">
                     <option value="">Todos los estados</option>
-                    <option value="F8 RECIBIDA">F8 RECIBIDA</option>
-                    <option value="F8 RECIBIDA SIN ASIGNAR">F8 RECIBIDA SIN ASIGNAR</option>
-                    <option value="EN ASIGNACION">EN ASIGNACIÓN</option>
-                    <option value="SALIDA DE SALMI">SALIDA DE SALMI</option>
-                    <option value="FACTURADO">FACTURADO</option>
-                    <option value="EMPACADO">EMPACADO</option>
-                    <option value="ENTREGADA">ENTREGADA</option>
                 </select>
                 
                 <input type="text" id="searchInput" placeholder="Buscar...">
@@ -360,7 +365,7 @@
                         <th>F. ENTREGA REAL</th>
                         <th>ESTADO</th>
                         <th>TIEMPO PROC.</th>
-                        <th>% AVANCE</th>
+                        <th>PEDIDO COMPLETADO</th>
                         <th>FILL RATE CANT.</th>
                         <th>FILL RATE RENGL.</th>
                         <th>COMENTARIOS</th>
@@ -397,6 +402,7 @@
             const divisions = ["MEDICAMENTOS", "ODONTOLOGÍA"];
             const grupos = ["G1 TABLETAS", "G2 SOLUCIÓN", "G3 JARABE", "G4 CREMAS", "G5 ÓVULOS", "G11 ODONTOLOGÍA"];
             const sustancias = ["NO CONTROLADA", "CONTROLADA"];
+            const estados = ["F8 RECIBIDA", "F8 RECIBIDA SIN ASIGNAR", "EN ASIGNACION", "SALIDA DE SALMI", "FACTURADO", "EMPACADO", "ENTREGADA"];
             
             // Fechas de ejemplo
             const fechas = [
@@ -413,6 +419,7 @@
                 const division = divisions[Math.floor(Math.random() * divisions.length)];
                 const grupo = division === "ODONTOLOGÍA" ? "G11 ODONTOLOGÍA" : grupos[Math.floor(Math.random() * 5)];
                 const tipoSustancias = sustancias[Math.floor(Math.random() * sustancias.length)];
+                const estado = estados[Math.floor(Math.random() * estados.length)];
                 
                 // Generar números de forma 8 basados en el patrón
                 let forma8Salmi, forma8Sisconi;
@@ -455,7 +462,7 @@
                     fechaEmpacado: Math.random() > 0.6 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
                     fechaProyectadaEntrega: Math.random() > 0.5 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
                     fechaEntregaReal: Math.random() > 0.3 ? fechas[Math.floor(Math.random() * fechas.length)] : "",
-                    estado: ["F8 RECIBIDA", "F8 RECIBIDA SIN ASIGNAR", "EN ASIGNACION", "SALIDA DE SALMI", "FACTURADO", "EMPACADO", "ENTREGADA"][Math.floor(Math.random() * 7)],
+                    estado: estado,
                     comentarios: Math.random() > 0.9 ? "Comentario de ejemplo" : ""
                 });
             }
@@ -474,6 +481,7 @@
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
+            populateFilterOptions();
             renderTable();
             updateKPIs();
             updateLastUpdate();
@@ -492,6 +500,35 @@
             });
         });
 
+        // Poblar opciones de filtro con datos reales
+        function populateFilterOptions() {
+            const categories = [...new Set(currentData.map(item => item.categoria))];
+            const units = [...new Set(currentData.map(item => item.unidad))];
+            const types = [...new Set(currentData.map(item => item.tipoPedido))];
+            const divisions = [...new Set(currentData.map(item => item.division))];
+            const grupos = [...new Set(currentData.map(item => item.grupo))];
+            const sustancias = [...new Set(currentData.map(item => item.tipoSustancias))];
+            const estados = [...new Set(currentData.map(item => item.estado))];
+            
+            populateSelect('filterCategory', categories);
+            populateSelect('filterUnit', units);
+            populateSelect('filterType', types);
+            populateSelect('filterDivision', divisions);
+            populateSelect('filterGrupo', grupos);
+            populateSelect('filterSustancias', sustancias);
+            populateSelect('filterStatus', estados);
+        }
+
+        function populateSelect(selectId, options) {
+            const select = document.getElementById(selectId);
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+        }
+
         // Renderizar la tabla con paginación
         function renderTable() {
             const tableBody = document.getElementById('ordersTableBody');
@@ -505,8 +542,9 @@
                 const globalIndex = startIndex + index;
                 const row = document.createElement('tr');
                 
+                // Calcular todos los valores dinámicos
                 const tiempoProcesamiento = calculateProcessingTime(order);
-                const porcentajeAvance = calculateProgressPercentage(order);
+                const pedidoCompletado = calculatePedidoCompletado(order);
                 const fillRateCantidad = calculateFillRate(order.cantidadAsignada, order.cantidadSolicitada);
                 const fillRateRenglon = calculateFillRate(order.renglonesAsignados, order.renglonesSolicitados);
                 
@@ -545,10 +583,7 @@
                     </td>
                     <td>${tiempoProcesamiento}</td>
                     <td>
-                        ${porcentajeAvance}%
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${porcentajeAvance}%"></div>
-                        </div>
+                        ${pedidoCompletado ? '<span class="completed-badge">COMPLETADO</span>' : 'NO'}
                     </td>
                     <td>${fillRateCantidad}</td>
                     <td>${fillRateRenglon}</td>
@@ -560,6 +595,11 @@
             
             addInputEventListeners();
             updatePaginationInfo();
+        }
+
+        // Calcular si el pedido está completado
+        function calculatePedidoCompletado(order) {
+            return order.estado === 'ENTREGADA';
         }
 
         // Actualizar KPIs
@@ -595,7 +635,7 @@
             document.getElementById('avgFillRate').textContent = `${avgFillRate}%`;
         }
 
-        // Funciones de cálculo (igual que antes)
+        // Funciones de cálculo
         function calculateProcessingTimeDays(order) {
             if (!order.fechaReciboF8) return 0;
             const fechaRecibo = new Date(order.fechaReciboF8);
@@ -612,19 +652,6 @@
         function calculateProcessingTime(order) {
             const days = calculateProcessingTimeDays(order);
             return days > 0 ? `${days}d` : "N/A";
-        }
-
-        function calculateProgressPercentage(order) {
-            const dateFields = [
-                'fechaF8', 'fechaReciboF8', 'fechaAsignacion', 
-                'fechaSalidaSalmi', 'fechaDespacho', 'fechaFacturacion', 
-                'fechaEmpacado', 'fechaProyectadaEntrega', 'fechaEntregaReal'
-            ];
-            let completedFields = 0;
-            dateFields.forEach(field => {
-                if (order[field]) completedFields++;
-            });
-            return Math.round((completedFields / dateFields.length) * 100);
         }
 
         function calculateFillRate(asignado, solicitado) {
@@ -661,6 +688,9 @@
             const categoryFilter = document.getElementById('filterCategory').value;
             const unitFilter = document.getElementById('filterUnit').value;
             const typeFilter = document.getElementById('filterType').value;
+            const divisionFilter = document.getElementById('filterDivision').value;
+            const grupoFilter = document.getElementById('filterGrupo').value;
+            const sustanciasFilter = document.getElementById('filterSustancias').value;
             const statusFilter = document.getElementById('filterStatus').value;
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             
@@ -668,6 +698,9 @@
                 if (categoryFilter && order.categoria !== categoryFilter) return false;
                 if (unitFilter && order.unidad !== unitFilter) return false;
                 if (typeFilter && order.tipoPedido !== typeFilter) return false;
+                if (divisionFilter && order.division !== divisionFilter) return false;
+                if (grupoFilter && order.grupo !== grupoFilter) return false;
+                if (sustanciasFilter && order.tipoSustancias !== sustanciasFilter) return false;
                 if (statusFilter && order.estado !== statusFilter) return false;
                 
                 if (searchTerm) {
@@ -692,6 +725,9 @@
             document.getElementById('filterCategory').value = '';
             document.getElementById('filterUnit').value = '';
             document.getElementById('filterType').value = '';
+            document.getElementById('filterDivision').value = '';
+            document.getElementById('filterGrupo').value = '';
+            document.getElementById('filterSustancias').value = '';
             document.getElementById('filterStatus').value = '';
             document.getElementById('searchInput').value = '';
             filteredData = [...currentData];
@@ -739,6 +775,7 @@
                     
                     if (index >= 0 && index < filteredData.length) {
                         filteredData[index][field] = value;
+                        // Si el campo actualizado afecta cálculos, volver a renderizar
                         if (field.startsWith('fecha') || field === 'estado' || 
                             field.includes('cantidad') || field.includes('renglones')) {
                             renderTable();
