@@ -4,300 +4,682 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Gestión de Pedidos</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2c3e50">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Estilos igual que antes */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
+            --accent-color: #e74c3c;
             --light-color: #ecf0f1;
-            --dark-color: #34495e;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+            --success-color: #2ecc71;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
+            background-color: #f8f9fa;
             color: #333;
-            background-color: #f5f7fa;
-            padding: 0;
-            margin: 0;
         }
         
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 15px;
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem 0;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
         
-        header {
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 1.5rem;
+            height: 100%;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
             background-color: var(--primary-color);
             color: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
         }
         
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
         }
         
-        h1 {
-            font-size: 1.5rem;
-            margin: 0;
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
         }
         
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-        
-        button {
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
+        .metric-label {
             font-size: 0.9rem;
-            transition: background-color 0.3s;
+            color: #6c757d;
         }
         
-        button:hover {
-            background-color: #2980b9;
-        }
-        
-        button.export {
-            background-color: var(--success-color);
-        }
-        
-        button.export:hover {
-            background-color: #219653;
-        }
-        
-        button.install {
-            background-color: var(--warning-color);
-            display: none;
-        }
-        
-        button.install:hover {
-            background-color: #e67e22;
-        }
-        
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.9rem;
-        }
-        
-        .status-dot {
-            width: 10px;
+        .progress {
             height: 10px;
-            border-radius: 50%;
-            background-color: var(--success-color);
+            margin-top: 10px;
         }
         
-        .status-dot.offline {
-            background-color: var(--danger-color);
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
         
-        .table-container {
-            overflow-x: auto;
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-completed {
+            background-color: #d1edff;
+            color: #0c5460;
+        }
+        
+        .status-delayed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .filter-section {
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
         }
         
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1200px;
+        .data-table {
+            font-size: 0.9rem;
         }
         
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-            font-size: 0.85rem;
-        }
-        
-        th {
+        .data-table th {
             background-color: var(--light-color);
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            font-weight: 600;
         }
         
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        input, select {
+        .chart-container {
+            position: relative;
+            height: 300px;
             width: 100%;
-            padding: 6px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.85rem;
         }
         
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
         }
         
-        .progress-bar {
-            height: 8px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background-color: var(--success-color);
-            transition: width 0.3s;
-        }
-        
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            background-color: var(--success-color);
-            color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s, transform 0.3s;
-        }
-        
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .toast.error {
-            background-color: var(--danger-color);
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--secondary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .controls {
-                flex-direction: column;
-            }
-            
-            button {
-                width: 100%;
-            }
+        .last-update {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: right;
         }
     </style>
 </head>
 <body>
-    <header>
+    <div class="dashboard-header">
         <div class="container">
-            <div class="header-content">
-                <h1>Dashboard de Gestión de Pedidos</h1>
-                <div class="status-indicator">
-                    <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Conectado</span>
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1>Dashboard de Gestión de Pedidos</h1>
+                    <p class="mb-0">Seguimiento y análisis de pedidos en tiempo real</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button id="refresh-btn" class="btn btn-light">
+                        <i class="fas fa-sync-alt"></i> Actualizar Datos
+                    </button>
                 </div>
             </div>
         </div>
-    </header>
-    
+    </div>
+
     <div class="container">
-        <div class="controls">
-            <button id="refreshBtn">
-                <span class="loading" id="refreshLoading" style="display: none;"></span>
-                Actualizar Datos
-            </button>
-            <button id="exportBtn" class="export">Exportar a CSV</button>
-            <button id="installBtn" class="install">Instalar App</button>
+        <!-- Filtros -->
+        <div class="filter-section">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="date-range" class="form-label">Rango de Fechas</label>
+                    <select class="form-select" id="date-range">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30" selected>Últimos 30 días</option>
+                        <option value="90">Últimos 3 meses</option>
+                        <option value="365">Último año</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status-filter" class="form-label">Estado</label>
+                    <select class="form-select" id="status-filter">
+                        <option value="all" selected>Todos los estados</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="completed">Completado</option>
+                        <option value="delayed">Retrasado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="division-filter" class="form-label">División</label>
+                    <select class="form-select" id="division-filter">
+                        <option value="all" selected>Todas las divisiones</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" placeholder="Buscar pedido...">
+                </div>
+            </div>
         </div>
-        
-        <div class="table-container">
-            <table id="ordersTable">
-                <thead>
-                    <tr>
-                        <th>Unidad Ejecutora</th>
-                        <th>Tipo Pedido</th>
-                        <th>Forma 8 SALMI</th>
-                        <th>División</th>
-                        <th>Grupo</th>
-                        <th>Tipo Sustancias</th>
-                        <th>Cant. Total Asignada</th>
-                        <th>Cant. Total Solicitada</th>
-                        <th>Ren. Asignados</th>
-                        <th>Ren. Solicitados</th>
-                        <th>Fecha F8</th>
-                        <th>Fecha Recepción F8</th>
-                        <th>Fecha Asignación</th>
-                        <th>Fecha Salida SALMI</th>
-                        <th>Fecha Despacho</th>
-                        <th>Fecha Facturación</th>
-                        <th>Fecha Empacado</th>
-                        <th>Fecha Proy. Entrega</th>
-                        <th>Fecha Entrega Real</th>
-                        <th>Estado</th>
-                        <th>Tiempo Procesamiento</th>
-                        <th>% Avance</th>
-                        <th>Cociente I/J</th>
-                        <th>Cociente K/L</th>
-                        <th>Comentarios</th>
-                    </tr>
-                </thead>
-                <tbody id="ordersTableBody">
-                    <tr>
-                        <td colspan="25" style="text-align: center; padding: 20px;">
-                            <div class="loading"></div>
-                            Cargando datos...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+
+        <!-- Métricas principales -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <div class="metric-label">Total de Pedidos</div>
+                        <div class="metric-value" id="total-orders">--</div>
+                        <div class="text-success">
+                            <small><i class="fas fa-arrow-up"></i> 12% vs período anterior</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <div class="metric-label">Pedidos Pendientes</div>
+                        <div class="metric-value" id="pending-orders">--</div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 25%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <div class="metric-label">Tiempo Promedio</div>
+                        <div class="metric-value" id="avg-time">--</div>
+                        <div class="metric-label">días</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <div class="metric-label">% Completados</div>
+                        <div class="metric-value" id="completion-rate">--</div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos y tabla -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        Evolución de Pedidos
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="orders-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        Estado de Pedidos
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="status-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de pedidos -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Lista de Pedidos</span>
+                <span class="last-update" id="last-update">Última actualización: --</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover data-table">
+                        <thead>
+                            <tr>
+                                <th>ID Pedido</th>
+                                <th>Fecha Creación</th>
+                                <th>División</th>
+                                <th>Estado</th>
+                                <th>Cantidad</th>
+                                <th>Fecha Entrega</th>
+                                <th>Progreso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body">
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="loading-spinner">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando datos...</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-    
-    <div class="toast" id="toast"></div>
 
-    <script src="app.js"></script>
+    <script>
+        // URL de Google Sheets
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSC_myZfLrWVb3rzsFbX_7w9nuR2zBJxEYUqMh5UcSb07hwee7_7UECeU2zTFRePSgUwpvE0IcRmTmJ/pub?gid=323536618&single=true&output=csv';
+        
+        // Variables globales
+        let ordersData = [];
+        let ordersChart, statusChart;
+        
+        // Inicializar dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            
+            // Configurar eventos
+            document.getElementById('refresh-btn').addEventListener('click', loadData);
+            document.getElementById('date-range').addEventListener('change', updateDashboard);
+            document.getElementById('status-filter').addEventListener('change', updateDashboard);
+            document.getElementById('division-filter').addEventListener('change', updateDashboard);
+            document.getElementById('search').addEventListener('input', updateDashboard);
+        });
+        
+        // Cargar datos desde Google Sheets
+        async function loadData() {
+            try {
+                showLoadingState();
+                
+                const response = await fetch(SHEET_URL);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                ordersData = parseCSV(csvText);
+                
+                updateLastUpdateTime();
+                populateDivisionFilter();
+                updateDashboard();
+                
+            } catch (error) {
+                console.error('Error al cargar los datos:', error);
+                showErrorState('Error al cargar los datos. Verifique su conexión a internet.');
+            }
+        }
+        
+        // Parsear CSV a JSON
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(header => header.trim());
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].split(',');
+                const entry = {};
+                
+                headers.forEach((header, index) => {
+                    entry[header] = values[index] ? values[index].trim() : '';
+                });
+                
+                data.push(entry);
+            }
+            
+            return data;
+        }
+        
+        // Actualizar dashboard con datos filtrados
+        function updateDashboard() {
+            const filteredData = filterData();
+            updateMetrics(filteredData);
+            updateCharts(filteredData);
+            updateTable(filteredData);
+        }
+        
+        // Filtrar datos según criterios seleccionados
+        function filterData() {
+            const dateRange = parseInt(document.getElementById('date-range').value);
+            const statusFilter = document.getElementById('status-filter').value;
+            const divisionFilter = document.getElementById('division-filter').value;
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            
+            const now = new Date();
+            const startDate = new Date();
+            startDate.setDate(now.getDate() - dateRange);
+            
+            return ordersData.filter(order => {
+                // Filtrar por fecha
+                const orderDate = new Date(order.Fecha || order['Fecha Creación'] || now);
+                if (orderDate < startDate) return false;
+                
+                // Filtrar por estado
+                if (statusFilter !== 'all') {
+                    const orderStatus = getOrderStatus(order);
+                    if (orderStatus !== statusFilter) return false;
+                }
+                
+                // Filtrar por división
+                if (divisionFilter !== 'all') {
+                    if (order.Division !== divisionFilter && order['División'] !== divisionFilter) return false;
+                }
+                
+                // Filtrar por término de búsqueda
+                if (searchTerm) {
+                    const searchableText = Object.values(order).join(' ').toLowerCase();
+                    if (!searchableText.includes(searchTerm)) return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        // Determinar el estado de un pedido
+        function getOrderStatus(order) {
+            // Esta es una lógica simplificada - debería adaptarse según los datos reales
+            if (order.Completado === 'Sí' || order.Estado === 'Completado') {
+                return 'completed';
+            } else if (order.Retrasado === 'Sí' || order.Estado === 'Retrasado') {
+                return 'delayed';
+            } else {
+                return 'pending';
+            }
+        }
+        
+        // Actualizar métricas principales
+        function updateMetrics(data) {
+            document.getElementById('total-orders').textContent = data.length;
+            
+            const pendingCount = data.filter(order => getOrderStatus(order) === 'pending').length;
+            document.getElementById('pending-orders').textContent = pendingCount;
+            
+            // Calcular tiempo promedio (simulado)
+            const avgTime = data.length > 0 ? Math.round(data.reduce((sum, order) => {
+                return sum + (order['Tiempo Procesamiento'] ? parseInt(order['Tiempo Procesamiento']) : 5);
+            }, 0) / data.length) : 0;
+            document.getElementById('avg-time').textContent = avgTime;
+            
+            // Calcular tasa de completitud
+            const completedCount = data.filter(order => getOrderStatus(order) === 'completed').length;
+            const completionRate = data.length > 0 ? Math.round((completedCount / data.length) * 100) : 0;
+            document.getElementById('completion-rate').textContent = `${completionRate}%`;
+            
+            // Actualizar barras de progreso
+            document.querySelector('.progress-bar.bg-warning').style.width = `${data.length > 0 ? (pendingCount / data.length) * 100 : 0}%`;
+            document.querySelector('.progress-bar.bg-success').style.width = `${completionRate}%`;
+        }
+        
+        // Actualizar gráficos
+        function updateCharts(data) {
+            updateOrdersChart(data);
+            updateStatusChart(data);
+        }
+        
+        // Actualizar gráfico de evolución de pedidos
+        function updateOrdersChart(data) {
+            const ctx = document.getElementById('orders-chart').getContext('2d');
+            
+            // Destruir gráfico existente si existe
+            if (ordersChart) {
+                ordersChart.destroy();
+            }
+            
+            // Agrupar datos por fecha (simulado)
+            const dates = ['01/05', '02/05', '03/05', '04/05', '05/05', '06/05', '07/05'];
+            const completed = [12, 19, 8, 15, 12, 10, 14];
+            const pending = [5, 7, 12, 8, 6, 9, 5];
+            
+            ordersChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Completados',
+                            data: completed,
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Pendientes',
+                            data: pending,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Evolución de Pedidos por Día'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Número de Pedidos'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Actualizar gráfico de estado de pedidos
+        function updateStatusChart(data) {
+            const ctx = document.getElementById('status-chart').getContext('2d');
+            
+            // Destruir gráfico existente si existe
+            if (statusChart) {
+                statusChart.destroy();
+            }
+            
+            // Contar pedidos por estado
+            const statusCounts = {
+                completed: data.filter(order => getOrderStatus(order) === 'completed').length,
+                pending: data.filter(order => getOrderStatus(order) === 'pending').length,
+                delayed: data.filter(order => getOrderStatus(order) === 'delayed').length
+            };
+            
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completados', 'Pendientes', 'Retrasados'],
+                    datasets: [{
+                        data: [statusCounts.completed, statusCounts.pending, statusCounts.delayed],
+                        backgroundColor: [
+                            '#2ecc71',
+                            '#f39c12',
+                            '#e74c3c'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Distribución por Estado'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Actualizar tabla de pedidos
+        function updateTable(data) {
+            const tableBody = document.getElementById('orders-table-body');
+            tableBody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">No se encontraron pedidos con los filtros aplicados</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Mostrar solo los primeros 20 resultados para no sobrecargar la tabla
+            const displayData = data.slice(0, 20);
+            
+            displayData.forEach(order => {
+                const status = getOrderStatus(order);
+                const statusText = status === 'completed' ? 'Completado' : 
+                                 status === 'pending' ? 'Pendiente' : 'Retrasado';
+                const statusClass = status === 'completed' ? 'status-completed' : 
+                                  status === 'pending' ? 'status-pending' : 'status-delayed';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${order.ID || order['ID Pedido'] || 'N/A'}</td>
+                    <td>${order.Fecha || order['Fecha Creación'] || 'N/A'}</td>
+                    <td>${order.Division || order['División'] || 'N/A'}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${order.Cantidad || order['Cantidad Total'] || 'N/A'}</td>
+                    <td>${order['Fecha Entrega'] || order['Fecha Estimada'] || 'N/A'}</td>
+                    <td>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar ${status === 'completed' ? 'bg-success' : status === 'delayed' ? 'bg-danger' : 'bg-warning'}" 
+                                 role="progressbar" 
+                                 style="width: ${status === 'completed' ? '100' : status === 'delayed' ? '70' : '40'}%">
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Mostrar mensaje si hay más resultados
+            if (data.length > 20) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="7" class="text-center text-muted">
+                        Mostrando 20 de ${data.length} pedidos. Use los filtros para refinar los resultados.
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
+        
+        // Poblar filtro de divisiones
+        function populateDivisionFilter() {
+            const divisionFilter = document.getElementById('division-filter');
+            
+            // Obtener divisiones únicas de los datos
+            const divisions = [...new Set(ordersData.map(order => 
+                order.Division || order['División'] || 'Sin división'
+            ))];
+            
+            // Limpiar opciones existentes (excepto "Todas las divisiones")
+            while (divisionFilter.children.length > 1) {
+                divisionFilter.removeChild(divisionFilter.lastChild);
+            }
+            
+            // Agregar opciones
+            divisions.forEach(division => {
+                const option = document.createElement('option');
+                option.value = division;
+                option.textContent = division;
+                divisionFilter.appendChild(option);
+            });
+        }
+        
+        // Mostrar estado de carga
+        function showLoadingState() {
+            const tableBody = document.getElementById('orders-table-body');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center">
+                        <div class="loading-spinner">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando datos...</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            // Resetear métricas
+            document.getElementById('total-orders').textContent = '--';
+            document.getElementById('pending-orders').textContent = '--';
+            document.getElementById('avg-time').textContent = '--';
+            document.getElementById('completion-rate').textContent = '--';
+        }
+        
+        // Mostrar estado de error
+        function showErrorState(message) {
+            const tableBody = document.getElementById('orders-table-body');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> ${message}
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Actualizar hora de última actualización
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const formattedTime = now.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('last-update').textContent = 
+                `Última actualización: ${formattedTime}`;
+        }
+    </script>
+    
+    <!-- Font Awesome para iconos -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </body>
 </html>
