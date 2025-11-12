@@ -799,19 +799,59 @@
             return 'F8 RECIBIDA SIN ASIGNAR';
         }
 
+        // NUEVAS FUNCIONES AUXILIARES PARA LA VERSIÓN MEJORADA
+        function parseAndFormatDate(dateString) {
+            if (!dateString) return null;
+            
+            // Si ya está en formato YYYY-MM-DD
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateString;
+            }
+            
+            // Si tiene formato YYYY-MM-DD HH:MM:SS
+            if (dateString.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+                return dateString.split(' ')[0];
+            }
+            
+            // Si tiene formato DD/MM/YYYY
+            if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const parts = dateString.split('/');
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            
+            // Intentar parsear como fecha
+            try {
+                const date = new Date(dateString);
+                if (!isNaN(date.getTime())) {
+                    return date.toISOString().split('T')[0];
+                }
+            } catch (e) {
+                console.log('Fecha no válida:', dateString);
+            }
+            
+            return null;
+        }
+
+        function formatDateForDisplay(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit'
+            });
+        }
+
         function calculateProcessingTimeDays(order) {
             const fechaRecibo = order['FECHA DE RECIBO DE LA F8'];
             if (!fechaRecibo) return 0;
             
-            // Parsear fecha de recibo
-            const fechaReciboDate = new Date(fechaRecibo.split(' ')[0]);
+            const fechaReciboDate = new Date(parseAndFormatDate(fechaRecibo));
             if (isNaN(fechaReciboDate.getTime())) return 0;
             
             const fechaActual = new Date();
             
             if (order['FECHA DE ENTREGA REAL']) {
-                // Parsear fecha de entrega
-                const fechaEntrega = new Date(order['FECHA DE ENTREGA REAL'].split(' ')[0]);
+                const fechaEntrega = new Date(parseAndFormatDate(order['FECHA DE ENTREGA REAL']));
                 if (!isNaN(fechaEntrega.getTime())) {
                     const diffTime = Math.abs(fechaEntrega - fechaReciboDate);
                     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -896,7 +936,7 @@
             document.getElementById('totalAsignado').textContent = totalAsignado.toLocaleString();
         }
 
-        // Actualizar gráficos con datos REALES - VERSIÓN 1 (MÍNIMA)
+        // Actualizar gráficos con datos REALES - VERSIÓN 2 (MEJORADA)
         function updateCharts() {
             updateEvolutionChart();
             updateStatusChart();
@@ -908,32 +948,36 @@
             // Usar filteredData para que responda a los filtros
             const dataToUse = filteredData;
             
-            // Extraer fechas de recepción y entrega
+            // Extraer y formatear fechas correctamente
             const receivedDates = [...new Set(dataToUse.map(item => {
                 const fecha = item['FECHA DE RECIBO DE LA F8'];
-                return fecha ? fecha.split(' ')[0] : null;
+                return parseAndFormatDate(fecha);
             }))].filter(date => date);
             
             const completedDates = [...new Set(dataToUse.map(item => {
                 const fecha = item['FECHA DE ENTREGA REAL'];
-                return fecha ? fecha.split(' ')[0] : null;
+                return parseAndFormatDate(fecha);
             }))].filter(date => date);
             
             // Combinar y ordenar todas las fechas únicas
-            const allDates = [...new Set([...receivedDates, ...completedDates])].sort();
-            const displayDates = allDates.slice(-15); // Últimos 15 días
+            const allDates = [...new Set([...receivedDates, ...completedDates])]
+                .sort((a, b) => new Date(a) - new Date(b));
             
+            // Mostrar las últimas 15 fechas o todas si son menos
+            const displayDates = allDates.length > 15 ? allDates.slice(-15) : allDates;
+            
+            // Contar pedidos por fecha
             const receivedData = displayDates.map(date => 
                 dataToUse.filter(item => {
-                    const itemDate = item['FECHA DE RECIBO DE LA F8'];
-                    return itemDate && itemDate.split(' ')[0] === date;
+                    const itemDate = parseAndFormatDate(item['FECHA DE RECIBO DE LA F8']);
+                    return itemDate === date;
                 }).length
             );
             
             const completedData = displayDates.map(date => 
                 dataToUse.filter(item => {
-                    const itemDate = item['FECHA DE ENTREGA REAL'];
-                    return itemDate && itemDate.split(' ')[0] === date;
+                    const itemDate = parseAndFormatDate(item['FECHA DE ENTREGA REAL']);
+                    return itemDate === date;
                 }).length
             );
 
@@ -941,10 +985,20 @@
                 evolutionChart.destroy();
             }
 
+            // Si no hay datos suficientes, mostrar mensaje
+            if (displayDates.length === 0) {
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#666';
+                ctx.textAlign = 'center';
+                ctx.fillText('No hay datos suficientes para mostrar el gráfico', 
+                            ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
             evolutionChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: displayDates,
+                    labels: displayDates.map(date => formatDateForDisplay(date)),
                     datasets: [
                         {
                             label: 'Pedidos Recibidos',
@@ -952,7 +1006,8 @@
                             borderColor: '#3498db',
                             backgroundColor: 'rgba(52, 152, 219, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 2
                         },
                         {
                             label: 'Pedidos Completados',
@@ -960,7 +1015,8 @@
                             borderColor: '#27ae60',
                             backgroundColor: 'rgba(39, 174, 96, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 2
                         }
                     ]
                 },
@@ -970,6 +1026,10 @@
                     plugins: {
                         legend: {
                             position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
                         }
                     },
                     scales: {
@@ -978,6 +1038,9 @@
                             title: {
                                 display: true,
                                 text: 'Cantidad de Pedidos'
+                            },
+                            ticks: {
+                                stepSize: 1
                             }
                         },
                         x: {
@@ -986,6 +1049,10 @@
                                 text: 'Fecha'
                             }
                         }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'nearest'
                     }
                 }
             });
@@ -1015,6 +1082,16 @@
 
             if (statusChart) {
                 statusChart.destroy();
+            }
+
+            // Si no hay datos, mostrar mensaje
+            if (Object.keys(statusCounts).length === 0) {
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#666';
+                ctx.textAlign = 'center';
+                ctx.fillText('No hay datos para mostrar', 
+                            ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
             }
 
             statusChart = new Chart(ctx, {
