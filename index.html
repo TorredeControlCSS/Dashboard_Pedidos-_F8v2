@@ -831,38 +831,37 @@
     </div>
 
     <script>
-        // ========== SISTEMA COLABORATIVO ==========
-// Configuración - URL de tu Google Apps Script Web App
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwjqCN3DE7ClDoiiBOZItEpcH9QQjU6NUmhcLVC1cwnqxEC00LKiWNkMO-p3TqiXOJqZA/exec';
+        // Configuración - USANDO EL CSV PÚBLICO QUE PROPORCIONASTE
+        const CSV_PUBLIC_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSC_myZfLrWVb3rzsFbX_7w9nuR2zBJxEYUqMh5UcSb07hwee7_7UECeU2zTFRePSgUwpvE0IcRmTmJ/pub?gid=323536618&single=true&output=csv';
 
-// Estado global de la aplicación
-let currentData = [];
-let filteredData = [];
-let currentPage = 1;
-const itemsPerPage = 50;
-let evolutionChart, statusChart, statusByGroupChart;
+        // Estado global de la aplicación
+        let currentData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const itemsPerPage = 50;
+        let evolutionChart, statusChart, statusByGroupChart;
 
-// Sistema de persistencia local
-const STORAGE_KEY = 'dashboardData';
+        // MEJORA 5: Sistema de persistencia
+        const STORAGE_KEY = 'dashboardData';
 
-// Inicialización
-document.addEventListener('DOMContentLoaded', function() {
-    loadDataFromSheets();
-    initializePWA();
-    
-    // Event listeners
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
-    document.getElementById('clearFilters').addEventListener('click', clearFilters);
-    document.getElementById('saveBtn').addEventListener('click', saveAllChanges);
-    document.getElementById('exportBtn').addEventListener('click', exportToCSV);
-    document.getElementById('refreshBtn').addEventListener('click', loadDataFromSheets);
-    document.getElementById('prevPage').addEventListener('click', prevPage);
-    document.getElementById('nextPage').addEventListener('click', nextPage);
-    
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') applyFilters();
-    });
-});
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDataFromCSV();
+            initializePWA();
+            
+            // Event listeners
+            document.getElementById('applyFilters').addEventListener('click', applyFilters);
+            document.getElementById('clearFilters').addEventListener('click', clearFilters);
+            document.getElementById('saveBtn').addEventListener('click', saveChanges);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('refreshBtn').addEventListener('click', loadDataFromCSV);
+            document.getElementById('prevPage').addEventListener('click', prevPage);
+            document.getElementById('nextPage').addEventListener('click', nextPage);
+            
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') applyFilters();
+            });
+        });
 
         // PWA Installation
         let deferredPrompt;
@@ -914,149 +913,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-       // Cargar datos desde Google Sheets via Apps Script
-async function loadDataFromSheets() {
-    try {
-        showLoading(true);
-        
-        console.log('📡 Cargando datos desde Google Sheets...');
-        const response = await fetch(WEB_APP_URL);
-        
-        if (!response.ok) {
-            throw new Error('Error de conexión: ' + response.status);
+        // Cargar datos desde el CSV público
+        async function loadDataFromCSV() {
+            try {
+                showLoading(true);
+                
+                // MEJORA 5: Intentar cargar datos guardados primero
+                const savedData = loadFromStorage();
+                if (savedData && savedData.length > 0) {
+                    currentData = savedData;
+                    console.log('Datos cargados desde almacenamiento local');
+                } else {
+                    const data = await fetchCSVData();
+                    currentData = data;
+                }
+                
+                filteredData = [...currentData];
+                
+                populateFilterOptions();
+                renderTable();
+                updateKPIs();
+                updateCharts();
+                updateLastUpdate();
+                updatePaginationInfo();
+                
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showError('Error conectando con Google Sheets. Mostrando datos de ejemplo.');
+                loadSampleData();
+            }
         }
-        
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error);
-        }
-        
-        currentData = data;
-        filteredData = [...currentData];
-        
-        populateFilterOptions();
-        renderTable();
-        updateKPIs();
-        updateCharts();
-        updateLastUpdate();
-        updatePaginationInfo();
-        
-        showLoading(false);
-        console.log('✅ Datos cargados exitosamente:', currentData.length, 'registros');
-        
-    } catch (error) {
-        console.error('❌ Error cargando datos:', error);
-        showError('Error conectando con la base de datos. Mostrando datos locales.');
-        loadLocalData();
-    }
-}
-// Guardar cambios individuales en Google Sheets
-async function saveChangesToSheets(updatedRow) {
-    try {
-        console.log('💾 Guardando en Sheets:', updatedRow['FORMA 8 SALMI']);
-        
-        const response = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(updatedRow)
-        });
-        
-        const result = await response.json();
-        
-        if (result.error) {
-            console.error('❌ Error guardando en Sheets:', result.error);
-            return false;
-        }
-        
-        console.log('✅ Guardado exitoso en fila:', result.row);
-        return true;
-        
-    } catch (error) {
-        console.error('❌ Error de conexión:', error);
-        return false;
-    }
-}
-
-// Guardar todos los cambios pendientes
-async function saveAllChanges() {
-    try {
-        showLoading(true);
-        
-        // Guardar en localStorage como respaldo
-        const success = saveToStorage(currentData);
-        
-        if (success) {
-            alert('✅ Cambios guardados localmente. Los cambios se sincronizan automáticamente con la base de datos.');
-            updateLastUpdate();
-        } else {
-            alert('❌ Error al guardar los cambios localmente.');
-        }
-        
-        showLoading(false);
-        
-    } catch (error) {
-        console.error('Error guardando cambios:', error);
-        alert('❌ Error al guardar los cambios.');
-        showLoading(false);
-    }
-}
-
-// Cargar datos locales como respaldo
-function loadLocalData() {
-    const savedData = loadFromStorage();
-    if (savedData && savedData.length > 0) {
-        currentData = savedData;
-        console.log('📂 Datos cargados desde almacenamiento local');
-    } else {
-        // Datos de ejemplo
-        currentData = [{
-            "CATEGORIA DE UNIDAD EJECUTORA": "CEDIS",
-            "UNIDAD EJECUTORA": "CEDIS CHIRIQUÍ", 
-            "TIPO PEDIDO": "URGENCIA",
-            "FORMA 8 SALMI": "CDCH-2025-264",
-            "FORMA 8 SISCONI": "0812c3-2025-264",
-            "GRUPO": "G1 TABLETAS",
-            "TIPO DE SUSTANCIAS": "NO CONTROLADA",
-            "CANTIDAD TOTAL ASIGNADA": "150",
-            "CANTIDAD TOTAL SOLICITADA": "200",
-            "CANTIDAD DE RENGLONES ASIGNADOS": "10",
-            "CANTIDAD DE RENGLONES SOLICITADOS": "12",
-            "FECHA DE LA F8": "2025-01-15",
-            "FECHA DE RECIBO DE LA F8": "2025-01-16",
-            "FECHA DE ASIGNACION": "2025-01-17",
-            "FECHA DE SALIDA EN SALMI": "2025-01-18",
-            "FECHA DE DESPACHO": "2025-01-19",
-            "FECHA DE FACTURACION EN COMPUTO": "2025-01-20",
-            "FECHA DE EMPACADO": "2025-01-21",
-            "FECHA PROYECTADA DE ENTREGA": "2025-01-22",
-            "FECHA DE ENTREGA REAL": "2025-01-23",
-            "INCOTERM": "FCA",
-            "ESTADO": "ENTREGADA",
-            "COMENTARIOS": "Pedido completado exitosamente"
-        }];
-    }
-    
-    filteredData = [...currentData];
-    
-    populateFilterOptions();
-    renderTable();
-    updateKPIs();
-    updateCharts();
-    updateLastUpdate();
-    updatePaginationInfo();
-    
-    showLoading(false);
-}
-
-// Función auxiliar para encontrar índice global
-function findGlobalIndex(rowData) {
-    return currentData.findIndex(item => 
-        item['FORMA 8 SALMI'] === rowData['FORMA 8 SALMI']
-    );
-}
 
         // MEJORA 5: Funciones de persistencia
         function saveToStorage(data) {
@@ -1719,74 +1607,32 @@ function findGlobalIndex(rowData) {
         }
 
         // Event listeners
-function addInputEventListeners() {
-    const inputs = document.querySelectorAll('input, select');
-    inputs.forEach(input => {
-        input.addEventListener('change', async function() {
-            const index = parseInt(this.getAttribute('data-index'));
-            const field = this.getAttribute('data-field');
-            const value = this.value;
-            
-            if (index >= 0 && index < filteredData.length) {
-                // VERIFICAR SI LA CELDA YA ESTÁ BLOQUEADA
-                if (this.classList.contains('locked') || this.readOnly) {
-                    alert('🔒 Este campo ya ha sido guardado y no puede ser modificado.');
-                    return;
-                }
-                
-                // VERIFICAR SI EL CAMPO ESTÁ VACÍO Y REQUIERE CONFIRMACIÓN
-                const valorAnterior = filteredData[index][field] || '';
-                
-                if (valorAnterior === '' && value !== '' && requiereConfirmacion(field)) {
-                    if (!confirmarCambioPermanente(field)) {
-                        // Si el usuario cancela, revertir el valor
-                        this.value = valorAnterior;
-                        return;
-                    }
-                }
-                
-                // ACTUALIZAR DATOS LOCALES
-                filteredData[index][field] = value;
-                const globalIndex = findGlobalIndex(filteredData[index]);
-                if (globalIndex !== -1) {
-                    currentData[globalIndex][field] = value;
-                }
-                
-                // 🔄 GUARDAR EN GOOGLE SHEETS (COLABORATIVO)
-                if (valorAnterior !== value) {
-                    const saveSuccess = await saveChangesToSheets(currentData[globalIndex]);
-                    if (!saveSuccess) {
-                        alert('⚠️ No se pudo sincronizar con la base de datos. Los cambios se guardaron localmente.');
-                    }
-                }
-                
-                // Si se ingresó un valor, bloquear la celda
-                if (value && value.toString().trim() !== '' && requiereConfirmacion(field)) {
-                    this.classList.add('locked');
-                    this.readOnly = true;
-                }
-                
-                // Automatización de estados cuando se cambian fechas
-                if (field.startsWith('FECHA')) {
-                    const nuevoEstado = determineEstado(filteredData[index]);
-                    filteredData[index]['ESTADO'] = nuevoEstado;
-                    if (globalIndex !== -1) {
-                        currentData[globalIndex]['ESTADO'] = nuevoEstado;
+        function addInputEventListeners() {
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    const field = this.getAttribute('data-field');
+                    const value = this.value;
+                    
+                    if (index >= 0 && index < filteredData.length) {
+                        filteredData[index][field] = value;
                         
-                        // 🔄 GUARDAR CAMBIO DE ESTADO
-                        await saveChangesToSheets(currentData[globalIndex]);
+                        // Automatización de estados cuando se cambian fechas
+                        if (field.startsWith('FECHA')) {
+                            const nuevoEstado = determineEstado(filteredData[index]);
+                            filteredData[index]['ESTADO'] = nuevoEstado;
+                        }
+                        
+                        if (field.startsWith('FECHA') || field === 'ESTADO' || field.includes('CANTIDAD') || field === 'INCOTERM') {
+                            renderTable();
+                            updateKPIs();
+                            updateCharts();
+                        }
                     }
-                }
-                
-                if (field.startsWith('FECHA') || field === 'ESTADO' || field.includes('CANTIDAD') || field === 'INCOTERM') {
-                    renderTable();
-                    updateKPIs();
-                    updateCharts();
-                }
-            }
-        });
-    });
-}
+                });
+            });
+        }
 
         function applyFilters() {
             const categoryFilter = document.getElementById('filterCategory').value;
