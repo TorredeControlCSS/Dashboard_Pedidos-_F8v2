@@ -885,7 +885,7 @@
             document.getElementById('clearFilters').addEventListener('click', clearFilters);
             document.getElementById('saveBtn').addEventListener('click', saveAllChanges);
             document.getElementById('exportBtn').addEventListener('click', exportToCSV);
-            document.getElementById('refreshBtn').addEventListener('click', loadDataFromSheets);
+            document.getElementById('refreshBtn').addEventListener('click', actualizarDatosCompletos);
             document.getElementById('prevPage').addEventListener('click', prevPage);
             document.getElementById('nextPage').addEventListener('click', nextPage);
             
@@ -995,6 +995,56 @@
             }
         }
 
+        // FUNCIÓN MEJORADA para el botón Actualizar - FORZAR recarga completa
+async function actualizarDatosCompletos() {
+    try {
+        showLoading(true);
+        showStatusMessage('🔄 Actualizando datos desde Google Sheets...', 'warning');
+        
+        console.log('🔄 Forzando recarga completa desde Sheets...');
+        
+        // FORZAR recarga completa desde Sheets con timestamp para evitar cache
+        const response = await fetch(`${WEB_APP_URL}?action=getData&timestamp=${Date.now()}`);
+        
+        if (!response.ok) {
+            throw new Error('Error de conexión: ' + response.status);
+        }
+        
+        const nuevosDatos = await response.json();
+        
+        if (nuevosDatos.error) {
+            throw new Error(nuevosDatos.error);
+        }
+        
+        // Reemplazar datos COMPLETAMENTE
+        currentData = nuevosDatos;
+        filteredData = [...currentData];
+        
+        // Guardar localmente como respaldo
+        saveToStorage(currentData);
+        
+        // Re-renderizar TODO
+        populateFilterOptions();
+        renderTable();
+        updateKPIs();
+        updateCharts();
+        updateLastUpdate();
+        updatePaginationInfo();
+        
+        showLoading(false);
+        showStatusMessage('✅ Datos actualizados correctamente', 'success');
+        console.log('✅ Recarga completa exitosa:', currentData.length, 'registros');
+        
+    } catch (error) {
+        console.error('❌ Error al actualizar datos:', error);
+        showStatusMessage('❌ Error al actualizar datos. Verificando datos locales...', 'error');
+        showLoading(false);
+        
+        // Intentar cargar datos locales como respaldo
+        loadLocalData();
+    }
+}
+        
         // Guardar cambios individuales en Google Sheets
         async function saveChangesToSheets(updatedRow) {
             try {
