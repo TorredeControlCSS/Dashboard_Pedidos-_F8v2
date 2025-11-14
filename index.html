@@ -863,7 +863,9 @@
         // ========== SISTEMA COLABORATIVO ==========
         // Configuración - URL de tu Google Apps Script Web App
         // CORREGIR ESTA LÍNEA:
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyJtnyylWidGOIKRN0lut9MnbfNbSE2qPdHblNVAZ9GTCMI6qr1mCTvf5bl16MbB4ujAA/exec';
+       // ✅ CONFIGURACIÓN MEJORADA:
+        const WEB_APP_BASE_URL = 'https://script.google.com/macros/s/AKfycbyJtnyylWidGOIKRN0lut9MnbfNbSE2qPdHblNVAZ9GTCMI6qr1mCTvf5bl16MbB4ujAA/exec';
+        const WEB_APP_GET_DATA_URL = WEB_APP_BASE_URL + '?action=getData';
 
         // Estado global de la aplicación
         let currentData = [];
@@ -962,7 +964,7 @@
                 console.log('📡 Cargando datos desde Google Sheets...');
                 
                 // Usar parámetro para indicar que queremos obtener datos
-                const response = await fetch(`${WEB_APP_URL}?action=getData`);
+                const response = await fetch(WEB_APP_GET_DATA_URL);
                 
                 if (!response.ok) {
                     throw new Error('Error de conexión: ' + response.status);
@@ -1004,7 +1006,7 @@ async function actualizarDatosCompletos() {
         console.log('🔄 Forzando recarga completa desde Sheets...');
         
         // FORZAR recarga completa desde Sheets con timestamp para evitar cache
-        const response = await fetch(`${WEB_APP_URL}?action=getData&timestamp=${Date.now()}`);
+        const response = await fetch(`${WEB_APP_BASE_URL}?action=getData&timestamp=${Date.now()}`);
         
         if (!response.ok) {
             throw new Error('Error de conexión: ' + response.status);
@@ -1050,7 +1052,7 @@ async function actualizarDatosCompletos() {
             try {
                 console.log('💾 Guardando en Sheets:', updatedRow['F8 SALMI']);
                 
-                const response = await fetch(WEB_APP_URL, {
+                const response = await fetch(WEB_APP_BASE_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
