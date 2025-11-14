@@ -1313,19 +1313,29 @@ async function actualizarDatosCompletos() {
         // Funciones auxiliares para fechas
         function parseAndFormatDate(dateString) {
             if (!dateString) return null;
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
-            if (dateString.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) return dateString.split(' ')[0];
-            if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                const parts = dateString.split('/');
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
+    
             try {
-                const date = new Date(dateString);
-                if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
-            } catch (e) {
-                console.log('Fecha no válida:', dateString);
+        // Si viene en formato mm/dd/yyyy del input, convertirlo a YYYY-MM-DD para Sheets
+                if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                    const [month, day, year] = dateString.split('/');
+                    return `${year}-${month}-${day}`;
+                }
+        
+        // Si ya está en formato YYYY-MM-DD, dejarlo igual
+                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    return dateString;
+                }
+        
+        // Si viene en formato ISO (2025-11-12T00:00:00.000Z)
+                if (dateString.match(/^\d{4}-\d{2}-\d{2}T/)) {
+                    return dateString.split('T')[0];
+                }
+        
+                return null;
+            } catch (error) {
+                console.log('Error parseando fecha:', dateString, error);
+                return null;
             }
-            return null;
         }
 
         function formatDateForDisplay(dateString) {
@@ -1386,12 +1396,36 @@ async function actualizarDatosCompletos() {
             return statusMap[status] || '';
         }
 
-        function formatDateForInput(dateString) {
-            if (!dateString) return '';
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
-            if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) return dateString.split(' ')[0];
-            return '';
+       function formatDateForInput(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        // Si viene en formato ISO (2025-11-12T00:00:00.000Z)
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}T/)) {
+            const date = new Date(dateString);
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${month}/${day}/${year}`;
         }
+        
+        // Si ya está en formato YYYY-MM-DD
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateString.split('-');
+            return `${month}/${day}/${year}`;
+        }
+        
+        // Si ya está en formato mm/dd/yyyy, dejarlo igual
+        if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            return dateString;
+        }
+        
+        return '';
+    } catch (error) {
+        console.log('Error formateando fecha:', dateString, error);
+        return '';
+    }
+}
 
         // Event listeners CORREGIDOS
         function addInputEventListeners() {
