@@ -896,10 +896,10 @@
 
         // Función auxiliar para encontrar índice global
         function findGlobalIndex(rowData) {
-            if (!rowData || !rowData['FORMA 8 SALMI']) return -1;
+            if (!rowData || !rowData['F8 SALMI']) return -1;
             
             return currentData.findIndex(item => 
-                item['FORMA 8 SALMI'] === rowData['FORMA 8 SALMI']
+                item['F8 SALMI'] === rowData['F8 SALMI']
             );
         }
 
@@ -998,7 +998,7 @@
         // Guardar cambios individuales en Google Sheets
         async function saveChangesToSheets(updatedRow) {
             try {
-                console.log('💾 Guardando en Sheets:', updatedRow['FORMA 8 SALMI']);
+                console.log('💾 Guardando en Sheets:', updatedRow['F8 SALMI']);
                 
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
@@ -1061,29 +1061,29 @@
             } else {
                 // Datos de ejemplo
                 currentData = [{
-                    "CATEGORIA DE UNIDAD EJECUTORA": "CEDIS",
-                    "UNIDAD EJECUTORA": "CEDIS CHIRIQUÍ", 
-                    "TIPO PEDIDO": "URGENCIA",
-                    "FORMA 8 SALMI": "CDCH-2025-264",
-                    "FORMA 8 SISCONI": "0812c3-2025-264",
+                    "CATEG.": "CEDIS",
+                    "UNIDAD": "CEDIS CHIRIQUÍ", 
+                    "TIPO": "URGENCIA",
+                    "F8 SALMI": "CDCH-2025-264",
+                    "F8 SISCONI": "0812c3-2025-264",
                     "GRUPO": "G1 TABLETAS",
-                    "TIPO DE SUSTANCIAS": "NO CONTROLADA",
-                    "CANTIDAD TOTAL ASIGNADA": "150",
-                    "CANTIDAD TOTAL SOLICITADA": "200",
-                    "CANTIDAD DE RENGLONES ASIGNADOS": "10",
-                    "CANTIDAD DE RENGLONES SOLICITADOS": "12",
-                    "FECHA DE LA F8": "2025-01-15",
-                    "FECHA DE RECIBO DE LA F8": "2025-01-16",
-                    "FECHA DE ASIGNACION": "2025-01-17",
-                    "FECHA DE SALIDA EN SALMI": "2025-01-18",
-                    "FECHA DE DESPACHO": "2025-01-19",
-                    "FECHA DE FACTURACION EN COMPUTO": "2025-01-20",
-                    "FECHA DE EMPACADO": "2025-01-21",
-                    "FECHA PROYECTADA DE ENTREGA": "2025-01-22",
-                    "FECHA DE ENTREGA REAL": "2025-01-23",
+                    "SUSTANCIAS": "NO CONTROLADA",
+                    "CANT. ASIG.": "150",
+                    "CANT. SOL.": "200",
+                    "RENGLONES ASIG.": "10",
+                    "RENGLONES SOL.": "12",
+                    "FECHA F8": "2025-01-15",
+                    "RECIBO F8": "2025-01-16",
+                    "ASIGNACIÓN": "2025-01-17",
+                    "SALIDA": "2025-01-18",
+                    "DESPACHO": "2025-01-19",
+                    "FACTURACIÓN": "2025-01-20",
+                    "EMPACADO": "2025-01-21",
+                    "PROY. ENTREGA": "2025-01-22",
+                    "ENTREGA REAL": "2025-01-23",
                     "INCOTERM": "FCA",
                     "ESTADO": "ENTREGADA",
-                    "COMENTARIOS": "Pedido completado exitosamente"
+                    "COMENT.": "Pedido completado exitosamente"
                 }];
             }
             
@@ -1139,11 +1139,11 @@
 
         // Poblar opciones de filtro
         function populateFilterOptions() {
-            const categories = [...new Set(currentData.map(item => item['CATEGORIA DE UNIDAD EJECUTORA']))].filter(Boolean);
-            const units = [...new Set(currentData.map(item => item['UNIDAD EJECUTORA']))].filter(Boolean);
-            const types = [...new Set(currentData.map(item => item['TIPO PEDIDO']))].filter(Boolean);
+            const categories = [...new Set(currentData.map(item => item['CATEG.']))].filter(Boolean);
+            const units = [...new Set(currentData.map(item => item['UNIDAD']))].filter(Boolean);
+            const types = [...new Set(currentData.map(item => item['TIPO']))].filter(Boolean);
             const grupos = [...new Set(currentData.map(item => item['GRUPO']))].filter(Boolean);
-            const sustancias = [...new Set(currentData.map(item => item['TIPO DE SUSTANCIAS']))].filter(Boolean);
+            const sustancias = [...new Set(currentData.map(item => item['SUSTANCIAS']))].filter(Boolean);
             
             populateSelect('filterCategory', categories, 'Todas las categorías');
             populateSelect('filterUnit', units, 'Todas las unidades');
@@ -1183,37 +1183,37 @@
                 const tiempoProcesamiento = calculateProcessingTime(order);
                 const pedidoCompletado = calculatePedidoCompletado(order);
                 const fillRateCantidad = calculateFillRate(
-                    order['CANTIDAD TOTAL ASIGNADA'], 
-                    order['CANTIDAD TOTAL SOLICITADA']
+                    order['CANT. ASIG.'], 
+                    order['CANT. SOL.']
                 );
                 const fillRateRenglon = calculateFillRate(
-                    order['CANTIDAD DE RENGLONES ASIGNADOS'], 
-                    order['CANTIDAD DE RENGLONES SOLICITADOS']
+                    order['RENGLONES ASIG.'], 
+                    order['RENGLONES SOL.']
                 );
                 
                 const estadoActual = order['ESTADO'] || determineEstado(order);
                 
                 row.innerHTML = `
-                    <td>${order['CATEGORIA DE UNIDAD EJECUTORA'] || ''}</td>
-                    <td title="${order['UNIDAD EJECUTORA'] || ''}">${order['UNIDAD EJECUTORA'] || ''}</td>
-                    <td>${order['TIPO PEDIDO'] || ''}</td>
-                    <td title="${order['FORMA 8 SALMI'] || ''}">${order['FORMA 8 SALMI'] || ''}</td>
-                    <td title="${order['FORMA 8 SISCONI'] || ''}">${order['FORMA 8 SISCONI'] || ''}</td>
+                    <td>${order['CATEG.'] || ''}</td>
+                    <td title="${order['UNIDAD'] || ''}">${order['UNIDAD'] || ''}</td>
+                    <td>${order['TIPO'] || ''}</td>
+                    <td title="${order['F8 SALMI'] || ''}">${order['F8 SALMI'] || ''}</td>
+                    <td title="${order['F8 SISCONI'] || ''}">${order['F8 SISCONI'] || ''}</td>
                     <td>${order['GRUPO'] || ''}</td>
-                    <td>${order['TIPO DE SUSTANCIAS'] || ''}</td>
-                    <td><input type="number" class="number-input" value="${order['CANTIDAD TOTAL ASIGNADA'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD TOTAL ASIGNADA"></td>
-                    <td><input type="number" class="number-input" value="${order['CANTIDAD TOTAL SOLICITADA'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD TOTAL SOLICITADA"></td>
-                    <td><input type="number" class="number-input" value="${order['CANTIDAD DE RENGLONES ASIGNADOS'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD DE RENGLONES ASIGNADOS"></td>
-                    <td><input type="number" class="number-input" value="${order['CANTIDAD DE RENGLONES SOLICITADOS'] || ''}" data-index="${globalIndex}" data-field="CANTIDAD DE RENGLONES SOLICITADOS"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE LA F8'])}" data-index="${globalIndex}" data-field="FECHA DE LA F8"></td>
-                    <td>${order['FECHA DE RECIBO DE LA F8'] || ''}</td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE ASIGNACION'])}" data-index="${globalIndex}" data-field="FECHA DE ASIGNACION"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE SALIDA EN SALMI'])}" data-index="${globalIndex}" data-field="FECHA DE SALIDA EN SALMI"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE DESPACHO'])}" data-index="${globalIndex}" data-field="FECHA DE DESPACHO"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE FACTURACION EN COMPUTO'])}" data-index="${globalIndex}" data-field="FECHA DE FACTURACION EN COMPUTO"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE EMPACADO'])}" data-index="${globalIndex}" data-field="FECHA DE EMPACADO"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA PROYECTADA DE ENTREGA'])}" data-index="${globalIndex}" data-field="FECHA PROYECTADA DE ENTREGA"></td>
-                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA DE ENTREGA REAL'])}" data-index="${globalIndex}" data-field="FECHA DE ENTREGA REAL"></td>
+                    <td>${order['SUSTANCIAS'] || ''}</td>
+                    <td><input type="number" class="number-input" value="${order['CANT. ASIG.'] || ''}" data-index="${globalIndex}" data-field="CANT. ASIG."></td>
+                    <td><input type="number" class="number-input" value="${order['CANT. SOL.'] || ''}" data-index="${globalIndex}" data-field="CANT. SOL."></td>
+                    <td><input type="number" class="number-input" value="${order['RENGLONES ASIG.'] || ''}" data-index="${globalIndex}" data-field="RENGLONES ASIG."></td>
+                    <td><input type="number" class="number-input" value="${order['RENGLONES SOL.'] || ''}" data-index="${globalIndex}" data-field="RENGLONES SOL."></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FECHA F8'])}" data-index="${globalIndex}" data-field="FECHA F8"></td>
+                    <td>${order['RECIBO F8'] || ''}</td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['ASIGNACIÓN'])}" data-index="${globalIndex}" data-field="ASIGNACIÓN"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['SALIDA'])}" data-index="${globalIndex}" data-field="SALIDA"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['DESPACHO'])}" data-index="${globalIndex}" data-field="DESPACHO"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['FACTURACIÓN'])}" data-index="${globalIndex}" data-field="FACTURACIÓN"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['EMPACADO'])}" data-index="${globalIndex}" data-field="EMPACADO"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['PROY. ENTREGA'])}" data-index="${globalIndex}" data-field="PROY. ENTREGA"></td>
+                    <td><input type="date" class="date-input" value="${formatDateForInput(order['ENTREGA REAL'])}" data-index="${globalIndex}" data-field="ENTREGA REAL"></td>
                     <!-- NUEVA COLUMNA INCOTERM -->
                     <td>
                         <select class="status-select" data-index="${globalIndex}" data-field="INCOTERM">
@@ -1237,7 +1237,7 @@
                     <td>${pedidoCompletado ? '<span class="completed-badge">SI</span>' : 'NO'}</td>
                     <td>${fillRateCantidad}</td>
                     <td>${fillRateRenglon}</td>
-                    <td><input type="text" value="${order['COMENTARIOS'] || ''}" data-index="${globalIndex}" data-field="COMENTARIOS" style="width: 110px; font-size: 10px;"></td>
+                    <td><input type="text" value="${order['COMENT.'] || ''}" data-index="${globalIndex}" data-field="COMENT." style="width: 110px; font-size: 10px;"></td>
                 `;
                 
                 tableBody.appendChild(row);
@@ -1249,12 +1249,12 @@
 
         // Determinar estado basado en fechas
         function determineEstado(order) {
-            if (order['FECHA DE ENTREGA REAL']) return 'ENTREGADA';
-            if (order['FECHA DE EMPACADO']) return 'EMPACADO';
-            if (order['FECHA DE FACTURACION EN COMPUTO']) return 'FACTURADO';
-            if (order['FECHA DE SALIDA EN SALMI']) return 'SALIDA DE SALMI';
-            if (order['FECHA DE ASIGNACION']) return 'EN ASIGNACION';
-            if (order['FECHA DE RECIBO DE LA F8']) return 'F8 RECIBIDA';
+            if (order['ENTREGA REAL']) return 'ENTREGADA';
+            if (order['EMPACADO']) return 'EMPACADO';
+            if (order['FACTURACIÓN']) return 'FACTURADO';
+            if (order['SALIDA']) return 'SALIDA DE SALMI';
+            if (order['ASIGNACIÓN']) return 'EN ASIGNACION';
+            if (order['RECIBO F8']) return 'F8 RECIBIDA';
             return 'F8 RECIBIDA SIN ASIGNAR';
         }
 
@@ -1283,7 +1283,7 @@
         }
 
         function calculateProcessingTimeDays(order) {
-            const fechaRecibo = order['FECHA DE RECIBO DE LA F8'];
+            const fechaRecibo = order['RECIBO F8'];
             if (!fechaRecibo) return 0;
             
             const fechaReciboDate = new Date(parseAndFormatDate(fechaRecibo));
@@ -1291,8 +1291,8 @@
             
             const fechaActual = new Date();
             
-            if (order['FECHA DE ENTREGA REAL']) {
-                const fechaEntrega = new Date(parseAndFormatDate(order['FECHA DE ENTREGA REAL']));
+            if (order['ENTREGA REAL']) {
+                const fechaEntrega = new Date(parseAndFormatDate(order['ENTREGA REAL']));
                 if (!isNaN(fechaEntrega.getTime())) {
                     const diffTime = Math.abs(fechaEntrega - fechaReciboDate);
                     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1309,7 +1309,7 @@
         }
 
         function calculatePedidoCompletado(order) {
-            return order['ESTADO'] === 'ENTREGADA' || !!order['FECHA DE ENTREGA REAL'];
+            return order['ESTADO'] === 'ENTREGADA' || !!order['ENTREGA REAL'];
         }
 
         function calculateFillRate(asignado, solicitado) {
@@ -1399,11 +1399,11 @@
             
             // MEJORA 4: Contar Urgencias y Mensuales
             const urgentOrders = filteredData.filter(order => 
-                order['TIPO PEDIDO'] === 'URGENCIA'
+                order['TIPO'] === 'URGENCIA'
             ).length;
             
             const monthlyOrders = filteredData.filter(order => 
-                order['TIPO PEDIDO'] === 'MENSUAL'
+                order['TIPO'] === 'MENSUAL'
             ).length;
             
             const pendingOrders = filteredData.filter(order => {
@@ -1429,11 +1429,11 @@
             
             // Cálculo de porcentajes para cantidades
             const totalAsignado = filteredData.reduce((sum, order) => {
-                return sum + (parseInt(order['CANTIDAD TOTAL ASIGNADA']) || 0);
+                return sum + (parseInt(order['CANT. ASIG.']) || 0);
             }, 0);
             
             const totalSolicitado = filteredData.reduce((sum, order) => {
-                return sum + (parseInt(order['CANTIDAD TOTAL SOLICITADA']) || 0);
+                return sum + (parseInt(order['CANT. SOL.']) || 0);
             }, 0);
             
             const totalAsignadoPercent = totalSolicitado > 0 ? 
@@ -1441,11 +1441,11 @@
             
             // Cálculo de porcentajes para renglones
             const totalRenglonesAsignados = filteredData.reduce((sum, order) => {
-                return sum + (parseInt(order['CANTIDAD DE RENGLONES ASIGNADOS']) || 0);
+                return sum + (parseInt(order['RENGLONES ASIG.']) || 0);
             }, 0);
             
             const totalRenglonesSolicitados = filteredData.reduce((sum, order) => {
-                return sum + (parseInt(order['CANTIDAD DE RENGLONES SOLICITADOS']) || 0);
+                return sum + (parseInt(order['RENGLONES SOL.']) || 0);
             }, 0);
             
             const totalRenglonesPercent = totalRenglonesSolicitados > 0 ? 
@@ -1478,7 +1478,7 @@
             // MEJORA 3: Procesamiento mejorado de fechas
             const allReceivedDates = dataToUse
                 .map(item => {
-                    const rawDate = item['FECHA DE RECIBO DE LA F8'];
+                    const rawDate = item['RECIBO F8'];
                     if (!rawDate) return null;
                     
                     // MEJORA 3: Usar parseAndFormatDate para consistencia
@@ -1491,7 +1491,7 @@
             
             const allCompletedDates = dataToUse
                 .map(item => {
-                    const rawDate = item['FECHA DE ENTREGA REAL'];
+                    const rawDate = item['ENTREGA REAL'];
                     if (!rawDate) return null;
                     
                     // MEJORA 3: Usar parseAndFormatDate para consistencia
@@ -1509,14 +1509,14 @@
             
             const receivedData = displayDates.map(date => {
                 return dataToUse.filter(item => {
-                    const itemDate = parseAndFormatDate(item['FECHA DE RECIBO DE LA F8']);
+                    const itemDate = parseAndFormatDate(item['RECIBO F8']);
                     return itemDate === date;
                 }).length;
             });
             
             const completedData = displayDates.map(date => {
                 return dataToUse.filter(item => {
-                    const itemDate = parseAndFormatDate(item['FECHA DE ENTREGA REAL']);
+                    const itemDate = parseAndFormatDate(item['ENTREGA REAL']);
                     return itemDate === date;
                 }).length;
             });
@@ -1752,11 +1752,11 @@
             const dateTo = document.getElementById('filterDateTo').value;
             
             filteredData = currentData.filter(order => {
-                if (categoryFilter && order['CATEGORIA DE UNIDAD EJECUTORA'] !== categoryFilter) return false;
-                if (unitFilter && order['UNIDAD EJECUTORA'] !== unitFilter) return false;
-                if (typeFilter && order['TIPO PEDIDO'] !== typeFilter) return false;
+                if (categoryFilter && order['CATEG.'] !== categoryFilter) return false;
+                if (unitFilter && order['UNIDAD'] !== unitFilter) return false;
+                if (typeFilter && order['TIPO'] !== typeFilter) return false;
                 if (grupoFilter && order['GRUPO'] !== grupoFilter) return false;
-                if (sustanciasFilter && order['TIPO DE SUSTANCIAS'] !== sustanciasFilter) return false;
+                if (sustanciasFilter && order['SUSTANCIAS'] !== sustanciasFilter) return false;
                 
                 if (statusFilter) {
                     const estado = order['ESTADO'] || determineEstado(order);
@@ -1765,19 +1765,19 @@
                 
                 // NUEVO FILTRO DE FECHAS
                 if (dateFrom) {
-                    const fechaRecibo = parseAndFormatDate(order['FECHA DE RECIBO DE LA F8']);
+                    const fechaRecibo = parseAndFormatDate(order['RECIBO F8']);
                     if (!fechaRecibo || new Date(fechaRecibo) < new Date(dateFrom)) return false;
                 }
                 
                 if (dateTo) {
-                    const fechaRecibo = parseAndFormatDate(order['FECHA DE RECIBO DE LA F8']);
+                    const fechaRecibo = parseAndFormatDate(order['RECIBO F8']);
                     if (!fechaRecibo || new Date(fechaRecibo) > new Date(dateTo)) return false;
                 }
                 
                 if (searchTerm) {
                     const searchFields = [
-                        order['FORMA 8 SALMI'], order['FORMA 8 SISCONI'], order['GRUPO'],
-                        order['TIPO DE SUSTANCIAS'], order['UNIDAD EJECUTORA']
+                        order['F8 SALMI'], order['F8 SISCONI'], order['GRUPO'],
+                        order['SUSTANCIAS'], order['UNIDAD']
                     ];
                     const matches = searchFields.some(field => 
                         field && field.toLowerCase().includes(searchTerm)
