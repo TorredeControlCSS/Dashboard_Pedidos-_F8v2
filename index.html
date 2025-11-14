@@ -677,6 +677,7 @@
                     <button id="saveBtn">💾 Guardar Cambios</button>
                     <button id="exportBtn">📊 Exportar a CSV</button>
                     <button id="refreshBtn">🔄 Actualizar Datos</button>
+                    <button id="syncBtn">🔄 Sincronizar con Sheets</button>
                 </div>
             </div>
         </div>
@@ -890,6 +891,7 @@
             document.getElementById('refreshBtn').addEventListener('click', actualizarDatosCompletos);
             document.getElementById('prevPage').addEventListener('click', prevPage);
             document.getElementById('nextPage').addEventListener('click', nextPage);
+            document.getElementById('syncBtn').addEventListener('click', syncWithGoogleSheets);
             
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') applyFilters();
@@ -1092,6 +1094,53 @@ async function saveChangesToSheets(updatedRow) {
             }
         }
 
+        // ✅ AÑADE LA NUEVA FUNCIÓN AQUÍ:
+async function syncWithGoogleSheets() {
+    try {
+        showLoading(true);
+        showStatusMessage('🔄 Sincronizando con Google Sheets...', 'warning');
+        
+        console.log('🔄 Iniciando sincronización...');
+        
+        // Obtener datos actuales de Google Sheets
+        const response = await fetch(`${WEB_APP_BASE_URL}?action=getData&timestamp=${Date.now()}`);
+        
+        if (!response.ok) {
+            throw new Error('Error de conexión: ' + response.status);
+        }
+        
+        const sheetData = await response.json();
+        
+        if (sheetData.error) {
+            throw new Error(sheetData.error);
+        }
+        
+        // Reemplazar datos locales con los de Google Sheets
+        currentData = sheetData;
+        filteredData = [...currentData];
+        
+        // Guardar localmente
+        saveToStorage(currentData);
+        
+        // Actualizar interfaz
+        populateFilterOptions();
+        renderTable();
+        updateKPIs();
+        updateCharts();
+        updateLastUpdate();
+        updatePaginationInfo();
+        
+        showLoading(false);
+        showStatusMessage('✅ Sincronización completada', 'success');
+        console.log('✅ Sincronización exitosa:', currentData.length, 'registros');
+        
+    } catch (error) {
+        console.error('❌ Error sincronizando:', error);
+        showLoading(false);
+        showStatusMessage('❌ Error sincronizando. Los datos locales se mantienen.', 'error');
+    }
+}
+        
         // Cargar datos locales como respaldo
         function loadLocalData() {
             const savedData = loadFromStorage();
