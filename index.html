@@ -1049,25 +1049,75 @@ async function actualizarDatosCompletos() {
     }
 }
         
-        // Guardar cambios individuales en Google Sheets
-async function saveChangesToSheets(updatedRow) {
-    return new Promise((resolve) => {
-        console.log('📝 Guardando cambios localmente (CORS bloqueado):', updatedRow['F8 SALMI']);
+        // Guardar cambios individuales en Google Sheets (vía Apps Script)
+        async function saveChangesToSheets(updatedRow) {
+            try {
+                // Asegurarnos de que tenemos la clave F8 SALMI
+                if (!updatedRow || !updatedRow['F8 SALMI']) {
+                    console.warn('No hay F8 SALMI en la fila actualizada, no se puede guardar:', updatedRow);
+                    return false;
+                }
         
-        // Guardar en localStorage inmediatamente
-        const globalIndex = findGlobalIndex(updatedRow);
-        if (globalIndex !== -1) {
-            currentData[globalIndex] = {...currentData[globalIndex], ...updatedRow};
-            saveToStorage(currentData);
+                console.log('📝 Enviando cambios a Google Sheets para F8 SALMI:', updatedRow['F8 SALMI']);
+        
+                // Construimos el payload que espera el Apps Script: { updates: [ { ... } ] }
+                const payload = {
+                    updates: [updatedRow]
+                };
+        
+                const response = await fetch(WEB_APP_BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload),
+                });
+        
+                if (!response.ok) {
+                    console.error('❌ Error HTTP al guardar en Sheets:', response.status, response.statusText);
+                    // Aún así, actualizamos localmente para no perder el cambio
+                    const globalIndex = findGlobalIndex(updatedRow);
+                    if (globalIndex !== -1) {
+                        currentData[globalIndex] = { ...currentData[globalIndex], ...updatedRow };
+                        saveToStorage(currentData);
+                    }
+                    return false;
+                }
+        
+                const result = await response.json();
+        
+                if (!result.success) {
+                    console.error('❌ El servidor respondió error al guardar en Sheets:', result.error);
+                    const globalIndex = findGlobalIndex(updatedRow);
+                    if (globalIndex !== -1) {
+                        currentData[globalIndex] = { ...currentData[globalIndex], ...updatedRow };
+                        saveToStorage(currentData);
+                    }
+                    return false;
+                }
+        
+                // Éxito: también actualizamos localmente
+                const globalIndex = findGlobalIndex(updatedRow);
+                if (globalIndex !== -1) {
+                    currentData[globalIndex] = { ...currentData[globalIndex], ...updatedRow };
+                    saveToStorage(currentData);
+                }
+        
+                console.log('✅ Cambios guardados en Google Sheets para F8 SALMI:', updatedRow['F8 SALMI']);
+                return true;
+        
+            } catch (error) {
+                console.error('❌ Error guardando cambios en Sheets:', error);
+                // Respaldo local si hay error
+                const globalIndex = findGlobalIndex(updatedRow);
+                if (globalIndex !== -1) {
+                    currentData[globalIndex] = { ...currentData[globalIndex], ...updatedRow };
+                    saveToStorage(currentData);
+                }
+                return false;
+            }
         }
         
-        // Simular éxito para que la UI no se bloquee
-        setTimeout(() => {
-            console.log('✅ Cambios guardados localmente - Se sincronizarán después');
-            resolve(true);
-        }, 300);
-    });
-}
 
         // Guardar todos los cambios pendientes
         async function saveAllChanges() {
