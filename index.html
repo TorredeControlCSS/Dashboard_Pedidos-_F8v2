@@ -242,46 +242,48 @@
         // ==========================================
         // 1. CARGA DE DATOS (READ)
         // ==========================================
+        // ==========================================
+        // CARGA DE DATOS SIMPLE (SIN VUELTAS)
+        // ==========================================
         async function loadData() {
             showLoading(true);
             try {
-                // Fetch al Backend con parámetro tracking
+                // 1. Pedir datos al Script
                 const response = await fetch(`${WEB_APP_URL}?file=tracking`);
-                const rawData = await response.json();
+                const rawData = await response.json(); 
                 
-                // Mapeo Array Google Sheets -> Objeto UI
-                // Estructura V7: [ID, UNIDAD, F_F8, F_ASIG, ITEMS_SOL, ITEMS_ASIG, TOT_SOL, TOT_ASIG, ESTADO, PICK, PACK, FACT, DESP, ENT, COM]
-                // Indices:        0    1       2      3       4          5           6        7         8      9     10    11    12    13   14
+                // rawData es una matriz: [[ID, UNIDAD...], [8047, Chepo...], ...]
                 
-               ordersData = rawData.slice(1).map(r => ({
-                    // Usamos una validación simple (|| "") para evitar el texto "undefined" visualmente
-                    id: r[0] || "---",
-                    unidad: r[1] || "Sin Nombre",
-                    fechaF8: formatDate(r[2]),
+                // 2. Mapeo DIRECTO (Columna A es indice 0, B es 1, etc.)
+                // Basado VISUALMENTE en tu captura de pantalla:
+                ordersData = rawData.slice(1).map(fila => ({
+                    id:          fila[0],  // Col A: ID_PEDIDO
+                    unidad:      fila[1],  // Col B: UNIDAD_EJECUTORA
+                    fechaF8:     formatDate(fila[2]), // Col C: FECHA_F8
                     
-                    // Aseguramos que si es 0 se muestre 0
-                    items: `${(r[5] !== undefined ? r[5] : 0)} / ${(r[4] !== undefined ? r[4] : 0)}`,
+                    // Items: Col F (Asignados) / Col E (Solicitados)
+                    items:       `${fila[5]} / ${fila[4]}`, 
                     
-                    estado: r[8] || "ASIGNADO",
-                    picking: formatDate(r[9]),
-                    empaque: formatDate(r[10]),
-                    facturacion: formatDate(r[11]), 
-                    despacho: formatDate(r[12]),
-                    entrega: formatDate(r[13]),
-                    comentarios: r[14] || ""
+                    estado:      fila[8],  // Col I: ESTADO
+                    picking:     formatDate(fila[9]),  // Col J
+                    empaque:     formatDate(fila[10]), // Col K
+                    facturacion: formatDate(fila[11]), // Col L (FACTURACION)
+                    despacho:    formatDate(fila[12]), // Col M
+                    entrega:     formatDate(fila[13]), // Col N
+                    comentarios: fila[14]  // Col O
                 }));
 
+                // 3. Renderizar
                 renderTable(ordersData);
                 updateKPIs(ordersData);
                 updateCharts(ordersData);
                 
-                const now = new Date();
-                document.getElementById('lastUpdate').innerText = `Sincronizado: ${now.toLocaleTimeString()}`;
-                showToast("✅ Datos actualizados correctamente");
+                document.getElementById('lastUpdate').innerText = "Sincronizado: " + new Date().toLocaleTimeString();
+                showToast("✅ Datos cargados correctamente");
 
             } catch (error) {
-                console.error("Error:", error);
-                showToast("❌ Error al conectar con Google Sheets");
+                console.error(error);
+                showToast("❌ Error cargando datos");
             } finally {
                 showLoading(false);
             }
