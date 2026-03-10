@@ -16,6 +16,7 @@
     
     <!-- CHART.JS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
     <style>
         /* =========================================
@@ -58,22 +59,34 @@
         .kpi-orange { border-bottom-color: #f39c12; }
         .kpi-green { border-bottom-color: #0a7a2f; }
         
-        /* GRÁFICOS COMPACTOS (SOLICITUD #1) */
-        .charts-container { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin: 15px 0; }
+        /* GRÁFICOS OPTIMIZADOS (SOLICITUD V9) */
+        .charts-container { display: grid; grid-template-columns: 1.5fr 1fr; gap: 15px; margin: 15px 0; }
+        
         .chart-card {
             background: white; padding: 10px 15px; border-radius: 8px;
-            height: 200px; /* ALTURA REDUCIDA */
+            height: 220px; /* Altura controlada */
             position: relative; border: 1px solid #e5e5e5;
+            display: flex; flex-direction: column;
         }
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 25px; }
         .chart-title { font-weight: 700; color: #666; font-size: 12px; }
-        .chart-toggle { 
-            background: #eee; border: none; padding: 2px 8px; border-radius: 4px; 
-            cursor: pointer; font-size: 11px; color: #333; 
+        
+        /* Layout Híbrido para la derecha */
+        .hybrid-chart-layout {
+            display: flex; height: 100%; width: 100%; overflow: hidden;
         }
-        .chart-toggle:hover { background: #ddd; }
+        .donut-section { flex: 1; position: relative; max-width: 160px; } /* Dona más pequeña */
+        .stats-section { flex: 1.5; padding-left: 15px; overflow-y: auto; font-size: 11px; }
 
-        /* TABLA */
+        /* Mini Tabla de Grupos */
+        .mini-table { width: 100%; border-collapse: collapse; }
+        .mini-table th { text-align: left; color: #666; border-bottom: 1px solid #eee; padding: 4px; font-size: 10px; }
+        .mini-table td { border-bottom: 1px solid #f5f5f5; padding: 4px; color: #333; }
+        .mini-bar-bg { background: #eee; height: 4px; width: 50px; border-radius: 2px; display: inline-block; margin-right: 5px; }
+        .mini-bar-fill { height: 100%; background: #3498db; border-radius: 2px; }
+
+        /* TABLA PRINCIPAL */
         .table-container {
             background-color: white; border-radius: 8px; overflow: auto; 
             margin-bottom: 15px; max-height: 65vh; border: 1px solid #ddd;
@@ -84,21 +97,13 @@
         td { padding: 4px 8px; border-bottom: 1px solid #eee; vertical-align: middle; border-right: 1px solid #eee; }
         tbody tr:hover { background-color: #f0f7ff; }
 
-        /* INPUTS Y SELECTS */
-        .editable-cell select, .editable-cell input { 
-            width: 100%; padding: 4px; border: 1px solid transparent; background: transparent; 
-            font-size: 11px; border-radius: 4px; 
-        }
+        /* INPUTS */
+        .editable-cell select, .editable-cell input { width: 100%; padding: 4px; border: 1px solid transparent; background: transparent; font-size: 11px; border-radius: 4px; }
         .editable-cell select { border: 1px solid #ddd; background: white; font-weight: bold; cursor: pointer; }
         .editable-cell input:hover, .editable-cell input:focus { background: white; border: 1px solid #3498db; outline: none; }
-        
-        /* CALENDARIO (SOLICITUD #5) */
-        input[type="date"] {
-            font-family: 'Arial', sans-serif;
-            color: #333;
-        }
+        input[type="date"] { font-family: 'Arial', sans-serif; color: #333; }
 
-        /* CLASES ESPECIALES */
+        /* ESPECIALES */
         .col-factura { background-color: #e8f5e9 !important; border-left: 2px solid #c8e6c9; border-right: 2px solid #c8e6c9; }
         .col-factura input { font-weight: 700; color: #0a7a2f; text-align: center; }
         .col-number { text-align: right; font-family: monospace; font-size: 12px; }
@@ -131,7 +136,7 @@
             <div class="title-main">TORRE DE CONTROL — Seguimiento F8 - CEDIS PANAMA</div>
             <div class="title-sub">
                 <span id="currentDateTime">Cargando fecha...</span>
-                <span style="opacity:.8; margin-left:8px;"> | V8.0 (Grupos + Calendarios)</span>
+                <span style="opacity:.8; margin-left:8px;"> | V9.0 (Gráficos Optimizados)</span>
             </div>
         </div>
         <div class="top-actions">
@@ -168,31 +173,49 @@
             </div>
         </div>
 
-        <!-- GRÁFICOS (COMPACTOS) -->
+        <!-- GRÁFICOS OPTIMIZADOS -->
         <div class="charts-container">
+            
+            <!-- 1. BARRAS (Izquierda) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <div class="chart-title">Evolución (Por Fecha Asignación)</div>
+                    <div class="chart-title">Evolución de Carga (Por Fecha Asignación)</div>
                 </div>
-                <canvas id="evolutionChart"></canvas>
+                <div style="flex-grow:1; position:relative;">
+                    <canvas id="evolutionChart"></canvas>
+                </div>
             </div>
+
+            <!-- 2. HÍBRIDO DONA + TABLA (Derecha) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <div class="chart-title" id="donutTitle">Distribución por Estado</div>
-                    <!-- SWITCH DE GRÁFICO -->
-                    <button class="chart-toggle" id="toggleChartBtn" onclick="toggleDonutData()">
-                        ↔️ Ver por Grupo
-                    </button>
+                    <div class="chart-title">Distribución por Grupo</div>
                 </div>
-                <canvas id="statusChart"></canvas>
+                <div class="hybrid-chart-layout">
+                    <!-- Dona Pequeña -->
+                    <div class="donut-section">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <!-- Mini Tabla de Datos -->
+                    <div class="stats-section">
+                        <table class="mini-table" id="groupStatsTable">
+                            <thead>
+                                <tr><th>Grupo</th><th>Cant.</th><th>%</th></tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS fills this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         
         <!-- FILTROS -->
-        <div class="controls" style="padding: 10px; margin-bottom: 10px;">
+        <div class="controls" style="padding: 10px; margin-bottom: 10px; border:1px solid #ddd; border-radius:8px; background:white;">
             <div style="display: flex; gap: 10px;">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar ID, Grupo, Unidad..." style="flex-grow:1; padding:6px;">
-                <select id="filterStatus" style="width: 150px; padding:6px;">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar ID, Grupo, Unidad..." style="flex-grow:1; padding:6px; border:1px solid #ccc; border-radius:6px;">
+                <select id="filterStatus" style="width: 150px; padding:6px; border:1px solid #ccc; border-radius:6px;">
                     <option value="">Todos los Estados</option>
                     <option value="ASIGNADO">ASIGNADO</option>
                     <option value="PICKING">PICKING</option>
@@ -211,8 +234,8 @@
                     <tr>
                         <th style="width: 130px;">ID Pedido</th>
                         <th style="width: 220px;">Unidad Ejecutora</th>
-                        <th style="width: 120px;">Grupo</th> <!-- NUEVA COLUMNA -->
-                        <th style="width: 90px;">F. Asig.</th> <!-- CAMBIADO DE F8 A ASIG -->
+                        <th style="width: 120px;">Grupo</th>
+                        <th style="width: 90px;">F. Asig.</th>
                         <th style="width: 80px; text-align:right;">T. Solic.</th>
                         <th style="width: 80px; text-align:right;">T. Asig.</th>
                         <th style="width: 70px; text-align:center;">Items</th>
@@ -225,9 +248,7 @@
                         <th style="width: 200px;">Comentarios</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody">
-                    <!-- Data -->
-                </tbody>
+                <tbody id="tableBody"></tbody>
             </table>
         </div>
         
@@ -241,7 +262,6 @@
         
         let ordersData = [];
         let charts = {};
-        let donutMode = 'STATUS'; // STATUS o GROUP
 
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
@@ -265,9 +285,7 @@
             update(); setInterval(update, 1000);
         }
 
-        // ==========================================
-        // 1. CARGA DE DATOS
-        // ==========================================
+        // 1. CARGA
         async function loadData() {
             showLoading(true);
             try {
@@ -277,17 +295,12 @@
                 ordersData = rawData.map(fila => ({
                     id:          fila['ID_PEDIDO'] || "---",
                     unidad:      fila['UNIDAD_EJECUTORA'] || "Sin Nombre",
-                    grupo:       fila['GRUPO'] || "GENÉRICO", // NUEVO CAMPO
-                    
-                    // SOLICITUD #2: Usar FECHA_ASIGNACION
+                    grupo:       fila['GRUPO'] || "GENÉRICO",
                     fechaAsig:   formatDateLatino(fila['FECHA_ASIGNACION']), 
-                    
                     totalSolic:  Number(fila['TOTAL_SOLIC'] || 0),
                     totalAsig:   Number(fila['TOTAL_ASIG'] || 0),
                     items:       `${fila['ITEMS_ASIG'] || 0} / ${fila['ITEMS_SOLIC'] || 0}`,
                     estado:      fila['ESTADO'] || "ASIGNADO",
-                    
-                    // Fechas (Vienen como dd/mm/yyyy del backend)
                     picking:     fila['FECHA_PICKING'],
                     empaque:     fila['FECHA_EMPACADO'],
                     facturacion: fila['FECHA_FACTURACION'],
@@ -301,23 +314,17 @@
                 updateCharts(ordersData);
                 showToast("✅ Datos Actualizados");
 
-            } catch (error) {
-                console.error(error); showToast("❌ Error de conexión");
-            } finally {
-                showLoading(false);
-            }
+            } catch (error) { console.error(error); showToast("❌ Error de conexión"); } 
+            finally { showLoading(false); }
         }
 
-        // ==========================================
-        // 2. RENDERIZADO (CON DATE PICKERS)
-        // ==========================================
+        // 2. RENDERIZADO
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
             data.forEach(item => {
                 const tr = document.createElement('tr');
-                
                 let stStyle = "background:#eee; color:#333;";
                 if(item.estado === "ASIGNADO") stStyle = "background:#e3f2fd; color:#1565c0;";
                 if(item.estado === "PICKING") stStyle = "background:#fffde7; color:#fbc02d;";
@@ -325,7 +332,6 @@
                 if(item.estado === "FACTURADO") stStyle = "background:#e8f5e9; color:#0a7a2f;";
                 if(item.estado === "DESPACHADO") stStyle = "background:#f3e5f5; color:#7b1fa2;";
 
-                // TRUCO CALENDARIO: Convertir "10/03/2026" (Latino) -> "2026-03-10" (ISO) para el Input Date
                 const isoPick = toISO(item.picking);
                 const isoPack = toISO(item.empaque);
                 const isoFact = toISO(item.facturacion);
@@ -337,11 +343,9 @@
                     <td>${item.unidad}</td>
                     <td><span style="background:#eee; padding:2px 5px; border-radius:4px; font-size:10px;">${item.grupo}</span></td>
                     <td style="font-size:11px;">${item.fechaAsig}</td>
-                    
                     <td class="col-number">${item.totalSolic.toLocaleString()}</td>
                     <td class="col-number" style="font-weight:bold; color:#0b1f3a;">${item.totalAsig.toLocaleString()}</td>
                     <td style="text-align:center">${item.items}</td>
-                    
                     <td class="editable-cell">
                         <select onchange="saveChange('${item.id}', 'ESTADO', this.value)" style="${stStyle}">
                             <option value="ASIGNADO" ${item.estado==='ASIGNADO'?'selected':''}>ASIGNADO</option>
@@ -352,29 +356,20 @@
                             <option value="ENTREGADO" ${item.estado==='ENTREGADO'?'selected':''}>ENTREGADO</option>
                         </select>
                     </td>
-                    
-                    <!-- INPUTS DE FECHA (CALENDARIOS) -->
                     <td class="editable-cell"><input type="date" value="${isoPick}" onchange="handleDateChange('${item.id}', 'FECHA_PICKING', this.value)"></td>
                     <td class="editable-cell"><input type="date" value="${isoPack}" onchange="handleDateChange('${item.id}', 'FECHA_EMPACADO', this.value)"></td>
                     <td class="editable-cell col-factura"><input type="date" value="${isoFact}" onchange="handleDateChange('${item.id}', 'FECHA_FACTURACION', this.value)"></td>
                     <td class="editable-cell"><input type="date" value="${isoDesp}" onchange="handleDateChange('${item.id}', 'FECHA_DESPACHO', this.value)"></td>
                     <td class="editable-cell"><input type="date" value="${isoEntr}" onchange="handleDateChange('${item.id}', 'FECHA_ENTREGA', this.value)"></td>
-                    
                     <td class="editable-cell"><input type="text" value="${item.comentarios}" placeholder="..." onchange="saveChange('${item.id}', 'COMENTARIOS', this.value)"></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // ==========================================
-        // 3. LOGICA DE GUARDADO Y CONVERSIÓN
-        // ==========================================
-        
-        // Wrapper para fechas: Convierte ISO (Input) -> Latino (Excel)
+        // 3. LOGICA GUARDADO
         function handleDateChange(id, field, isoValue) {
-            const latinoValue = toLatino(isoValue); // "2026-03-10" -> "10/03/2026"
-            
-            // Actualizar dato local en formato latino para mantener coherencia
+            const latinoValue = toLatino(isoValue);
             const item = ordersData.find(i => i.id === id);
             if(item) {
                 if(field === 'FECHA_PICKING') item.picking = latinoValue;
@@ -389,14 +384,10 @@
         async function saveChange(id, field, value) {
             showToast("Guardando...");
             const item = ordersData.find(i => i.id === id);
-            
             if(item && field === 'ESTADO') {
                 item.estado = value;
-                updateKPIs(ordersData); 
-                updateCharts(ordersData); 
-                renderTable(ordersData); // Re-renderizar para colores
+                updateKPIs(ordersData); updateCharts(ordersData); renderTable(ordersData);
             }
-
             try {
                 await fetch(WEB_APP_URL, {
                     method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
@@ -406,24 +397,18 @@
             } catch (error) { console.error(error); showToast("❌ Error al guardar"); }
         }
 
-        // ==========================================
-        // 4. KPIS PONDERADOS (SOLICITUD #4)
-        // ==========================================
+        // 4. KPIS
         function updateKPIs(data) {
             const counts = { ASIGNADO:0, PICKING:0, EMPACADO:0, FACTURADO:0, DESPACHADO:0, ENTREGADO:0 };
             let weightedSum = 0;
-            
             data.forEach(d => { 
                 if(counts[d.estado] !== undefined) counts[d.estado]++;
-                
-                // Pesos para avance global
                 if(d.estado === 'PICKING') weightedSum += 0.2;
                 if(d.estado === 'EMPACADO') weightedSum += 0.5;
                 if(d.estado === 'FACTURADO') weightedSum += 0.8;
                 if(d.estado === 'DESPACHADO') weightedSum += 0.9;
                 if(d.estado === 'ENTREGADO') weightedSum += 1.0;
             });
-            
             const total = data.length;
             const percent = total > 0 ? Math.round((weightedSum/total)*100) : 0;
 
@@ -434,44 +419,9 @@
             document.getElementById('kpi-avance').innerText = percent + "%";
         }
 
-        // ==========================================
-        // 5. GRÁFICOS DINÁMICOS (SOLICITUD #1, #2, #3)
-        // ==========================================
-        function toggleDonutData() {
-            donutMode = (donutMode === 'STATUS') ? 'GROUP' : 'STATUS';
-            document.getElementById('toggleChartBtn').innerText = (donutMode === 'STATUS') ? '↔️ Ver por Grupo' : '↔️ Ver por Estado';
-            document.getElementById('donutTitle').innerText = (donutMode === 'STATUS') ? 'Distribución por Estado' : 'Distribución por Grupo';
-            updateCharts(ordersData);
-        }
-
+        // 5. GRÁFICOS OPTIMIZADOS
         function updateCharts(data) {
-            // A. GRÁFICO DONA (Dual: Estado o Grupo)
-            const counts = {};
-            data.forEach(d => { 
-                const key = (donutMode === 'STATUS') ? d.estado : d.grupo;
-                counts[key] = (counts[key] || 0) + 1; 
-            });
-            
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
-            if(charts.status) charts.status.destroy();
-            
-            charts.status = new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(counts),
-                    datasets: [{
-                        data: Object.values(counts),
-                        backgroundColor: ['#3498db', '#fbc02d', '#ef6c00', '#0a7a2f', '#7b1fa2', '#37474f', '#8e44ad', '#2c3e50'],
-                        borderWidth: 1
-                    }]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } } 
-                }
-            });
-
-            // B. EVOLUCIÓN (Por Fecha Asignación)
+            // A. BARRAS (Evolución)
             const dateCounts = {};
             data.forEach(d => { if(d.fechaAsig) dateCounts[d.fechaAsig] = (dateCounts[d.fechaAsig] || 0) + 1; });
             const labels = Object.keys(dateCounts).sort((a,b) => parseLatino(a) - parseLatino(b)).slice(-10);
@@ -480,64 +430,87 @@
             if(charts.evo) charts.evo.destroy();
 
             charts.evo = new Chart(ctxEvo, {
-                type: 'line',
+                type: 'bar', // CAMBIO A BARRAS
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Pedidos',
                         data: labels.map(l => dateCounts[l]),
-                        borderColor: '#0b1f3a',
-                        backgroundColor: 'rgba(11, 31, 58, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3
+                        backgroundColor: '#0b1f3a',
+                        borderRadius: 4
                     }]
                 },
                 options: { 
                     responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { precision:0 } } }
+                    plugins: { legend: {display: false} },
+                    scales: { y: { beginAtZero: true, grid: {drawBorder: false} }, x: { grid: {display: false} } }
+                }
+            });
+
+            // B. DONA + TABLA (Grupos)
+            const groupCounts = {};
+            data.forEach(d => { groupCounts[d.grupo] = (groupCounts[d.grupo] || 0) + 1; });
+            
+            // Render Mini Tabla
+            const tbodyStats = document.querySelector('#groupStatsTable tbody');
+            tbodyStats.innerHTML = '';
+            let total = data.length;
+            Object.entries(groupCounts).sort((a,b) => b[1] - a[1]).forEach(([grp, cnt]) => {
+                const pct = Math.round((cnt/total)*100);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td><span class="mini-bar-bg"><div class="mini-bar-fill" style="width:${pct}%"></div></span>${grp}</td><td>${cnt}</td><td>${pct}%</td>`;
+                tbodyStats.appendChild(tr);
+            });
+
+            // Render Dona (Solo visual)
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            if(charts.status) charts.status.destroy();
+            
+            charts.status = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(groupCounts),
+                    datasets: [{
+                        data: Object.values(groupCounts),
+                        backgroundColor: ['#3498db', '#9b59b6', '#f39c12', '#27ae60', '#e74c3c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, cutout: '65%',
+                    plugins: { legend: { display: false } } // Leyenda oculta para ahorrar espacio
                 }
             });
         }
 
-        // ==========================================
-        // HELPERS DE FECHA (IMPORTANTE)
-        // ==========================================
-        
-        // ISO (2026-03-10) -> Latino (10/03/2026)
+        // HELPERS
         function toLatino(isoDate) {
             if(!isoDate) return "";
             const [y, m, d] = isoDate.split('-');
             return `${d}/${m}/${y}`;
         }
-
-        // Latino (10/03/2026) -> ISO (2026-03-10) para el Input
         function toISO(latinoDate) {
-            if(!latinoDate || latinoDate.includes('-')) return latinoDate; // Ya es ISO o invalido
-            const parts = latinoDate.split('/'); // [10, 03, 2026] o [2026, 02, 22 T...]
+            if(!latinoDate || latinoDate.includes('-')) return latinoDate;
+            const parts = latinoDate.split('/');
             if(parts.length === 3) return `${parts[2].substr(0,4)}-${parts[1]}-${parts[0]}`;
             return "";
         }
-
-        // Auxiliar para ordenar gráfico de evolución
         function parseLatino(str) {
             if(!str) return 0;
             const parts = str.split('/');
             return new Date(parts[2], parts[1]-1, parts[0]);
         }
-        
         function formatDateLatino(iso) {
             if(!iso) return "";
-            if(iso.includes("T")) { // "2026-03-10T00..." -> "10/03/2026"
+            if(iso.includes("T")) {
                 const date = new Date(iso);
                 const d = String(date.getDate()).padStart(2,'0');
                 const m = String(date.getMonth()+1).padStart(2,'0');
                 const y = date.getFullYear();
                 return `${d}/${m}/${y}`;
             }
-            return iso; // Asumimos ya viene formateado
+            return iso;
         }
-        
         function applyFilters() {
             const term = document.getElementById('searchInput').value.toLowerCase();
             const status = document.getElementById('filterStatus').value;
@@ -548,9 +521,7 @@
             });
             renderTable(filtered);
         }
-
         function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
-        
         function showToast(msg, duration=3000) {
             const t = document.getElementById('toast');
             t.innerText = msg; t.className = "show";
