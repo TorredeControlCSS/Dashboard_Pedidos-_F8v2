@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* =========================================
-           TUS ESTILOS ORIGINALES (COMPLETOS)
+           ESTILOS ORIGINALES RESTAURADOS
            ========================================= */
         :root {
             --primary-color: #2c3e50;
@@ -30,9 +30,11 @@
         body { background-color: #f5f7fa; color: #333; line-height: 1.6; font-size: 14px; }
         .container { max-width: 100%; margin: 0 auto; padding: 15px; }
         
+        /* HEADER ORIGINAL RESTAURADO */
         header { background: linear-gradient(135deg, var(--primary-color) 0%, #1a252f 100%); color: white; padding: 12px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding: 0 20px; }
         .logo-title { display: flex; align-items: center; gap: 15px; }
+        .logo-title img { height: 40px; width: auto; }
         h1 { font-size: 1.6rem; margin: 0; font-weight: 600; }
         
         /* CONTROLES Y FILTROS */
@@ -44,7 +46,7 @@
         .search-box { flex-grow: 1; display:flex; gap:10px; }
         .search-box input { width: 100%; }
 
-        /* KPIS ORIGINALES */
+        /* KPIS */
         .kpi-dashboard-compact { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
         .kpi-compact { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; flex: 1; min-width: 120px; border-bottom: 3px solid transparent; }
         .kpi-compact .kpi-value { font-size: 1.8rem; font-weight: bold; color: var(--primary-color); margin: 5px 0; }
@@ -62,7 +64,7 @@
 
         /* TABLA PRINCIPAL */
         .table-container { background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: auto; margin-bottom: 15px; max-height: 65vh; }
-        table { width: 100%; border-collapse: collapse; min-width: 1600px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1800px; } /* Ancho aumentado para nuevas columnas */
         thead { background-color: var(--primary-color); color: white; position: sticky; top: 0; z-index: 10; }
         th { padding: 12px 10px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         td { padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 13px; }
@@ -82,6 +84,9 @@
         /* Columna Facturación Destacada */
         .col-factura { background-color: #e8f5e9; border-left: 1px solid #c8e6c9; border-right: 1px solid #c8e6c9; }
         .col-factura input { font-weight: bold; color: #1b5e20; }
+        
+        /* Totales */
+        .col-number { text-align: right; font-family: monospace; font-size: 13px; }
 
         /* Loading & Toast */
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -115,7 +120,10 @@
     <header>
         <div class="header-content">
             <div class="logo-title">
-                <h1>📡 Dashboard Torre de Control</h1>
+                <!-- LOGOS ORIGINALES RESTAURADOS -->
+                <img src="logocss.png" alt="Logo CSS" onerror="this.style.display='none'">
+                <img src="logotc.png" alt="Logo Torre Control" onerror="this.style.display='none'">
+                <h1>TORRE DE CONTROL DE ABASTECIMIENTO</h1>
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <span id="lastUpdate" style="font-size: 11px; opacity: 0.8;">Sincronizado: --:--</span>
@@ -190,7 +198,12 @@
                         <th style="width: 120px;">ID Pedido</th>
                         <th style="width: 300px;">Unidad Ejecutora</th>
                         <th style="width: 100px;">Fecha F8</th>
-                        <th style="width: 80px;">Items (Asig)</th>
+                        
+                        <!-- NUEVAS COLUMNAS DE TOTALES -->
+                        <th style="width: 90px; text-align:right;">Tot. Solic.</th>
+                        <th style="width: 90px; text-align:right;">Tot. Asig.</th>
+                        
+                        <th style="width: 80px; text-align:center;">Items (A/S)</th>
                         <th style="width: 140px;">Estado Actual</th>
                         <th style="width: 110px;">Picking</th>
                         <th style="width: 110px;">Empaque</th>
@@ -215,18 +228,15 @@
         /**
          * ======================================================
          * MOTOR JAVASCRIPT INTEGRADO (V7)
-         * Reemplaza app.js para evitar conflictos de caché
          * ======================================================
          */
         
-        // Configuración
+        // URL DEL BACKEND (YA INTEGRADA)
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
         
-        // Estado de la Aplicación
         let ordersData = [];
         let charts = {};
 
-        // Inicialización
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             setupEventListeners();
@@ -240,7 +250,7 @@
         }
 
         // ==========================================
-        // CARGA DE DATOS POR NOMBRE DE COLUMNA (FINAL)
+        // 1. CARGA DE DATOS (POR NOMBRE DE COLUMNA)
         // ==========================================
         async function loadData() {
             showLoading(true);
@@ -248,23 +258,22 @@
                 const response = await fetch(`${WEB_APP_URL}?file=tracking`);
                 const rawData = await response.json(); 
                 
-                // Mapeo usando LOS NOMBRES EXACTOS DE TU EXCEL
-                // rawData es una lista de objetos: [{ID_PEDIDO: "...", UNIDAD_EJECUTORA: "..."}, ...]
-                
+                // Mapeo usando los nombres EXACTOS del JSON de Google Sheets
                 ordersData = rawData.map(fila => ({
                     id:          fila['ID_PEDIDO'] || "---",
                     unidad:      fila['UNIDAD_EJECUTORA'] || "Sin Nombre",
                     fechaF8:     formatDate(fila['FECHA_F8']),
                     
-                    // Items: Asignados / Solicitados
+                    // NUEVOS CAMPOS DE TOTALES
+                    totalSolic:  Number(fila['TOTAL_SOLIC'] || 0),
+                    totalAsig:   Number(fila['TOTAL_ASIG'] || 0),
+                    
                     items:       `${fila['ITEMS_ASIG'] || 0} / ${fila['ITEMS_SOLIC'] || 0}`,
                     
                     estado:      fila['ESTADO'] || "ASIGNADO",
-                    
-                    // Fechas (Nombres exactos de las columnas J, K, L...)
                     picking:     formatDate(fila['FECHA_PICKING']),
                     empaque:     formatDate(fila['FECHA_EMPACADO']),
-                    facturacion: formatDate(fila['FECHA_FACTURACION']), // ¡AQUÍ ESTÁ LA CLAVE!
+                    facturacion: formatDate(fila['FECHA_FACTURACION']),
                     despacho:    formatDate(fila['FECHA_DESPACHO']),
                     entrega:     formatDate(fila['FECHA_ENTREGA']),
                     comentarios: fila['COMENTARIOS'] || ""
@@ -284,8 +293,9 @@
                 showLoading(false);
             }
         }
+
         // ==========================================
-        // 2. RENDERIZADO (UI)
+        // 2. RENDERIZADO DE TABLA
         // ==========================================
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
@@ -294,7 +304,7 @@
             data.forEach(item => {
                 const tr = document.createElement('tr');
                 
-                // Estilos dinámicos para el Select de Estado
+                // Colores de estado
                 let stStyle = "background:#eee; color:#333;";
                 if(item.estado === "ASIGNADO") stStyle = "background:#e3f2fd; color:#1565c0;";
                 if(item.estado === "EMPACADO") stStyle = "background:#fff3e0; color:#ef6c00;";
@@ -305,6 +315,11 @@
                     <td style="font-weight:bold; color:var(--primary-color)">${item.id}</td>
                     <td>${item.unidad}</td>
                     <td>${item.fechaF8}</td>
+                    
+                    <!-- NUEVAS CELDAS DE TOTALES -->
+                    <td class="col-number">${item.totalSolic.toLocaleString()}</td>
+                    <td class="col-number" style="font-weight:bold; color:#2c3e50;">${item.totalAsig.toLocaleString()}</td>
+                    
                     <td style="text-align:center">${item.items}</td>
                     
                     <td class="editable-cell">
@@ -321,7 +336,6 @@
                     <td class="editable-cell"><input type="text" value="${item.picking}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_PICKING', this.value)"></td>
                     <td class="editable-cell"><input type="text" value="${item.empaque}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_EMPACADO', this.value)"></td>
                     
-                    <!-- FACTURACIÓN RESALTADA -->
                     <td class="editable-cell col-factura">
                         <input type="text" value="${item.facturacion}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_FACTURACION', this.value)">
                     </td>
@@ -340,16 +354,13 @@
         async function saveChange(id, field, value) {
             showToast("Guardando en la nube...");
             
-            // Actualización Optimista Local
             const item = ordersData.find(i => i.id === id);
             if(item) {
                 if(field === 'ESTADO') item.estado = value;
-                // Si cambiamos estado, actualizamos gráficas
                 if(field === 'ESTADO') { updateKPIs(ordersData); updateCharts(ordersData); renderTable(ordersData); } 
             }
 
             try {
-                // Post al Backend
                 await fetch(WEB_APP_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -369,7 +380,7 @@
         }
 
         // ==========================================
-        // 4. UTILIDADES (GRÁFICOS, FILTROS)
+        // 4. GRÁFICOS Y HELPERS
         // ==========================================
         function updateKPIs(data) {
             const counts = { ASIGNADO:0, PICKING:0, EMPACADO:0, FACTURADO:0, DESPACHADO:0, ENTREGADO:0 };
@@ -387,7 +398,6 @@
         }
 
         function updateCharts(data) {
-            // Chart 1: Donut de Estados
             const counts = {};
             data.forEach(d => { counts[d.estado] = (counts[d.estado] || 0) + 1; });
             
@@ -406,7 +416,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
             });
 
-            // Chart 2: Evolución (Pedidos por Fecha F8)
+            // Gráfico de Evolución
             const dateCounts = {};
             data.forEach(d => { if(d.fechaF8) dateCounts[d.fechaF8] = (dateCounts[d.fechaF8] || 0) + 1; });
             const labels = Object.keys(dateCounts).sort((a,b) => new Date(a) - new Date(b)).slice(-15);
@@ -449,11 +459,8 @@
             return iso;
         }
 
-        function showLoading(show) {
-            const el = document.getElementById('loadingOverlay');
-            el.style.display = show ? 'flex' : 'none';
-        }
-
+        function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
+        
         function showToast(msg, duration=3000) {
             const t = document.getElementById('toast');
             t.innerText = msg;
