@@ -240,40 +240,36 @@
         }
 
         // ==========================================
-        // 1. CARGA DE DATOS (READ)
-        // ==========================================
-        // ==========================================
-        // CARGA DE DATOS SIMPLE (SIN VUELTAS)
+        // CARGA DE DATOS POR NOMBRE DE COLUMNA (FINAL)
         // ==========================================
         async function loadData() {
             showLoading(true);
             try {
-                // 1. Pedir datos al Script
                 const response = await fetch(`${WEB_APP_URL}?file=tracking`);
                 const rawData = await response.json(); 
                 
-                // rawData es una matriz: [[ID, UNIDAD...], [8047, Chepo...], ...]
+                // Mapeo usando LOS NOMBRES EXACTOS DE TU EXCEL
+                // rawData es una lista de objetos: [{ID_PEDIDO: "...", UNIDAD_EJECUTORA: "..."}, ...]
                 
-                // 2. Mapeo DIRECTO (Columna A es indice 0, B es 1, etc.)
-                // Basado VISUALMENTE en tu captura de pantalla:
-                ordersData = rawData.slice(1).map(fila => ({
-                    id:          fila[0],  // Col A: ID_PEDIDO
-                    unidad:      fila[1],  // Col B: UNIDAD_EJECUTORA
-                    fechaF8:     formatDate(fila[2]), // Col C: FECHA_F8
+                ordersData = rawData.map(fila => ({
+                    id:          fila['ID_PEDIDO'] || "---",
+                    unidad:      fila['UNIDAD_EJECUTORA'] || "Sin Nombre",
+                    fechaF8:     formatDate(fila['FECHA_F8']),
                     
-                    // Items: Col F (Asignados) / Col E (Solicitados)
-                    items:       `${fila[5]} / ${fila[4]}`, 
+                    // Items: Asignados / Solicitados
+                    items:       `${fila['ITEMS_ASIG'] || 0} / ${fila['ITEMS_SOLIC'] || 0}`,
                     
-                    estado:      fila[8],  // Col I: ESTADO
-                    picking:     formatDate(fila[9]),  // Col J
-                    empaque:     formatDate(fila[10]), // Col K
-                    facturacion: formatDate(fila[11]), // Col L (FACTURACION)
-                    despacho:    formatDate(fila[12]), // Col M
-                    entrega:     formatDate(fila[13]), // Col N
-                    comentarios: fila[14]  // Col O
+                    estado:      fila['ESTADO'] || "ASIGNADO",
+                    
+                    // Fechas (Nombres exactos de las columnas J, K, L...)
+                    picking:     formatDate(fila['FECHA_PICKING']),
+                    empaque:     formatDate(fila['FECHA_EMPACADO']),
+                    facturacion: formatDate(fila['FECHA_FACTURACION']), // ¡AQUÍ ESTÁ LA CLAVE!
+                    despacho:    formatDate(fila['FECHA_DESPACHO']),
+                    entrega:     formatDate(fila['FECHA_ENTREGA']),
+                    comentarios: fila['COMENTARIOS'] || ""
                 }));
 
-                // 3. Renderizar
                 renderTable(ordersData);
                 updateKPIs(ordersData);
                 updateCharts(ordersData);
@@ -282,13 +278,12 @@
                 showToast("✅ Datos cargados correctamente");
 
             } catch (error) {
-                console.error(error);
-                showToast("❌ Error cargando datos");
+                console.error("Error cargando datos:", error);
+                showToast("❌ Error al procesar datos");
             } finally {
                 showLoading(false);
             }
         }
-
         // ==========================================
         // 2. RENDERIZADO (UI)
         // ==========================================
