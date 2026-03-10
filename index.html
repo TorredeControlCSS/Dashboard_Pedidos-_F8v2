@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     
-    <!-- CHART.JS -->
+    <!-- CHART.JS + DATALABELS PLUGIN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
@@ -54,49 +54,42 @@
         }
         .kpi-compact .kpi-value { font-size: 1.5rem; font-weight: 700; color: #0b1f3a; margin: 4px 0; }
         .kpi-compact .kpi-label { font-size: 0.7rem; color: #666; font-weight: 700; text-transform: uppercase; }
-        
         .kpi-blue { border-bottom-color: #3498db; }
         .kpi-orange { border-bottom-color: #f39c12; }
         .kpi-green { border-bottom-color: #0a7a2f; }
         
-        /* GRÁFICOS (V11 - ESTRUCTURA RÍGIDA) */
+        /* GRÁFICOS (V12 - CLEAN LAYOUT) */
         .charts-container { 
             display: grid; 
-            grid-template-columns: 1.5fr 1fr 1fr; /* 3 Columnas claras: Grande, Mediana, Mediana */
+            grid-template-columns: 1.5fr 1fr 1fr; /* 3 Columnas */
             gap: 15px; 
             margin: 15px 0; 
-            height: 280px; /* Altura Fija para todo el bloque */
+            height: 260px; /* Altura Fija pero suficiente */
         }
         
         .chart-card {
             background: white; 
-            padding: 15px; 
+            padding: 10px; 
             border-radius: 8px;
             border: 1px solid #e5e5e5;
             display: flex; 
             flex-direction: column;
-            overflow: hidden; /* Evita desbordes */
+            overflow: hidden; /* ¡ADIÓS SCROLLBARS! */
+            position: relative;
         }
         
-        .chart-title { font-weight: 700; color: #666; font-size: 12px; margin-bottom: 10px; text-align: center; }
+        .chart-title { 
+            font-weight: 700; color: #666; font-size: 12px; 
+            margin-bottom: 5px; text-align: center; height: 15px;
+        }
         
-        /* Contenedores Internos para Centrar */
-        .chart-body { flex: 1; position: relative; width: 100%; display: flex; justify-content: center; align-items: center; }
-        .donut-wrapper { height: 140px; width: 140px; position: relative; } /* Tamaño Forzado Dona */
-        .bar-wrapper { width: 100%; height: 100%; position: relative; }
-
-        /* Mini Tablas Debajo de Donas */
-        .mini-stats {
-            margin-top: 10px;
-            height: 80px;
-            overflow-y: auto;
+        /* Contenedor del Canvas para que ocupe todo el espacio restante */
+        .chart-canvas-wrapper {
+            flex: 1;
+            position: relative;
             width: 100%;
-            border-top: 1px solid #eee;
+            height: 100%;
         }
-        .mini-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .mini-table td { border-bottom: 1px solid #f9f9f9; padding: 3px 0; color: #444; }
-        .mini-bar-bg { background: #eee; height: 4px; width: 25px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
-        .mini-bar-fill { height: 100%; border-radius: 2px; }
 
         /* TABLA PRINCIPAL */
         .table-container {
@@ -130,7 +123,7 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
-        @media (max-width: 1200px) { .charts-container { grid-template-columns: 1fr; height: auto; } .chart-card { margin-bottom: 10px; height: 300px; } }
+        @media (max-width: 1200px) { .charts-container { grid-template-columns: 1fr; height: auto; } .chart-card { height: 280px; margin-bottom: 10px; } }
     </style>
 </head>
 <body>
@@ -148,7 +141,7 @@
             <div class="title-main">TORRE DE CONTROL — Seguimiento F8 - CEDIS PANAMA</div>
             <div class="title-sub">
                 <span id="currentDateTime">Cargando fecha...</span>
-                <span style="opacity:.8; margin-left:8px;"> | V11.0 (Grid Rígido)</span>
+                <span style="opacity:.8; margin-left:8px;"> | V12.0 (Clean Design)</span>
             </div>
         </div>
         <div class="top-actions">
@@ -185,42 +178,30 @@
             </div>
         </div>
 
-        <!-- GRÁFICOS (V11 - GRID 3 COLUMNAS) -->
+        <!-- GRÁFICOS (V12 - SIN TABLAS, MAXIMIZADOS) -->
         <div class="charts-container">
             
             <!-- 1. BARRAS EVOLUCIÓN -->
             <div class="chart-card">
                 <div class="chart-title">Evolución de Carga</div>
-                <div class="chart-body">
-                    <div class="bar-wrapper">
-                        <canvas id="evolutionChart"></canvas>
-                    </div>
+                <div class="chart-canvas-wrapper">
+                    <canvas id="evolutionChart"></canvas>
                 </div>
             </div>
 
             <!-- 2. DONA ESTADOS -->
             <div class="chart-card">
                 <div class="chart-title">Por Estado</div>
-                <div class="chart-body">
-                    <div class="donut-wrapper">
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                </div>
-                <div class="mini-stats">
-                    <table class="mini-table" id="statusStatsTable"><tbody></tbody></table>
+                <div class="chart-canvas-wrapper">
+                    <canvas id="statusChart"></canvas>
                 </div>
             </div>
 
             <!-- 3. DONA GRUPOS -->
             <div class="chart-card">
                 <div class="chart-title">Por Grupo</div>
-                <div class="chart-body">
-                    <div class="donut-wrapper">
-                        <canvas id="groupChart"></canvas>
-                    </div>
-                </div>
-                <div class="mini-stats">
-                    <table class="mini-table" id="groupStatsTable"><tbody></tbody></table>
+                <div class="chart-canvas-wrapper">
+                    <canvas id="groupChart"></canvas>
                 </div>
             </div>
 
@@ -273,8 +254,10 @@
     </div>
 
     <script>
+        // REGISTRAR PLUGIN DE ETIQUETAS
+        Chart.register(ChartDataLabels);
+
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
-        
         let ordersData = [];
         let charts = {};
 
@@ -440,36 +423,22 @@
             
             drawChart('evolutionChart', 'bar', labelsEvo, Object.values(dateCounts), ['#0b1f3a']);
 
-            // 2. ESTADOS (DONA + TABLA)
+            // 2. ESTADOS (DONA MAXIMIZADA + PORCENTAJES)
             const statusCounts = {};
             data.forEach(d => { statusCounts[d.estado] = (statusCounts[d.estado] || 0) + 1; });
             const statusColors = {'ASIGNADO':'#3498db', 'PICKING':'#fbc02d', 'EMPACADO':'#ef6c00', 'FACTURADO':'#0a7a2f', 'DESPACHADO':'#7b1fa2', 'ENTREGADO':'#37474f'};
             
-            fillTable('statusStatsTable', statusCounts, total, statusColors);
-            drawChart('statusChart', 'doughnut', Object.keys(statusCounts), Object.values(statusCounts), Object.keys(statusCounts).map(k => statusColors[k] || '#999'));
+            drawDonut('statusChart', statusCounts, statusColors, total);
 
-            // 3. GRUPOS (DONA + TABLA)
+            // 3. GRUPOS (DONA MAXIMIZADA + PORCENTAJES)
             const groupCounts = {};
             data.forEach(d => { groupCounts[d.grupo] = (groupCounts[d.grupo] || 0) + 1; });
             const groupColors = ['#8e44ad', '#2980b9', '#e67e22', '#27ae60', '#c0392b', '#7f8c8d'];
             
-            fillTable('groupStatsTable', groupCounts, total, null, groupColors);
-            drawChart('groupChart', 'doughnut', Object.keys(groupCounts), Object.values(groupCounts), groupColors);
+            drawDonut('groupChart', groupCounts, groupColors, total);
         }
 
-        // HELPERS GRÁFICOS
-        function fillTable(elementId, countsObj, total, colorMap, colorArray) {
-            const tbody = document.querySelector(`#${elementId} tbody`);
-            tbody.innerHTML = '';
-            Object.entries(countsObj).sort((a,b) => b[1] - a[1]).forEach(([key, cnt], index) => {
-                const pct = Math.round((cnt/total)*100);
-                const color = colorMap ? (colorMap[key] || '#999') : (colorArray[index % colorArray.length]);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td><span class="mini-bar-bg"><div class="mini-bar-fill" style="width:${pct}%; background:${color};"></div></span>${key}</td><td style="text-align:right">${cnt}</td><td style="text-align:right; font-weight:bold;">${pct}%</td>`;
-                tbody.appendChild(tr);
-            });
-        }
-
+        // --- FUNCIÓN GRÁFICO DE BARRAS ---
         function drawChart(id, type, labels, data, colors) {
             const ctx = document.getElementById(id).getContext('2d');
             if(charts[id]) charts[id].destroy();
@@ -487,8 +456,56 @@
                 },
                 options: { 
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }, 
-                    scales: (type === 'bar') ? { y: {beginAtZero:true}, x: {grid:{display:false}} } : {}
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { display: false } // No labels en barras
+                    },
+                    scales: { y: {beginAtZero:true}, x: {grid:{display:false}} }
+                }
+            });
+        }
+
+        // --- FUNCIÓN GRÁFICO DONA (CON ETIQUETAS %) ---
+        function drawDonut(id, countsObj, colorMapOrArray, total) {
+            const ctx = document.getElementById(id).getContext('2d');
+            if(charts[id]) charts[id].destroy();
+            
+            const labels = Object.keys(countsObj);
+            const data = Object.values(countsObj);
+            const bgColors = Array.isArray(colorMapOrArray) 
+                ? colorMapOrArray 
+                : labels.map(k => colorMapOrArray[k] || '#999');
+
+            charts[id] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: bgColors,
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '50%', // Dona más gruesa
+                    layout: { padding: 10 },
+                    plugins: { 
+                        legend: { 
+                            position: 'right', // LEYENDA A LA DERECHA
+                            labels: { font: {size: 10}, boxWidth: 10, padding: 10 }
+                        },
+                        // CONFIGURACIÓN DE PORCENTAJES SOBRE EL GRÁFICO
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 11 },
+                            formatter: (value) => {
+                                const pct = Math.round((value/total)*100);
+                                return pct > 4 ? pct + '%' : ''; // Solo mostrar si > 4%
+                            }
+                        }
+                    }
                 }
             });
         }
