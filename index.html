@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Torre de Control - Seguimiento F8</title>
     
-    <!-- FAVICONS INSTITUCIONALES -->
+    <!-- FAVICONS -->
     <link rel="icon" href="./favicon.ico?v=1"/>
     <link rel="shortcut icon" href="./favicon.ico?v=1"/>
     
-    <!-- PWA META TAGS -->
+    <!-- PWA -->
     <meta name="theme-color" content="#0b1f3a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     
     <!-- CHART.JS -->
@@ -20,265 +19,130 @@
     
     <style>
         /* =========================================
-           1. ESTILOS INSTITUCIONALES (MOTOR ASIGNACIÓN)
+           ESTILOS INSTITUCIONALES
            ========================================= */
         body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; font-size: 13px; color: #333; }
         
-        /* HEADER UNIFICADO */
+        /* HEADER */
         .topbar {
             background: linear-gradient(90deg, #0b1f3a, #133a74);
-            color: #fff;
-            padding: 12px 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.2);
-            position: sticky;
-            top: 0;
-            z-index: 9999;
-            width: 100%;
-            box-sizing: border-box;
+            color: #fff; padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.2); position: sticky; top: 0; z-index: 9999;
         }
-        
-        /* LOGO */
-        .topbar img {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-            flex-shrink: 0;
-            background: transparent;
-        }
-        
-        /* TÍTULOS HEADER */
-        .topbar .title {
-            flex: 1 1 auto;
-            min-width: 200px;
-            display: flex;
-            flex-direction: column;
-            line-height: 1.2;
-        }
-        .topbar .title-main {
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: .3px;
-            color: #fff;
-        }
-        .topbar .title-sub {
-            font-size: 12px;
-            font-weight: 400;
-            color: #cbd5e1;
-            margin-top: 2px;
-        }
-        
-        /* ACCIONES HEADER (BOTONES) */
-        .topbar .top-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex: 0 0 auto;
-        }
+        .topbar img { width: 40px; height: 40px; object-fit: contain; }
+        .topbar .title { flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
+        .topbar .title-main { font-size: 16px; font-weight: 700; color: #fff; }
+        .topbar .title-sub { font-size: 12px; color: #cbd5e1; }
         
         .btn-header {
-            padding: 7px 12px;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            padding: 7px 12px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
+            background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;
         }
-        .btn-header:hover { background: rgba(255,255,255,0.25); border-color: #fff; }
-        
-        /* Botón Guardar (Verde Institucional) */
+        .btn-header:hover { background: rgba(255,255,255,0.25); }
         .btn-save { background: #0a7a2f; border-color: #0a7a2f; }
         .btn-save:hover { background: #0c9639; }
 
-        /* RESPONSIVE */
-        @media (max-width: 720px) {
-            .topbar { flex-direction: column; align-items: center; text-align: center; position: static; }
-            .topbar .top-actions { width: 100%; justify-content: center; margin-top: 8px; }
-        }
-
-        /* =========================================
-           2. ESTILOS DEL DASHBOARD INTERNO
-           ========================================= */
+        /* CONTENEDOR */
         .container { max-width: 100%; margin: 0 auto; padding: 15px; }
-        
-        /* BARRA DE FILTROS */
-        .controls {
-            margin-bottom: 15px;
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #ddd;
-        }
-        .filter-group-compact { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        select, input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
-        .search-box { flex-grow: 1; display:flex; gap:10px; }
-        .search-box input { width: 100%; }
 
-        /* KPIS (TARJETAS SUPERIORES) */
-        .kpi-dashboard-compact { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        /* KPIS */
+        .kpi-dashboard-compact { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
         .kpi-compact {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            text-align: center;
-            flex: 1;
-            min-width: 140px;
-            border: 1px solid #e5e5e5;
-            border-bottom: 3px solid #ccc; /* Fallback color */
+            background: white; padding: 10px; border-radius: 8px; text-align: center; flex: 1; min-width: 120px;
+            border: 1px solid #e5e5e5; border-bottom: 3px solid #ccc;
         }
-        .kpi-compact .kpi-value { font-size: 1.8rem; font-weight: 700; color: #0b1f3a; margin: 5px 0; }
-        .kpi-compact .kpi-label { font-size: 0.75rem; color: #666; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-compact .kpi-value { font-size: 1.5rem; font-weight: 700; color: #0b1f3a; margin: 4px 0; }
+        .kpi-compact .kpi-label { font-size: 0.7rem; color: #666; font-weight: 700; text-transform: uppercase; }
         
-        /* Colores KPI Específicos */
         .kpi-blue { border-bottom-color: #3498db; }
         .kpi-orange { border-bottom-color: #f39c12; }
         .kpi-green { border-bottom-color: #0a7a2f; }
-        .kpi-purple { border-bottom-color: #9b59b6; }
         
-        /* CONTENEDOR DE GRÁFICOS */
+        /* GRÁFICOS COMPACTOS (SOLICITUD #1) */
         .charts-container { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin: 15px 0; }
         .chart-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            height: 320px;
-            position: relative;
-            border: 1px solid #e5e5e5;
+            background: white; padding: 10px 15px; border-radius: 8px;
+            height: 200px; /* ALTURA REDUCIDA */
+            position: relative; border: 1px solid #e5e5e5;
         }
-        .chart-title { font-weight: 700; color: #666; font-size: 13px; margin-bottom: 10px; }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .chart-title { font-weight: 700; color: #666; font-size: 12px; }
+        .chart-toggle { 
+            background: #eee; border: none; padding: 2px 8px; border-radius: 4px; 
+            cursor: pointer; font-size: 11px; color: #333; 
+        }
+        .chart-toggle:hover { background: #ddd; }
 
-        /* TABLA PRINCIPAL DE DATOS */
+        /* TABLA */
         .table-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            overflow: auto;
-            margin-bottom: 15px;
-            max-height: 65vh;
-            border: 1px solid #ddd;
+            background-color: white; border-radius: 8px; overflow: auto; 
+            margin-bottom: 15px; max-height: 65vh; border: 1px solid #ddd;
         }
-        table { width: 100%; border-collapse: collapse; min-width: 1700px; font-size: 12px; }
-        
+        table { width: 100%; border-collapse: collapse; min-width: 1800px; font-size: 12px; }
         thead { background-color: #f7f7f7; position: sticky; top: 0; z-index: 10; }
-        th {
-            padding: 10px;
-            text-align: left;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #444;
-            border-bottom: 2px solid #ddd;
-            border-right: 1px solid #eee;
-        }
-        td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #eee;
-            vertical-align: middle;
-            border-right: 1px solid #eee;
-        }
+        th { padding: 8px 10px; text-align: left; font-weight: 700; text-transform: uppercase; color: #444; border-bottom: 2px solid #ddd; border-right: 1px solid #eee; }
+        td { padding: 4px 8px; border-bottom: 1px solid #eee; vertical-align: middle; border-right: 1px solid #eee; }
         tbody tr:hover { background-color: #f0f7ff; }
+
+        /* INPUTS Y SELECTS */
+        .editable-cell select, .editable-cell input { 
+            width: 100%; padding: 4px; border: 1px solid transparent; background: transparent; 
+            font-size: 11px; border-radius: 4px; 
+        }
+        .editable-cell select { border: 1px solid #ddd; background: white; font-weight: bold; cursor: pointer; }
+        .editable-cell input:hover, .editable-cell input:focus { background: white; border: 1px solid #3498db; outline: none; }
         
-        /* CELDAS EDITABLES (Inputs y Selects) */
-        .editable-cell select { 
-            width: 100%; padding: 5px; border: 1px solid #ddd; background: white; 
-            font-size: 11px; border-radius: 4px; font-weight:bold; cursor: pointer;
+        /* CALENDARIO (SOLICITUD #5) */
+        input[type="date"] {
+            font-family: 'Arial', sans-serif;
+            color: #333;
         }
-        .editable-cell input {
-            width: 100%; padding: 5px; border: 1px solid transparent; background: transparent;
-            font-size: 12px; transition: 0.2s; border-radius: 4px;
-        }
-        .editable-cell input:hover, .editable-cell input:focus {
-            background: white; border: 1px solid #3498db; outline: none;
-        }
-        
+
         /* CLASES ESPECIALES */
         .col-factura { background-color: #e8f5e9 !important; border-left: 2px solid #c8e6c9; border-right: 2px solid #c8e6c9; }
         .col-factura input { font-weight: 700; color: #0a7a2f; text-align: center; }
-        
         .col-number { text-align: right; font-family: monospace; font-size: 12px; }
-        .col-center { text-align: center; }
-
-        /* PANTALLA DE CARGA */
-        #loadingOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95);
-            z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #0b1f3a;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+        
+        /* Loading & Toast */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0b1f3a; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* NOTIFICACIONES TOAST */
-        #toast {
-            visibility: hidden; min-width: 250px; background-color: #333; color: #fff;
-            text-align: center; border-radius: 8px; padding: 12px;
-            position: fixed; z-index: 10000; bottom: 30px; left: 50%;
-            transform: translateX(-50%); font-size: 13px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 10000; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 13px; }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
-        
+
         @media (max-width: 1200px) { .charts-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <!-- 1. PANTALLA DE CARGA -->
     <div id="loadingOverlay">
         <div class="spinner"></div>
         <p style="margin-top: 15px; font-weight: 500; color: #555;">Sincronizando con CEDIS PANAMA...</p>
     </div>
 
-    <!-- 2. NOTIFICACIÓN FLOTANTE -->
     <div id="toast">Notificación</div>
 
-    <!-- 3. HEADER INSTITUCIONAL UNIFICADO -->
     <div class="topbar">
-        <!-- ICONO INSTITUCIONAL -->
         <img src="icons/icon-512.png" alt="Logo" width="40" height="40" onerror="this.style.display='none'">
-        
-        <!-- TÍTULOS -->
         <div class="title">
             <div class="title-main">TORRE DE CONTROL — Seguimiento F8 - CEDIS PANAMA</div>
             <div class="title-sub">
                 <span id="currentDateTime">Cargando fecha...</span>
-                <span style="opacity:.8; margin-left:8px;"> | V7.0 Full (Integrado)</span>
+                <span style="opacity:.8; margin-left:8px;"> | V8.0 (Grupos + Calendarios)</span>
             </div>
         </div>
-        
-        <!-- ACCIONES -->
         <div class="top-actions">
-            <button id="refreshBtn" class="btn-header">
-                🔄 Actualizar
-            </button>
-            <button id="saveBtn" class="btn-header btn-save">
-                💾 Guardar
-            </button>
+            <button id="refreshBtn" class="btn-header">🔄 Actualizar</button>
+            <button id="saveBtn" class="btn-header btn-save">💾 Guardar</button>
         </div>
     </div>
     
-    <!-- 4. CONTENIDO PRINCIPAL -->
     <div class="container">
         
-        <!-- A. TARJETAS DE KPIS -->
+        <!-- KPIS -->
         <div class="kpi-dashboard-compact">
             <div class="kpi-compact kpi-blue">
                 <div class="kpi-label">Total Pedidos</div>
@@ -288,40 +152,47 @@
                 <div class="kpi-label">Asignados</div>
                 <div class="kpi-value" id="kpi-asignados">0</div>
             </div>
-            <div class="kpi-compact kpi-purple">
+            <div class="kpi-compact kpi-green">
                 <div class="kpi-label">En Proceso</div>
                 <div class="kpi-value" id="kpi-proceso">0</div>
-                <small style="color:#999; font-size:10px;">Picking + Empaque</small>
+                <small style="color:#999; font-size:9px;">Picking + Empaque</small>
             </div>
-            <div class="kpi-compact kpi-green">
+            <div class="kpi-compact kpi-green" style="border-bottom-color: #0a7a2f;">
                 <div class="kpi-label">Facturados</div>
                 <div class="kpi-value" id="kpi-facturados">0</div>
             </div>
             <div class="kpi-compact">
                 <div class="kpi-label">Avance Global</div>
                 <div class="kpi-value" id="kpi-avance">0%</div>
+                <small style="color:#999; font-size:9px;">Ponderado</small>
             </div>
         </div>
 
-        <!-- B. GRÁFICOS ESTADÍSTICOS -->
+        <!-- GRÁFICOS (COMPACTOS) -->
         <div class="charts-container">
             <div class="chart-card">
-                <div class="chart-title">Evolución de Pedidos (Últimos 15 días)</div>
+                <div class="chart-header">
+                    <div class="chart-title">Evolución (Por Fecha Asignación)</div>
+                </div>
                 <canvas id="evolutionChart"></canvas>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Distribución por Estado Actual</div>
+                <div class="chart-header">
+                    <div class="chart-title" id="donutTitle">Distribución por Estado</div>
+                    <!-- SWITCH DE GRÁFICO -->
+                    <button class="chart-toggle" id="toggleChartBtn" onclick="toggleDonutData()">
+                        ↔️ Ver por Grupo
+                    </button>
+                </div>
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
         
-        <!-- C. BARRA DE FILTROS -->
-        <div class="controls">
-            <div class="filter-group-compact">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar por ID, Unidad Ejecutora, Estado o Comentarios...">
-                </div>
-                <select id="filterStatus" style="min-width: 150px;">
+        <!-- FILTROS -->
+        <div class="controls" style="padding: 10px; margin-bottom: 10px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar ID, Grupo, Unidad..." style="flex-grow:1; padding:6px;">
+                <select id="filterStatus" style="width: 150px; padding:6px;">
                     <option value="">Todos los Estados</option>
                     <option value="ASIGNADO">ASIGNADO</option>
                     <option value="PICKING">PICKING</option>
@@ -333,123 +204,112 @@
             </div>
         </div>
 
-        <!-- D. TABLA DE DATOS -->
+        <!-- TABLA -->
         <div class="table-container">
             <table id="ordersTable">
                 <thead>
                     <tr>
                         <th style="width: 130px;">ID Pedido</th>
-                        <th style="width: 250px;">Unidad Ejecutora</th>
-                        <th style="width: 90px;">Fecha F8</th>
-                        <th style="width: 80px; text-align:right;">Tot. Solic.</th>
-                        <th style="width: 80px; text-align:right;">Tot. Asig.</th>
-                        <th style="width: 80px; text-align:center;">Items (A/S)</th>
-                        <th style="width: 140px;">Estado Actual</th>
-                        <th style="width: 100px;">Picking</th>
-                        <th style="width: 100px;">Empaque</th>
+                        <th style="width: 220px;">Unidad Ejecutora</th>
+                        <th style="width: 120px;">Grupo</th> <!-- NUEVA COLUMNA -->
+                        <th style="width: 90px;">F. Asig.</th> <!-- CAMBIADO DE F8 A ASIG -->
+                        <th style="width: 80px; text-align:right;">T. Solic.</th>
+                        <th style="width: 80px; text-align:right;">T. Asig.</th>
+                        <th style="width: 70px; text-align:center;">Items</th>
+                        <th style="width: 130px;">Estado</th>
+                        <th style="width: 110px;">Picking</th>
+                        <th style="width: 110px;">Empaque</th>
                         <th style="width: 110px; background:#e8f5e9; color:#0a7a2f;">FACTURACIÓN</th>
-                        <th style="width: 100px;">Despacho</th>
-                        <th style="width: 100px;">Entrega</th>
+                        <th style="width: 110px;">Despacho</th>
+                        <th style="width: 110px;">Entrega</th>
                         <th style="width: 200px;">Comentarios</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Las filas se generan aquí con Javascript -->
+                    <!-- Data -->
                 </tbody>
             </table>
         </div>
         
-        <div style="text-align: center; color: #aaa; padding: 20px; font-size: 11px;">
-            Torre de Control de Abastecimiento - CEDIS PANAMA © 2026
+        <div style="text-align: center; color: #aaa; padding: 10px; font-size: 10px;">
+            Torre de Control - CEDIS PANAMA © 2026
         </div>
     </div>
 
-    <!-- ==========================================
-         5. MOTOR JAVASCRIPT (LÓGICA DEL SISTEMA)
-         ========================================== -->
     <script>
-        // CONFIGURACIÓN CENTRAL
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
         
-        // Variables de Estado
         let ordersData = [];
         let charts = {};
+        let donutMode = 'STATUS'; // STATUS o GROUP
 
-        // AL INICIAR
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             setupEventListeners();
             startClock();
         });
 
-        // LISTENERS DE EVENTOS
         function setupEventListeners() {
             document.getElementById('refreshBtn').addEventListener('click', loadData);
-            document.getElementById('saveBtn').addEventListener('click', () => showToast('ℹ️ El guardado es automático al editar celdas.', 4000));
+            document.getElementById('saveBtn').addEventListener('click', () => showToast('ℹ️ Guardado automático activo', 3000));
             document.getElementById('searchInput').addEventListener('keyup', applyFilters);
             document.getElementById('filterStatus').addEventListener('change', applyFilters);
         }
 
-        // RELOJ EN TIEMPO REAL (Para el Header)
         function startClock() {
             const update = () => {
                 const now = new Date();
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit', second:'2-digit' };
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' };
                 document.getElementById('currentDateTime').innerText = now.toLocaleDateString('es-ES', options);
             };
-            update();
-            setInterval(update, 1000);
+            update(); setInterval(update, 1000);
         }
 
         // ==========================================
-        // FUNCIÓN 1: CARGAR DATOS (READ)
+        // 1. CARGA DE DATOS
         // ==========================================
         async function loadData() {
             showLoading(true);
             try {
-                // Petición al Backend
                 const response = await fetch(`${WEB_APP_URL}?file=tracking`);
                 const rawData = await response.json(); 
                 
-                // Mapeo Inteligente (Usa Nombres de Columna del JSON)
                 ordersData = rawData.map(fila => ({
                     id:          fila['ID_PEDIDO'] || "---",
                     unidad:      fila['UNIDAD_EJECUTORA'] || "Sin Nombre",
-                    fechaF8:     formatDate(fila['FECHA_F8']),
+                    grupo:       fila['GRUPO'] || "GENÉRICO", // NUEVO CAMPO
                     
-                    // Convertir a número para cálculos
+                    // SOLICITUD #2: Usar FECHA_ASIGNACION
+                    fechaAsig:   formatDateLatino(fila['FECHA_ASIGNACION']), 
+                    
                     totalSolic:  Number(fila['TOTAL_SOLIC'] || 0),
                     totalAsig:   Number(fila['TOTAL_ASIG'] || 0),
-                    
                     items:       `${fila['ITEMS_ASIG'] || 0} / ${fila['ITEMS_SOLIC'] || 0}`,
                     estado:      fila['ESTADO'] || "ASIGNADO",
                     
-                    // Fechas
-                    picking:     formatDate(fila['FECHA_PICKING']),
-                    empaque:     formatDate(fila['FECHA_EMPACADO']),
-                    facturacion: formatDate(fila['FECHA_FACTURACION']),
-                    despacho:    formatDate(fila['FECHA_DESPACHO']),
-                    entrega:     formatDate(fila['FECHA_ENTREGA']),
+                    // Fechas (Vienen como dd/mm/yyyy del backend)
+                    picking:     fila['FECHA_PICKING'],
+                    empaque:     fila['FECHA_EMPACADO'],
+                    facturacion: fila['FECHA_FACTURACION'],
+                    despacho:    fila['FECHA_DESPACHO'],
+                    entrega:     fila['FECHA_ENTREGA'],
                     comentarios: fila['COMENTARIOS'] || ""
                 }));
 
-                // Renderizar UI
                 renderTable(ordersData);
                 updateKPIs(ordersData);
                 updateCharts(ordersData);
-                
-                showToast("✅ Sincronización completa");
+                showToast("✅ Datos Actualizados");
 
             } catch (error) {
-                console.error("Error crítico:", error);
-                showToast("❌ Error de conexión con el Servidor");
+                console.error(error); showToast("❌ Error de conexión");
             } finally {
                 showLoading(false);
             }
         }
 
         // ==========================================
-        // FUNCIÓN 2: RENDERIZAR TABLA (UI)
+        // 2. RENDERIZADO (CON DATE PICKERS)
         // ==========================================
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
@@ -458,27 +318,30 @@
             data.forEach(item => {
                 const tr = document.createElement('tr');
                 
-                // Estilos dinámicos para el Dropdown de Estado
                 let stStyle = "background:#eee; color:#333;";
                 if(item.estado === "ASIGNADO") stStyle = "background:#e3f2fd; color:#1565c0;";
                 if(item.estado === "PICKING") stStyle = "background:#fffde7; color:#fbc02d;";
                 if(item.estado === "EMPACADO") stStyle = "background:#fff3e0; color:#ef6c00;";
                 if(item.estado === "FACTURADO") stStyle = "background:#e8f5e9; color:#0a7a2f;";
                 if(item.estado === "DESPACHADO") stStyle = "background:#f3e5f5; color:#7b1fa2;";
-                if(item.estado === "ENTREGADO") stStyle = "background:#eceff1; color:#37474f;";
+
+                // TRUCO CALENDARIO: Convertir "10/03/2026" (Latino) -> "2026-03-10" (ISO) para el Input Date
+                const isoPick = toISO(item.picking);
+                const isoPack = toISO(item.empaque);
+                const isoFact = toISO(item.facturacion);
+                const isoDesp = toISO(item.despacho);
+                const isoEntr = toISO(item.entrega);
 
                 tr.innerHTML = `
                     <td style="font-weight:bold; color:#0b1f3a;">${item.id}</td>
                     <td>${item.unidad}</td>
-                    <td>${item.fechaF8}</td>
+                    <td><span style="background:#eee; padding:2px 5px; border-radius:4px; font-size:10px;">${item.grupo}</span></td>
+                    <td style="font-size:11px;">${item.fechaAsig}</td>
                     
-                    <!-- Totales -->
                     <td class="col-number">${item.totalSolic.toLocaleString()}</td>
                     <td class="col-number" style="font-weight:bold; color:#0b1f3a;">${item.totalAsig.toLocaleString()}</td>
+                    <td style="text-align:center">${item.items}</td>
                     
-                    <td class="col-center">${item.items}</td>
-                    
-                    <!-- Select de Estado -->
                     <td class="editable-cell">
                         <select onchange="saveChange('${item.id}', 'ESTADO', this.value)" style="${stStyle}">
                             <option value="ASIGNADO" ${item.estado==='ASIGNADO'?'selected':''}>ASIGNADO</option>
@@ -490,17 +353,13 @@
                         </select>
                     </td>
                     
-                    <!-- Fechas Editables -->
-                    <td class="editable-cell"><input type="text" value="${item.picking}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_PICKING', this.value)"></td>
-                    <td class="editable-cell"><input type="text" value="${item.empaque}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_EMPACADO', this.value)"></td>
+                    <!-- INPUTS DE FECHA (CALENDARIOS) -->
+                    <td class="editable-cell"><input type="date" value="${isoPick}" onchange="handleDateChange('${item.id}', 'FECHA_PICKING', this.value)"></td>
+                    <td class="editable-cell"><input type="date" value="${isoPack}" onchange="handleDateChange('${item.id}', 'FECHA_EMPACADO', this.value)"></td>
+                    <td class="editable-cell col-factura"><input type="date" value="${isoFact}" onchange="handleDateChange('${item.id}', 'FECHA_FACTURACION', this.value)"></td>
+                    <td class="editable-cell"><input type="date" value="${isoDesp}" onchange="handleDateChange('${item.id}', 'FECHA_DESPACHO', this.value)"></td>
+                    <td class="editable-cell"><input type="date" value="${isoEntr}" onchange="handleDateChange('${item.id}', 'FECHA_ENTREGA', this.value)"></td>
                     
-                    <!-- Facturación (Destacada) -->
-                    <td class="editable-cell col-factura">
-                        <input type="text" value="${item.facturacion}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_FACTURACION', this.value)">
-                    </td>
-                    
-                    <td class="editable-cell"><input type="text" value="${item.despacho}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_DESPACHO', this.value)"></td>
-                    <td class="editable-cell"><input type="text" value="${item.entrega}" placeholder="dd/mm/yyyy" onchange="saveChange('${item.id}', 'FECHA_ENTREGA', this.value)"></td>
                     <td class="editable-cell"><input type="text" value="${item.comentarios}" placeholder="..." onchange="saveChange('${item.id}', 'COMENTARIOS', this.value)"></td>
                 `;
                 tbody.appendChild(tr);
@@ -508,56 +367,65 @@
         }
 
         // ==========================================
-        // FUNCIÓN 3: GUARDAR CAMBIOS (WRITE)
+        // 3. LOGICA DE GUARDADO Y CONVERSIÓN
         // ==========================================
-        async function saveChange(id, field, value) {
-            showToast("Guardando en la nube...");
+        
+        // Wrapper para fechas: Convierte ISO (Input) -> Latino (Excel)
+        function handleDateChange(id, field, isoValue) {
+            const latinoValue = toLatino(isoValue); // "2026-03-10" -> "10/03/2026"
             
-            // Actualización Local (Optimista)
+            // Actualizar dato local en formato latino para mantener coherencia
             const item = ordersData.find(i => i.id === id);
             if(item) {
-                if(field === 'ESTADO') item.estado = value;
-                // Si cambia el estado, refrescar gráficos y tabla inmediatamente
-                if(field === 'ESTADO') { 
-                    updateKPIs(ordersData); 
-                    updateCharts(ordersData); 
-                    renderTable(ordersData); 
-                } 
+                if(field === 'FECHA_PICKING') item.picking = latinoValue;
+                if(field === 'FECHA_EMPACADO') item.empaque = latinoValue;
+                if(field === 'FECHA_FACTURACION') item.facturacion = latinoValue;
+                if(field === 'FECHA_DESPACHO') item.despacho = latinoValue;
+                if(field === 'FECHA_ENTREGA') item.entrega = latinoValue;
+            }
+            saveChange(id, field, latinoValue);
+        }
+
+        async function saveChange(id, field, value) {
+            showToast("Guardando...");
+            const item = ordersData.find(i => i.id === id);
+            
+            if(item && field === 'ESTADO') {
+                item.estado = value;
+                updateKPIs(ordersData); 
+                updateCharts(ordersData); 
+                renderTable(ordersData); // Re-renderizar para colores
             }
 
             try {
-                // Envío al Backend
                 await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'updateStatus',
-                        id: id,
-                        field: field,
-                        value: value
-                    })
+                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'updateStatus', id: id, field: field, value: value })
                 });
-                showToast("✅ Guardado Exitosamente");
-            } catch (error) {
-                console.error("Save error:", error);
-                showToast("❌ Error al guardar (Revise conexión)");
-            }
+                showToast("✅ Guardado");
+            } catch (error) { console.error(error); showToast("❌ Error al guardar"); }
         }
 
         // ==========================================
-        // FUNCIÓN 4: CÁLCULO DE KPIS
+        // 4. KPIS PONDERADOS (SOLICITUD #4)
         // ==========================================
         function updateKPIs(data) {
             const counts = { ASIGNADO:0, PICKING:0, EMPACADO:0, FACTURADO:0, DESPACHADO:0, ENTREGADO:0 };
+            let weightedSum = 0;
             
             data.forEach(d => { 
                 if(counts[d.estado] !== undefined) counts[d.estado]++;
+                
+                // Pesos para avance global
+                if(d.estado === 'PICKING') weightedSum += 0.2;
+                if(d.estado === 'EMPACADO') weightedSum += 0.5;
+                if(d.estado === 'FACTURADO') weightedSum += 0.8;
+                if(d.estado === 'DESPACHADO') weightedSum += 0.9;
+                if(d.estado === 'ENTREGADO') weightedSum += 1.0;
             });
             
             const total = data.length;
-            const completed = counts.FACTURADO + counts.DESPACHADO + counts.ENTREGADO;
-            const percent = total > 0 ? Math.round((completed/total)*100) : 0;
+            const percent = total > 0 ? Math.round((weightedSum/total)*100) : 0;
 
             document.getElementById('kpi-total').innerText = total;
             document.getElementById('kpi-asignados').innerText = counts.ASIGNADO;
@@ -567,12 +435,22 @@
         }
 
         // ==========================================
-        // FUNCIÓN 5: GRÁFICOS (CHART.JS)
+        // 5. GRÁFICOS DINÁMICOS (SOLICITUD #1, #2, #3)
         // ==========================================
+        function toggleDonutData() {
+            donutMode = (donutMode === 'STATUS') ? 'GROUP' : 'STATUS';
+            document.getElementById('toggleChartBtn').innerText = (donutMode === 'STATUS') ? '↔️ Ver por Grupo' : '↔️ Ver por Estado';
+            document.getElementById('donutTitle').innerText = (donutMode === 'STATUS') ? 'Distribución por Estado' : 'Distribución por Grupo';
+            updateCharts(ordersData);
+        }
+
         function updateCharts(data) {
-            // 1. Gráfico de Estados (Donut)
+            // A. GRÁFICO DONA (Dual: Estado o Grupo)
             const counts = {};
-            data.forEach(d => { counts[d.estado] = (counts[d.estado] || 0) + 1; });
+            data.forEach(d => { 
+                const key = (donutMode === 'STATUS') ? d.estado : d.grupo;
+                counts[key] = (counts[key] || 0) + 1; 
+            });
             
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             if(charts.status) charts.status.destroy();
@@ -583,20 +461,20 @@
                     labels: Object.keys(counts),
                     datasets: [{
                         data: Object.values(counts),
-                        backgroundColor: ['#3498db', '#fbc02d', '#ef6c00', '#0a7a2f', '#7b1fa2', '#37474f']
+                        backgroundColor: ['#3498db', '#fbc02d', '#ef6c00', '#0a7a2f', '#7b1fa2', '#37474f', '#8e44ad', '#2c3e50'],
+                        borderWidth: 1
                     }]
                 },
                 options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { position: 'right' } } 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } } 
                 }
             });
 
-            // 2. Gráfico de Evolución (Lineal)
+            // B. EVOLUCIÓN (Por Fecha Asignación)
             const dateCounts = {};
-            data.forEach(d => { if(d.fechaF8) dateCounts[d.fechaF8] = (dateCounts[d.fechaF8] || 0) + 1; });
-            const labels = Object.keys(dateCounts).sort((a,b) => new Date(a) - new Date(b)).slice(-15);
+            data.forEach(d => { if(d.fechaAsig) dateCounts[d.fechaAsig] = (dateCounts[d.fechaAsig] || 0) + 1; });
+            const labels = Object.keys(dateCounts).sort((a,b) => parseLatino(a) - parseLatino(b)).slice(-10);
             
             const ctxEvo = document.getElementById('evolutionChart').getContext('2d');
             if(charts.evo) charts.evo.destroy();
@@ -606,45 +484,76 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Pedidos Generados',
+                        label: 'Pedidos',
                         data: labels.map(l => dateCounts[l]),
                         borderColor: '#0b1f3a',
                         backgroundColor: 'rgba(11, 31, 58, 0.1)',
                         fill: true,
-                        tension: 0.4
+                        tension: 0.3,
+                        pointRadius: 3
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { precision:0 } } }
+                }
             });
         }
 
         // ==========================================
-        // HELPERS
+        // HELPERS DE FECHA (IMPORTANTE)
         // ==========================================
+        
+        // ISO (2026-03-10) -> Latino (10/03/2026)
+        function toLatino(isoDate) {
+            if(!isoDate) return "";
+            const [y, m, d] = isoDate.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        // Latino (10/03/2026) -> ISO (2026-03-10) para el Input
+        function toISO(latinoDate) {
+            if(!latinoDate || latinoDate.includes('-')) return latinoDate; // Ya es ISO o invalido
+            const parts = latinoDate.split('/'); // [10, 03, 2026] o [2026, 02, 22 T...]
+            if(parts.length === 3) return `${parts[2].substr(0,4)}-${parts[1]}-${parts[0]}`;
+            return "";
+        }
+
+        // Auxiliar para ordenar gráfico de evolución
+        function parseLatino(str) {
+            if(!str) return 0;
+            const parts = str.split('/');
+            return new Date(parts[2], parts[1]-1, parts[0]);
+        }
+        
+        function formatDateLatino(iso) {
+            if(!iso) return "";
+            if(iso.includes("T")) { // "2026-03-10T00..." -> "10/03/2026"
+                const date = new Date(iso);
+                const d = String(date.getDate()).padStart(2,'0');
+                const m = String(date.getMonth()+1).padStart(2,'0');
+                const y = date.getFullYear();
+                return `${d}/${m}/${y}`;
+            }
+            return iso; // Asumimos ya viene formateado
+        }
+        
         function applyFilters() {
             const term = document.getElementById('searchInput').value.toLowerCase();
             const status = document.getElementById('filterStatus').value;
-            
             const filtered = ordersData.filter(item => {
-                const matchTerm = item.id.toLowerCase().includes(term) || item.unidad.toLowerCase().includes(term) || (item.comentarios && item.comentarios.toLowerCase().includes(term));
+                const matchTerm = item.id.toLowerCase().includes(term) || item.unidad.toLowerCase().includes(term) || item.grupo.toLowerCase().includes(term);
                 const matchStatus = status === "" || item.estado === status;
                 return matchTerm && matchStatus;
             });
             renderTable(filtered);
         }
 
-        function formatDate(iso) {
-            if(!iso) return "";
-            if(iso.includes("T")) return iso.split("T")[0];
-            return iso;
-        }
-
         function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
         
         function showToast(msg, duration=3000) {
             const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.className = "show";
+            t.innerText = msg; t.className = "show";
             setTimeout(() => { t.className = t.className.replace("show", ""); }, duration);
         }
     </script>
