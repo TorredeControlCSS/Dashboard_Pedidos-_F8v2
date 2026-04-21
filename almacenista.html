@@ -8,69 +8,75 @@
   <style>
     :root { --navy:#0b1f3a; --bg:#eef2f7; }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: Arial, sans-serif; background: var(--bg); color:#111827; font-size: 16px; }
+    body { margin:0; font-family: Arial, sans-serif; background: var(--bg); color:#111827; font-size:16px; }
     .topbar { background: linear-gradient(90deg,#0b1f3a,#133a74); color:#fff; padding:10px 12px; display:flex; gap:10px; align-items:center; position:sticky; top:0; z-index:30; }
     .topbar img{ width:40px;height:40px; }
     .title{ flex:1; min-width:0; }
     .title h1{ margin:0; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .title p{ margin:2px 0 0; font-size:12px; color:#cbd5e1; }
-    .actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .btn { border:1px solid rgba(255,255,255,.35); color:#fff; background:rgba(255,255,255,.12); border-radius:8px; padding:8px 10px; text-decoration:none; font-weight:700; font-size:13px; cursor:pointer; }
     .main { padding:12px; max-width: 1024px; margin: 0 auto; }
-    .panel { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; margin-bottom:12px; }
-    .panel h2 { margin:0 0 10px; font-size:20px; }
-    .status-btns { display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)); gap:8px; }
-    .status-btns button, .action-btn { min-height:44px; border:none; border-radius:10px; font-weight:800; font-size:15px; cursor:pointer; }
-    .status-btns button { background:#e5e7eb; }
-    .status-btns button.active { background:var(--navy); color:#fff; }
-    .destination, select, input { width:100%; min-height:44px; border:1px solid #d1d5db; border-radius:10px; padding:10px; font-size:16px; }
-    .login { max-width:460px; margin:36px auto; }
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-    }
-    .modal-box {
-      background: white;
-      border-radius: 12px;
-      padding: 30px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-      text-align: center;
-    }
-    #whoSelect { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; min-height: unset; }
-    #loginBtn { width: 100%; padding: 14px; font-size: 16px; background: #0b1f3a; color: white; }
-    .queue { display:grid; gap:8px; }
-    .card { border:1px solid #e5e7eb; border-left:6px solid #64748b; border-radius:10px; background:#fff; padding:10px; }
-    .card.today { background:#fff8e1; }
+    .panel { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; margin-bottom:12px; }
+    .panel h2 { margin:0 0 10px; font-size:22px; }
+    .greeting { font-size:22px; font-weight:800; margin-bottom:6px; }
+    .subline { color:#475569; margin-bottom:12px; }
+    .status-btns { display:grid; grid-template-columns:repeat(2,minmax(180px,1fr)); gap:10px; }
+    .status-btns button { min-height:100px; border-radius:14px; border:3px solid #cbd5e1; background:#eceff1; font-size:18px; font-weight:800; cursor:pointer; padding:10px; }
+    .status-btns button.active { border-color:#0b1f3a; box-shadow:0 0 0 2px rgba(11,31,58,.25) inset; }
+    .status-btns button[data-status="DISPONIBLE"].active { background:#2e7d32; color:#fff; border-color:#2e7d32; }
+    .status-btns button[data-status="EN RUTA"].active { background:#ef6c00; color:#fff; border-color:#ef6c00; }
+    #myDestination { width:100%; min-height:60px; border:1px solid #d1d5db; border-radius:10px; padding:10px; font-size:18px; margin-top:10px; }
+    #destinosList { font-size:14px; }
+    .queue { display:grid; gap:10px; }
+    .priority-box{ background:#fff8e1; border-left:4px solid #f9a825; border-radius:10px; padding:10px; margin-bottom:10px; }
+    .priority-title{ font-weight:800; font-size:20px; margin-bottom:6px; }
+    .card { border:1px solid #e5e7eb; border-left:6px solid #64748b; border-radius:10px; background:#fff; padding:12px; }
     .badges{ display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
     .badge{ color:#fff; border-radius:999px; padding:2px 8px; font-size:12px; font-weight:700; }
-    .priority-box{ background:#fff8e1; border-left:4px solid #f9a825; border-radius:10px; padding:10px; margin-bottom:10px; }
-    .priority-item{ padding:4px 0; border-bottom:1px dashed rgba(0,0,0,.1); }
-    .priority-item:last-child{ border-bottom:none; }
-    .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
-    .action-btn { margin-top:8px; background:#0b1f3a; color:#fff; width:100%; }
-    .small { color:#6b7280; font-size:13px; }
+    .state-chip { margin-top:8px; font-weight:700; font-size:16px; }
+    .wait { color:#64748b; margin-top:6px; }
+    .action-btn { margin-top:10px; min-height:60px; border:none; border-radius:12px; font-weight:800; font-size:18px; cursor:pointer; width:100%; background:#0b1f3a; color:#fff; }
     .group-list{ display:grid; gap:7px; }
     .row{ display:flex; justify-content:space-between; gap:8px; align-items:center; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
-    .details-toggle { border:none; background:transparent; color:#0b1f3a; font-weight:700; cursor:pointer; padding:0; }
-    .detail-box { margin-top:8px; border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#f8fafc; }
-    .detail-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
-    .detail-table th, .detail-table td { border:1px solid #d1d5db; padding:5px; text-align:left; vertical-align:top; }
-    .detail-table th { background:#eef2f7; }
-    .undo-link { display:block; margin-top:6px; font-size:12px; color:#e65100; text-decoration:none; font-weight:700; cursor:pointer; }
-    .peer-extra { margin-top:6px; padding-top:6px; border-top:1px dashed #e5e7eb; }
-    .peer-item { font-size:12px; color:#374151; margin-top:3px; }
-    @media (max-width: 520px){ .status-btns{ grid-template-columns:1fr; } }
+    .small { color:#6b7280; font-size:14px; }
+    .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
+    .achievements { background:linear-gradient(180deg,#e3f2fd,#fff); }
+    .big-number { font-size:3rem; color:#1565c0; font-weight:900; }
+    .mini-ranking { border:1px solid #dbeafe; border-radius:10px; padding:10px; background:#fff; margin-top:10px; }
+    .rank-line { display:flex; justify-content:space-between; gap:8px; margin:4px 0; }
+    .hidden { display:none !important; }
+
+    #modal-identidad {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(11, 31, 58, 0.85) !important;
+      z-index: 999999 !important;
+      display: none;
+      align-items: center !important;
+      justify-content: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    #modal-identidad .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px;
+      width: min(90vw, 420px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      text-align: center;
+      position: relative;
+    }
+    #whoSelect { width:100%; min-height:52px; padding:10px; font-size:18px; border-radius:10px; border:1px solid #d1d5db; }
+    #loginBtn { min-height:60px; margin-top:10px; width:100%; border:none; border-radius:12px; background:#0b1f3a; color:#fff; font-size:18px; font-weight:800; cursor:pointer; }
+    #confirmModal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:1000; }
+    #confirmModal .box { background:#fff; border-radius:12px; width:min(440px,92vw); padding:14px; }
+    #blockAbsent { border:2px solid #ef9a9a; background:#ffebee; border-radius:12px; padding:16px; font-size:18px; font-weight:700; }
+    @media (max-width: 640px){ .status-btns{ grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -78,112 +84,143 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — VISTA ALMACENISTA · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V13.0 · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · <span id="connStatus">🟢 En línea</span></p>
     </div>
-    <div class="actions">
-      <a class="btn" href="index.html">← Jefatura</a>
-      <span class="btn" id="whoBadge" style="cursor:default">👤 Sin seleccionar</span>
-      <button class="btn" id="changeUserBtn">Cambiar</button>
-      <a class="btn" href="tracker.html">📡 Tracker</a>
-    </div>
+    <div class="actions" id="topbarActions"></div>
   </header>
   <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="main">
-    <section id="identity" class="modal-overlay" style="display:none">
-      <div class="modal-box">
-        <h2>¿Quién eres?</h2>
+    <section id="modal-identidad">
+      <div class="modal-content">
+        <h2 style="margin-top:0">¿Quién eres?</h2>
         <select id="whoSelect"></select>
-        <button id="loginBtn" class="action-btn" style="margin-top:10px">✅ Ingresar</button>
+        <button id="loginBtn">✅ Ingresar</button>
       </div>
     </section>
 
-    <section id="app" class="hidden" style="display:none">
+    <section id="app" class="hidden">
       <article class="panel">
-        <h2>Mi Estado</h2>
+        <div class="greeting" id="greeting">Buenos días</div>
+        <div class="subline" id="groupDate">Grupo · Fecha</div>
         <div class="status-btns">
-          <button data-status="DISPONIBLE">✅ DISPONIBLE</button>
-          <button data-status="EN RUTA">🚚 EN RUTA</button>
-          <button data-status="AUSENTE">⏸ AUSENTE</button>
+          <button data-status="DISPONIBLE">✅ ESTOY EN EL ALMACÉN</button>
+          <button data-status="EN RUTA">🚚 ESTOY HACIENDO UNA ENTREGA</button>
         </div>
-        <input id="myDestination" class="destination" style="margin-top:8px;display:none" placeholder="Destino (ej: CSS Chitré)" />
+        <input id="myDestination" list="destinosList" class="hidden" placeholder="¿A dónde vas?" />
+        <datalist id="destinosList"></datalist>
       </article>
 
-      <article class="panel">
-        <h2>Mi Cola de Trabajo</h2>
+      <article class="panel" id="ordersPanel">
+        <h2>📦 MIS PEDIDOS DE HOY</h2>
+        <div id="ordersSubtitle" class="small"></div>
         <div id="priorityQueue"></div>
         <div id="queue" class="queue"></div>
       </article>
 
-      <article class="panel">
-        <h2>Mi Grupo Hoy</h2>
-        <div id="groupList" class="group-list"></div>
+      <article class="panel achievements">
+        <h2>⭐ MIS LOGROS DE HOY</h2>
+        <div>Pedidos completados hoy:</div>
+        <div class="big-number" id="stDone">0</div>
+        <div id="stPosition">Mi posición en el ranking: —</div>
+        <div id="stBest">Mejor marca personal: —</div>
+        <div id="stLeader" style="margin-top:6px;font-weight:800;"></div>
+        <div class="mini-ranking" id="miniRanking"></div>
       </article>
 
       <article class="panel">
-        <h2>Mis Estadísticas del Día</h2>
-        <div class="row"><span>F8s completadas/avanzadas hoy</span><strong id="stDone">0</strong></div>
-        <div class="row"><span>Tiempo promedio en etapa</span><strong id="stAvg">—</strong></div>
+        <h2>👥 MI EQUIPO HOY</h2>
+        <div id="groupList" class="group-list"></div>
       </article>
     </section>
+
+    <section id="blockPanel" class="hidden">
+      <div id="blockAbsent">
+        ⚠️ No registrado como presente hoy
+        <div style="font-weight:400;margin-top:10px;">La Jefa de Almacén no te marcó como presente en el pase de lista de hoy.</div>
+        <div style="font-weight:400;margin-top:10px;">Contacta a tu supervisora para activar tu acceso.</div>
+      </div>
+    </section>
   </main>
+
+  <div id="confirmModal">
+    <div class="box">
+      <h3 style="margin-top:0">¿Terminaste con este pedido?</h3>
+      <div id="confirmOrderName"></div>
+      <div id="confirmOrderUnits" class="small" style="margin-top:4px;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="cancelConfirm">❌ No, cancelar</button>
+        <button id="okConfirm" style="background:#2e7d32;color:#fff;border:none;padding:8px 10px;border-radius:8px;">✅ SÍ</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
     const STAFF = [
-      { name: "Alfonso Mendez", group: "GRUPO 2", cargo: "ALMACENISTA I"  },
-      { name: "Anthony D. Allca", group: "FRÍO", cargo: "ALMACENISTA II" },
-      { name: "Aurelio Rojas", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Bey Mario Reluz", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Boris Lasso", group: "FRÍO", cargo: "ALMACENISTA II" },
-      { name: "Carlos Mendoza", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "David Magallon", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Erasmo Valencia", group: "URGENCIAS", cargo: "ALMACENISTA II" },
-      { name: "Eric Castro", group: "VENCIDOS", cargo: "ALMACENISTA II" },
-      { name: "Eric Medina", group: "MÓDULO", cargo: "ALMACENISTA II" },
-      { name: "Fernando Ruíz", group: "GRUPO 4", cargo: "ALMACENISTA II" },
-      { name: "Francisco Pachay", group: "GRUPO 1", cargo: "CAMILLERO II" },
-      { name: "Franklin Almanza", group: "VENCIDOS", cargo: "ALMACENISTA II" },
-      { name: "Gaspar Salcedo", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "Jean Carlos Labrador", group: "GRUPO 2", cargo: "ALMACENISTA I" },
-      { name: "Jesus Reyna", group: "GRUPO 2", cargo: "ALMACENISTA I" },
-      { name: "Joel Sanchez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Juan Rodriguez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Luis M. Visuete", group: "GRUPO 3", cargo: "ALMACENISTA I" },
-      { name: "Luis Miranda", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Luis Urrutia", group: "GRUPO 2", cargo: "ALMACENISTA II" },
-      { name: "Luis Wtges", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Maximino Villarreal", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Miguel A. Rodriguez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Osvaldo Loaiza", group: "GRUPO 2", cargo: "ALMACENISTA II" },
-      { name: "Roman Perez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Sebastian Hidalgo", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" }
+      { name: "Alfonso Mendez", group: "GRUPO 2"  },
+      { name: "Anthony D. Allca", group: "FRÍO" },
+      { name: "Aurelio Rojas", group: "GRUPO 1" },
+      { name: "Bey Mario Reluz", group: "EMPAQUE" },
+      { name: "Boris Lasso", group: "FRÍO" },
+      { name: "Carlos Mendoza", group: "GRUPO 4-5-11" },
+      { name: "David Magallon", group: "GRUPO 1" },
+      { name: "Erasmo Valencia", group: "URGENCIAS" },
+      { name: "Eric Castro", group: "VENCIDOS" },
+      { name: "Eric Medina", group: "MÓDULO" },
+      { name: "Fernando Ruíz", group: "GRUPO 4" },
+      { name: "Francisco Pachay", group: "GRUPO 1" },
+      { name: "Franklin Almanza", group: "VENCIDOS" },
+      { name: "Gaspar Salcedo", group: "GRUPO 4-5-11" },
+      { name: "Jean Carlos Labrador", group: "GRUPO 2" },
+      { name: "Jesus Reyna", group: "GRUPO 2" },
+      { name: "Joel Sanchez", group: "GRUPO 1" },
+      { name: "Juan Rodriguez", group: "GRUPO 1" },
+      { name: "Luis M. Visuete", group: "GRUPO 3" },
+      { name: "Luis Miranda", group: "GRUPO 3" },
+      { name: "Luis Urrutia", group: "GRUPO 2" },
+      { name: "Luis Wtges", group: "GRUPO 1" },
+      { name: "Maximino Villarreal", group: "GRUPO 1" },
+      { name: "Miguel A. Rodriguez", group: "GRUPO 3" },
+      { name: "Osvaldo Loaiza", group: "GRUPO 2" },
+      { name: "Roman Perez", group: "GRUPO 3" },
+      { name: "Sebastian Hidalgo", group: "EMPAQUE" },
+      { name: "Sergio Rangel", group: "URGENCIAS" }
     ];
     const GROUP_COLORS = {
       "GRUPO 1": "#1565c0", "GRUPO 2": "#2e7d32", "GRUPO 3": "#6a1b9a", "GRUPO 4-5-11": "#e65100", "GRUPO 4": "#bf360c",
       "FRÍO": "#0277bd", "EMPAQUE": "#4e342e", "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f"
     };
-    const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', 'FACTURACIÓN': 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
-    const DATE_FIELD = { PICKING: 'FECHA_PICKING', 'FACTURACIÓN': 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
+    const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', FACTURACIÓN: 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
+    const DATE_FIELD = { PICKING: 'FECHA_PICKING', FACTURACIÓN: 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
     const IDENTITY_KEY = 'almacen_yo';
-    const PREV_STATE_KEY = 'almacen_prev_state';
-    const UNDO_TIMEOUT_MS = 15000;
 
     let rows = [];
+    let pendingAdvanceId = '';
     let lastSuccessfulSync = "";
     const readLS = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
     const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     const DAY_MAP = { 0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO' };
-    const normalizeState = s => {
-      const up = String(s || '').toUpperCase();
+    const normalizeState = (s='') => {
+      const up = String(s).trim().toUpperCase();
       if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
       if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
       if (up === 'EMPACANDO') return 'EMPACADO';
       return up || 'ASIGNADA';
     };
-    const isDeliveryToday = (diasEntrega) => diasEntrega ? normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]) : false;
+    const normalizeGroup = (g='') => {
+      const up = String(g).trim().toUpperCase();
+      if (GROUP_COLORS[up]) return up;
+      if (up.includes('URG')) return 'URGENCIAS';
+      return up || 'GRUPO 1';
+    };
+    const isDeliveryToday = (diasEntrega='') => normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]);
+    const isoToday = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+
     function setConnectionStatus(isOnline) {
       const status = document.getElementById('connStatus');
       const banner = document.getElementById('offlineBanner');
@@ -196,17 +233,20 @@
         banner.textContent = `⚠️ Mostrando datos en caché. Última actualización: ${lastSuccessfulSync || '--:--'}`;
       }
     }
-    const normalizeGroup = g => {
-      const up = String(g || '').toUpperCase();
-      if (GROUP_COLORS[up]) return up;
-      if (up.includes('URG')) return 'URGENCIAS';
-      return up || 'GRUPO 1';
-    };
 
     function addLog(msg) {
       const log = readLS('almacen_log', []);
       log.unshift({ ts: Date.now(), msg });
       writeLS('almacen_log', log.slice(0, 50));
+    }
+
+    function getMe() { return localStorage.getItem(IDENTITY_KEY) || ''; }
+
+    function attendanceStatusForMe() {
+      const me = getMe();
+      const pase = readLS('pase_lista', {});
+      if (!me || pase?.fecha !== isoToday()) return 'presente';
+      return pase.personal?.[me] || 'presente';
     }
 
     async function postUpdate(id, field, value) {
@@ -216,7 +256,7 @@
     async function loadData() {
       const r = await fetch(`${WEB_APP_URL}?file=tracking`);
       const raw = await r.json();
-      rows = (Array.isArray(raw) ? raw : []).map(x => ({
+      rows = (Array.isArray(raw) ? raw : []).map((x) => ({
         id: x.ID_PEDIDO || '---',
         ue: x.UNIDAD_EJECUTORA || 'Sin UE',
         group: normalizeGroup(x.GRUPO),
@@ -224,307 +264,242 @@
         estado: normalizeState(x.ESTADO),
         totalAsig: Number(x.TOTAL_ASIG || 0),
         totalSolic: Number(x.TOTAL_SOLIC || 0),
-        fechaF8: x.FECHA_F8 || x.fechaF8 || '',
-        FECHA_ASIGNACION: x.FECHA_ASIGNACION || '',
-        FECHA_PICKING: x.FECHA_PICKING || '',
-        FECHA_FACTURACION: x.FECHA_FACTURACION || '',
-        FECHA_EMPACADO: x.FECHA_EMPACADO || '',
-        FECHA_DESPACHO: x.FECHA_DESPACHO || '',
-        FECHA_ENTREGA: x.FECHA_ENTREGA || '',
+        fechaF8: x.FECHA_F8 || x.fechaF8 || x.fecha_f8 || '',
         diasEntrega: String(x.Dias_Entrega || x.DIAS_ENTREGA || x.dias_entrega || '').trim(),
         deliveryToday: isDeliveryToday(x.Dias_Entrega || x.DIAS_ENTREGA || x.dias_entrega || '')
-      })).filter(x => x.id !== '---');
+      })).filter((x) => x.id !== '---');
     }
-
-    function getMe() { return localStorage.getItem(IDENTITY_KEY) || ''; }
 
     function setupIdentity() {
       const sel = document.getElementById('whoSelect');
-      sel.innerHTML = '<option value="">Seleccione su nombre...</option>' + STAFF.map(s => `<option value="${s.name}">${s.name} · ${s.group}</option>`).join('');
+      sel.innerHTML = '<option value="">Seleccione su nombre...</option>' + STAFF.map((s) => `<option value="${s.name}">${s.name} · ${s.group}</option>`).join('');
       const me = getMe();
-      if (me && STAFF.some(s => s.name === me)) {
-        document.getElementById('identity').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-      } else {
-        localStorage.removeItem(IDENTITY_KEY);
-        sel.value = '';
-        document.getElementById('identity').style.display = 'block';
-        document.getElementById('app').style.display = 'none';
+      const valid = me && STAFF.some((s) => s.name === me);
+      document.getElementById('modal-identidad').style.display = valid ? 'none' : 'flex';
+      document.getElementById('app').classList.toggle('hidden', !valid);
+      renderTopbarActions();
+    }
+
+    function renderTopbarActions() {
+      const me = getMe();
+      const person = STAFF.find((s) => s.name === me);
+      const wrap = document.getElementById('topbarActions');
+      if (!me || !person) {
+        wrap.innerHTML = '';
+        return;
       }
-      renderIdentityBadge();
+      wrap.innerHTML = `
+        <span class="btn" style="cursor:default">👤 ${person.name} · ${person.group}</span>
+        <button class="btn" id="changeUserBtn">Cambiar</button>
+        <a class="btn" href="index.html">← Jefatura</a>
+      `;
+      document.getElementById('changeUserBtn').addEventListener('click', () => {
+        localStorage.removeItem(IDENTITY_KEY);
+        setupIdentity();
+        renderAll();
+      });
     }
 
-    function renderIdentityBadge() {
-      const me = getMe();
-      document.getElementById('whoBadge').textContent = me ? `👤 ${me}` : '👤 Sin seleccionar';
-    }
-
-    function renderMyStatus() {
-      const me = getMe();
-      if (!me) return;
-      const personal = readLS('almacen_personal', {});
-      const st = personal[me]?.status || 'DISPONIBLE';
-      document.querySelectorAll('[data-status]').forEach(b => b.classList.toggle('active', b.dataset.status === st));
-      const input = document.getElementById('myDestination');
-      input.style.display = st === 'EN RUTA' ? 'block' : 'none';
-      input.value = personal[me]?.destination || '';
+    function stateCopy(state) {
+      if (state === 'ASIGNADA') return { label: '▶ LISTO PARA PREPARAR', color: '#546e7a', action: '✅ EMPECÉ A PREPARAR ESTE PEDIDO' };
+      if (state === 'PICKING') return { label: '🔄 PREPARANDO...', color: '#1565c0', action: '✅ TERMINÉ DE PREPARAR' };
+      if (state === 'FACTURACIÓN') return { label: '🧾 EN FACTURACIÓN', color: '#ef6c00', action: '' };
+      if (state === 'EMPACADO') return { label: '📦 EMPACANDO...', color: '#6d4c41', action: '✅ TERMINÉ DE EMPACAR' };
+      if (state === 'DESPACHADO') return { label: '🚚 LISTO PARA ENTREGAR', color: '#2e7d32', action: '✅ ENTREGUÉ ESTE PEDIDO' };
+      return { label: '✅ ENTREGADO', color: '#6b7280', action: '' };
     }
 
     function queueForMe() {
       const me = getMe();
-      const person = STAFF.find(s => s.name === me);
+      const person = STAFF.find((s) => s.name === me);
       if (!person) return [];
       const asig = readLS('almacen_asignaciones', {});
       const stateMap = readLS('almacen_state_timestamps', {});
-      return rows.filter(r => asig[r.id] === me || (!asig[r.id] && r.group === person.group))
-        .map(r => {
-          const entry = stateMap[r.id]?.enteredAt;
-          const hours = entry ? (Date.now() - entry) / 36e5 : -1;
-          return { ...r, wait: hours };
-        })
-        .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || (b.tipo === 'URGENCIA') - (a.tipo === 'URGENCIA') || b.wait - a.wait);
+      return rows.filter((r) => asig[r.id] === me || (!asig[r.id] && r.group === person.group)).map((r) => {
+        const enteredAt = stateMap[r.id]?.enteredAt;
+        const wait = enteredAt ? (Date.now() - enteredAt) / 36e5 : -1;
+        return { ...r, wait };
+      }).sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || b.wait - a.wait);
     }
 
     function fmtWait(hours) {
       if (hours < 0) return '—';
       const h = Math.floor(hours), m = Math.floor((hours - h) * 60);
-      return `${h}h ${m}m`;
+      return `${h} horas y ${m} minutos`;
     }
 
-    function toIsoDate(value) {
-      const raw = String(value || '').trim();
-      if (!raw) return '—';
-      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
-        const [d, m, y] = raw.split('/').map(Number);
-        if (m < 1 || m > 12 || d < 1 || d > 31) return '—';
-        const dt = new Date(y, m - 1, d);
-        if (dt.getFullYear() !== y || dt.getMonth() !== (m - 1) || dt.getDate() !== d) return '—';
-        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      }
-      const dt = new Date(raw);
-      if (Number.isNaN(dt.getTime())) return '—';
-      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-    }
-
-    function readPrevStates() { return readLS(PREV_STATE_KEY, {}); }
-    function writePrevStates(v) { writeLS(PREV_STATE_KEY, v); }
-    function isUndoAvailable(id) {
-      const prev = readPrevStates()[id];
-      return !!(prev && (Date.now() - Number(prev.timestamp || 0)) < UNDO_TIMEOUT_MS);
-    }
-    function getDateFieldForState(state) {
-      if (state === 'ASIGNADA') return 'FECHA_ASIGNACION';
-      return DATE_FIELD[state] || '';
-    }
-    function statusIcon(st = '') {
-      const up = normalizeText(st);
-      if (up.includes('COMPLETO')) return '✅';
-      if (up.includes('PARCIAL')) return '⚠️';
-      if (up.includes('SIN STOCK')) return '⛔';
-      return '📦';
-    }
-    function prioridadImportancia(imp = '') {
-      const up = normalizeText(imp);
-      if (up.includes('VITAL')) return 0;
-      if (up.includes('ESENCIAL')) return 1;
-      return 2;
-    }
-    function fmtNum(v) { return Number(v || 0).toLocaleString('es-PA'); }
-    function readSession(key, fallback) {
-      try {
-        const v = sessionStorage.getItem(key);
-        return v ? JSON.parse(v) : fallback;
-      } catch {
-        return fallback;
-      }
+    function renderMyStatus() {
+      const me = getMe();
+      const person = STAFF.find((s) => s.name === me);
+      if (!person) return;
+      const personal = readLS('almacen_personal', {});
+      const st = personal[me]?.status === 'EN RUTA' ? 'EN RUTA' : 'DISPONIBLE';
+      document.querySelectorAll('.status-btns [data-status]').forEach((b) => b.classList.toggle('active', b.dataset.status === st));
+      const input = document.getElementById('myDestination');
+      input.classList.toggle('hidden', st !== 'EN RUTA');
+      input.value = personal[me]?.destination || '';
+      const destinos = [...new Set(rows.map((r) => r.ue).filter(Boolean))].slice(0, 100);
+      document.getElementById('destinosList').innerHTML = destinos.map((d) => `<option value="${d}"></option>`).join('');
+      const now = new Date();
+      document.getElementById('greeting').textContent = `Buenos días, ${person.name.toUpperCase()}`;
+      document.getElementById('groupDate').textContent = `${person.group} · ${now.toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long' })}`;
     }
 
     function renderQueue() {
       const q = queueForMe();
       const box = document.getElementById('queue');
       const priority = document.getElementById('priorityQueue');
+      const totalToday = q.filter((r) => r.deliveryToday).length;
+      document.getElementById('ordersSubtitle').textContent = `Tienes ${q.length} pedidos pendientes · ${totalToday} con entrega HOY ⚡`;
       if (!q.length) {
         priority.innerHTML = '';
-        box.innerHTML = '<div class="small">Sin F8s asignadas en este momento.</div>';
+        box.innerHTML = '<div class="small">Sin pedidos asignados en este momento.</div>';
         return;
       }
-      const priorityRows = q.filter(r => r.deliveryToday);
-      priority.innerHTML = priorityRows.length ? `
-        <div class="priority-box">
-          <strong>⚡ PRIORIDAD — ENTREGA HOY (${priorityRows.length})</strong>
-          ${priorityRows.map(r => `<div class="priority-item">${r.id} · ${r.ue}</div>`).join('')}
-        </div>
-      ` : '';
-      box.innerHTML = q.map(r => `
-        <article class="card ${r.deliveryToday ? 'today' : ''}" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}">
-          <div class="badges">
-            <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
-            <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
-            ${r.deliveryToday ? '<span class="badge" style="background:#f9a825">📅 ENTREGA HOY</span>' : ''}
-          </div>
-          <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
-            <strong>${r.id}</strong>
-            <button class="details-toggle toggleDetail" data-id="${r.id}">Ver detalle ▼</button>
-          </div>
-          <div>${r.ue} · 📋 F8: ${toIsoDate(r.fechaF8)}</div>
-          <div class="small">Asig: ${fmtNum(r.totalAsig)} uds | Estado: ${r.estado}</div>
-          <div class="small">⏱ ${fmtWait(r.wait)} en este estado</div>
-          ${r.diasEntrega ? `<div class="small">📅 Días de entrega: ${r.diasEntrega}</div>` : ''}
-          ${r.estado === 'ASIGNADA' ? `<button class="action-btn doNext" data-id="${r.id}" style="background:#2e7d32">✅ Iniciar Picking →</button>` : ''}
-          ${r.estado === 'PICKING' ? `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0">📋 Marcar Completado →</button>` : ''}
-          ${isUndoAvailable(r.id) ? `<a class="undo-link doUndo" data-id="${r.id}">↩ Deshacer última acción</a>` : ''}
-          <div id="detail-${r.id}" class="detail-box" style="display:none"></div>
-        </article>
-      `).join('');
+      const todayRows = q.filter((r) => r.deliveryToday);
+      priority.innerHTML = todayRows.length ? `<div class="priority-box"><div class="priority-title">⚡ PARA ENTREGAR HOY</div>${todayRows.map((r) => `<div>${r.id} · ${r.ue}</div>`).join('')}</div>` : '';
+      box.innerHTML = q.map((r) => {
+        const copy = stateCopy(r.estado);
+        return `
+          <article class="card" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}">
+            <div class="badges">
+              <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
+              <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+            </div>
+            <div style="font-weight:800;font-size:22px;">${r.id}</div>
+            <div style="font-size:20px;margin-top:4px;">${r.ue}</div>
+            <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades a preparar</div>
+            <div class="state-chip" style="color:${copy.color};">Estado actual: ${copy.label}</div>
+            <div class="wait">Hace: ${fmtWait(r.wait)} 🟡</div>
+            ${copy.action ? `<button class="action-btn doNext" data-id="${r.id}">${copy.action}</button>` : ''}
+          </article>
+        `;
+      }).join('');
     }
 
-    function renderGroupToday() {
+    function rankingRows(scope = 'today') {
       const me = getMe();
-      const person = STAFF.find(s => s.name === me);
-      if (!person) return;
-      const personal = readLS('almacen_personal', {});
-      const asig = readLS('almacen_asignaciones', {});
-      const active = {};
-      rows.filter(x => x.estado !== 'ENTREGADO').forEach(x => { if (asig[x.id]) active[asig[x.id]] = (active[asig[x.id]] || 0) + 1; });
-      const peers = STAFF.filter(s => s.group === person.group);
-      document.getElementById('groupList').innerHTML = peers.map(p => `
-        <div class="row peer-row" data-name="${p.name}">
-          <div><strong>${p.name}</strong><div class="small">${(personal[p.name]?.status || 'DISPONIBLE')}${personal[p.name]?.destination ? ` · ${personal[p.name].destination}` : ''}</div></div>
-          <strong>${active[p.name] || 0} F8s</strong>
-        </div>
-        <div id="peer-${p.name}" class="peer-extra" style="display:none"></div>
-      `).join('');
+      const logs = readLS('almacen_log', []);
+      const now = new Date();
+      const start = new Date(now);
+      if (scope === 'week') {
+        const diff = (start.getDay() + 6) % 7;
+        start.setDate(start.getDate() - diff);
+      }
+      start.setHours(0,0,0,0);
+      const counts = {};
+      logs.forEach((l) => {
+        if (!String(l.msg).includes('avanzó a')) return;
+        const ts = new Date(l.ts);
+        if (Number.isNaN(ts.getTime()) || ts < start) return;
+        const parts = String(l.msg).split('·');
+        const who = parts.length ? parts[parts.length - 1].trim() : '';
+        if (!who) return;
+        counts[who] = (counts[who] || 0) + 1;
+      });
+      const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([name,total],i)=>({rank:i+1,name,total}));
+      const mine = rows.find((r)=>r.name===me);
+      return { rows, mine };
     }
 
     function renderStats() {
       const me = getMe();
+      const today = rankingRows('today');
+      const week = rankingRows('week');
+      const done = today.mine?.total || 0;
+      document.getElementById('stDone').textContent = done;
+      if (today.mine) {
+        const medal = today.mine.rank === 1 ? '🥇' : today.mine.rank === 2 ? '🥈' : today.mine.rank === 3 ? '🥉' : '🏅';
+        document.getElementById('stPosition').textContent = `Mi posición en el ranking: ${medal} #${today.mine.rank} del equipo`;
+      } else {
+        document.getElementById('stPosition').textContent = 'Mi posición en el ranking: —';
+      }
       const log = readLS('almacen_log', []);
-      const today = new Date().toDateString();
-      const mine = log.filter(l => String(l.msg).includes(`· ${me}`) && String(l.msg).includes('avanzó a') && new Date(l.ts).toDateString() === today);
-      document.getElementById('stDone').textContent = mine.length;
-      const mins = mine.map(x => {
-        const m = String(x.msg).match(/· (\d+)h (\d+)m$/);
-        return m ? Number(m[1]) * 60 + Number(m[2]) : null;
-      }).filter(Boolean);
-      if (!mins.length) { document.getElementById('stAvg').textContent = '—'; return; }
-      const avg = Math.round(mins.reduce((a,b) => a + b, 0) / mins.length);
-      document.getElementById('stAvg').textContent = `${Math.floor(avg / 60)}h ${avg % 60}m`;
-    }
-
-    async function goNext(id) {
-      const item = rows.find(r => r.id === id);
-      if (!item || !NEXT[item.estado]) return;
-      const next = NEXT[item.estado];
-      const sm = readLS('almacen_state_timestamps', {});
-      const elapsed = sm[id]?.enteredAt ? (() => {
-        const h = (Date.now() - sm[id].enteredAt) / 36e5; return `${Math.floor(h)}h ${Math.floor((h % 1) * 60)}m`;
-      })() : '';
-      const prev = readPrevStates();
-      const prevField = getDateFieldForState(item.estado);
-      prev[id] = { prevEstado: item.estado, prevFechaCampo: prevField ? (item[prevField] || '') : '', timestamp: Date.now() };
-      writePrevStates(prev);
-      await postUpdate(id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
-      const d = new Date();
-      const stamp = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-      await postUpdate(id, DATE_FIELD[next], stamp);
-      addLog(`${id} avanzó a ${next} · ${getMe()}${elapsed ? ` · ${elapsed}` : ''}`);
-      await loadData();
-      renderAll();
-    }
-
-    async function undoLast(id) {
-      const prevStates = readPrevStates();
-      const prev = prevStates[id];
-      if (!prev || (Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) return;
-      const prevEstado = prev.prevEstado || 'ASIGNADA';
-      await postUpdate(id, 'ESTADO', prevEstado === 'FACTURACIÓN' ? 'FACTURADO' : prevEstado);
-      const prevField = getDateFieldForState(prevEstado);
-      if (prevField && prev.prevFechaCampo) await postUpdate(id, prevField, prev.prevFechaCampo);
-      delete prevStates[id];
-      writePrevStates(prevStates);
-      addLog(`${id} deshecho a ${prevEstado} · ${getMe()}`);
-      await loadData();
-      renderAll();
-    }
-
-    async function renderAllocationDetail(id) {
-      const detailBox = document.getElementById(`detail-${id}`);
-      if (!detailBox) return false;
-      if (detailBox.dataset.open === '1') {
-        detailBox.style.display = 'none';
-        detailBox.dataset.open = '0';
-        return false;
+      const byDay = {};
+      log.forEach((l) => {
+        if (!String(l.msg).includes('avanzó a')) return;
+        const parts = String(l.msg).split('·');
+        const who = parts.length ? parts[parts.length - 1].trim() : '';
+        if (who !== me) return;
+        const day = new Date(l.ts).toISOString().slice(0, 10);
+        byDay[day] = (byDay[day] || 0) + 1;
+      });
+      const bestDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];
+      document.getElementById('stBest').textContent = bestDay ? `Mejor marca personal: 🏆 ${bestDay[1]} (${bestDay[0]})` : 'Mejor marca personal: —';
+      const leader = today.rows[0];
+      document.getElementById('stLeader').textContent = leader ? (leader.name === me ? '👑 ¡Eres el mejor de hoy!' : `🥇 ${leader.name} ${leader.total} ← líder de hoy`) : '';
+      document.getElementById('miniRanking').innerHTML = today.rows.slice(0,3).map((r) => `<div class="rank-line"><span>${r.rank===1?'🥇':r.rank===2?'🥈':'🥉'} ${r.name===me?`Tú (${me})`:r.name}</span><strong>${r.total}</strong></div>`).join('') || '<div class="small">Sin movimientos hoy.</div>';
+      if (week.rows.length && !today.rows.length) {
+        document.getElementById('miniRanking').innerHTML += `<div class="small" style="margin-top:8px;">Semana: ${week.rows[0].name} lidera con ${week.rows[0].total}</div>`;
       }
-      detailBox.style.display = 'block';
-      detailBox.dataset.open = '1';
-      detailBox.innerHTML = '<div class="small">📦 DETALLE DE RENGLONES (cargando...)</div>';
-      const cacheKey = `detalle_${id}`;
-      try {
-        let rowsDetail = readSession(cacheKey, null);
-        if (!Array.isArray(rowsDetail)) {
-          const allocResp = await fetch(`${WEB_APP_URL}?file=allocation`);
-          const allocRaw = await allocResp.json();
-          const allAllocation = Array.isArray(allocRaw) ? allocRaw : [];
-          rowsDetail = allAllocation.filter(r => String(r.N_Doc || '') === String(id));
-          sessionStorage.setItem(cacheKey, JSON.stringify(rowsDetail));
-        }
-        const sorted = rowsDetail.slice().sort((a, b) => prioridadImportancia(a.Importancia) - prioridadImportancia(b.Importancia));
-        if (!sorted.length) {
-          detailBox.innerHTML = '<div class="small">Detalle no disponible · Intente de nuevo</div>';
-          return true;
-        }
-        const totalSolic = sorted.reduce((acc, r) => acc + Number(r.Solicitado || r.Solicitado_redondeado || 0), 0);
-        const totalAsig = sorted.reduce((acc, r) => acc + Number(r.Asignado || 0), 0);
-        const fr = totalSolic > 0 ? (totalAsig / totalSolic) * 100 : 0;
-        detailBox.innerHTML = `
-          <div style="font-weight:800">📦 DETALLE DE RENGLONES</div>
-          <table class="detail-table">
-            <thead><tr><th>Código</th><th>Suministro</th><th>Solicitado</th><th>Asignado</th><th>Estado</th><th>Lotes</th></tr></thead>
-            <tbody>
-              ${sorted.map(r => `
-                <tr>
-                  <td>${r.Codigo || '—'}</td>
-                  <td>${r.Suministro || '—'}</td>
-                  <td>${fmtNum(r.Solicitado || r.Solicitado_redondeado || 0)}</td>
-                  <td>${fmtNum(r.Asignado || 0)}</td>
-                  <td>${statusIcon(r.Estado)} ${r.Estado || '—'}</td>
-                  <td>${r.Lotes_Usados || '—'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="small" style="margin-top:6px">Total solicitado: ${fmtNum(totalSolic)} · Total asignado: ${fmtNum(totalAsig)} · Fill rate general: ${fr.toFixed(1)}%</div>
-        `;
-      } catch {
-        detailBox.innerHTML = '<div class="small">Detalle no disponible · Intente de nuevo</div>';
-      }
-      return true;
     }
 
-    function togglePeerWork(name) {
-      const box = document.getElementById(`peer-${name}`);
-      if (!box) return;
-      if (box.style.display === 'block') {
-        box.style.display = 'none';
-        box.innerHTML = '';
-        return;
+    function renderGroupToday() {
+      const me = getMe();
+      const person = STAFF.find((s) => s.name === me);
+      if (!person) return;
+      const personal = readLS('almacen_personal', {});
+      const peers = STAFF.filter((s) => s.group === person.group);
+      document.getElementById('groupList').innerHTML = peers.map((p) => {
+        const st = personal[p.name]?.status || 'DISPONIBLE';
+        return `<div class="row"><strong>${p.name}</strong><span>${st}</span></div>`;
+      }).join('');
+    }
+
+    function renderBlockedState() {
+      const blocked = attendanceStatusForMe() === 'ausente';
+      document.getElementById('blockPanel').classList.toggle('hidden', !blocked);
+      document.getElementById('ordersPanel').classList.toggle('hidden', blocked);
+      if (blocked) {
+        const me = getMe();
+        const personal = readLS('almacen_personal', {});
+        personal[me] = { ...(personal[me] || {}), status: 'AUSENTE', updatedAt: Date.now() };
+        writeLS('almacen_personal', personal);
       }
-      const asig = readLS('almacen_asignaciones', {});
-      const list = rows.filter(r => asig[r.id] === name && r.estado !== 'ENTREGADO');
-      box.style.display = 'block';
-      box.innerHTML = list.length
-        ? list.map(r => `<div class="peer-item">• ${r.id} · ${r.estado}</div>`).join('')
-        : '<div class="peer-item">Sin F8s activas</div>';
+      return blocked;
     }
 
     function renderAll() {
       setupIdentity();
-      if (!getMe()) return;
+      const me = getMe();
+      if (!me) return;
+      if (renderBlockedState()) {
+        renderTopbarActions();
+        return;
+      }
       renderMyStatus();
       renderQueue();
-      renderGroupToday();
       renderStats();
+      renderGroupToday();
+    }
+
+    function openConfirmFor(id) {
+      const item = rows.find((r) => r.id === id);
+      if (!item || !NEXT[item.estado]) return;
+      pendingAdvanceId = id;
+      document.getElementById('confirmOrderName').textContent = item.ue;
+      document.getElementById('confirmOrderUnits').textContent = `${Number(item.totalAsig || 0).toLocaleString('es-PA')} unidades`;
+      document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    function closeConfirm() {
+      pendingAdvanceId = '';
+      document.getElementById('confirmModal').style.display = 'none';
+    }
+
+    async function doAdvance() {
+      const id = pendingAdvanceId;
+      const item = rows.find((r) => r.id === id);
+      if (!item || !NEXT[item.estado]) return closeConfirm();
+      const next = NEXT[item.estado];
+      await postUpdate(id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
+      const d = new Date();
+      const stamp = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      await postUpdate(id, DATE_FIELD[next], stamp);
+      addLog(`${id} avanzó a ${next} · ${getMe()}`);
+      closeConfirm();
+      await loadData();
+      renderAll();
     }
 
     document.getElementById('loginBtn').addEventListener('click', () => {
@@ -534,14 +509,9 @@
       renderAll();
     });
 
-    document.getElementById('changeUserBtn').addEventListener('click', () => {
-      localStorage.removeItem(IDENTITY_KEY);
-      setupIdentity();
-    });
-
     document.querySelector('.status-btns').addEventListener('click', (e) => {
       const status = e.target.dataset.status;
-      if (!status) return;
+      if (!status || attendanceStatusForMe() === 'ausente') return;
       const me = getMe();
       const p = readLS('almacen_personal', {});
       p[me] = { ...(p[me] || {}), status, destination: status === 'EN RUTA' ? (p[me]?.destination || '') : '', updatedAt: Date.now() };
@@ -559,26 +529,12 @@
       addLog(`${me} reporta ruta: ${e.target.value.trim() || 'Sin destino'}`);
     });
 
-    document.getElementById('queue').addEventListener('click', async (e) => {
-      if (e.target.classList.contains('doNext')) {
-        await goNext(e.target.dataset.id);
-        return;
-      }
-      if (e.target.classList.contains('toggleDetail')) {
-        const opened = await renderAllocationDetail(e.target.dataset.id);
-        e.target.textContent = opened ? '▲ Ocultar' : 'Ver detalle ▼';
-        return;
-      }
-      if (e.target.classList.contains('doUndo')) {
-        await undoLast(e.target.dataset.id);
-      }
+    document.getElementById('queue').addEventListener('click', (e) => {
+      if (e.target.classList.contains('doNext')) openConfirmFor(e.target.dataset.id);
     });
-
-    document.getElementById('groupList').addEventListener('click', (e) => {
-      const row = e.target.closest('.peer-row');
-      if (!row) return;
-      togglePeerWork(row.dataset.name);
-    });
+    document.getElementById('cancelConfirm').addEventListener('click', closeConfirm);
+    document.getElementById('okConfirm').addEventListener('click', doAdvance);
+    document.getElementById('confirmModal').addEventListener('click', (e) => { if (e.target.id === 'confirmModal') closeConfirm(); });
 
     setInterval(() => {
       document.getElementById('clock').textContent = new Date().toLocaleString('es-PA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
