@@ -297,7 +297,7 @@
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
       <button class="btn" id="saveBtn">💾 Guardar</button>
-      <button class="btn" id="attendanceBtn">📋 Pase de Lista <span id="attendanceBadge" class="btn-badge">!</span></button>
+      <button class="btn" id="attendanceBtn">📋 Pase de Lista <span id="attendanceBadge" class="btn-badge" aria-label="Pase de lista pendiente" title="Pase de lista pendiente">!</span></button>
       <button class="btn" id="closeShiftBtn">📸 Cerrar Turno</button>
       <button class="btn" id="changePinBtn">🔐 Cambiar PIN</button>
       <a class="btn" href="almacenista.html">👤 Almacenista</a>
@@ -372,7 +372,7 @@
       <div id="pinModalF8" class="small" style="font-weight:700;color:#0b1f3a;"></div>
       <div id="pinModalFlow" class="small" style="margin-bottom:10px;"></div>
       <label for="pinInput" class="small" style="display:block;font-weight:700;">PIN de Jefatura:</label>
-      <input id="pinInput" maxlength="4" inputmode="numeric" placeholder="_ _ _ _" style="width:100%;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;" />
+      <input id="pinInput" type="password" maxlength="4" inputmode="numeric" placeholder="_ _ _ _" style="width:100%;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;" />
       <div id="pinError" class="pin-error"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
         <button id="pinCancelBtn">Cancelar</button>
@@ -389,6 +389,25 @@
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
         <button id="attendanceCancelBtn">Cancelar</button>
         <button id="attendanceSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">💾 Guardar Pase de Lista</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pinManageModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
+    <div class="box" style="background:#fff;border-radius:10px;width:min(420px,92vw);padding:14px;">
+      <h3 id="pinManageTitle" style="margin:0 0 8px;">🔐 PIN de Jefatura</h3>
+      <div id="pinManageCurrentWrap" style="display:none;">
+        <label for="pinCurrentInput" class="small" style="display:block;font-weight:700;">PIN actual</label>
+        <input id="pinCurrentInput" type="password" maxlength="4" inputmode="numeric" style="width:100%;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;" />
+      </div>
+      <label for="pinNewInput" class="small" style="display:block;font-weight:700;margin-top:8px;">Nuevo PIN</label>
+      <input id="pinNewInput" type="password" maxlength="4" inputmode="numeric" style="width:100%;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;" />
+      <label for="pinNewConfirmInput" class="small" style="display:block;font-weight:700;margin-top:8px;">Confirmar nuevo PIN</label>
+      <input id="pinNewConfirmInput" type="password" maxlength="4" inputmode="numeric" style="width:100%;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;" />
+      <div id="pinManageError" class="pin-error"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="pinManageCancelBtn">Cancelar</button>
+        <button id="pinManageSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">✅ Guardar</button>
       </div>
     </div>
   </div>
@@ -848,9 +867,9 @@
             <span class="small">${s.cargo}</span>
             <div class="small" style="margin-top:4px">${activeBy[s.name] || 0} F8s activas</div>
             <div class="st-buttons">
-              <button data-status="DISPONIBLE" ${isAbsentByList ? 'disabled' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
-              <button data-status="EN RUTA" ${isAbsentByList ? 'disabled' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
-              <button data-status="AUSENTE" disabled class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
+              <button data-status="DISPONIBLE" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
+              <button data-status="EN RUTA" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
+              <button data-status="AUSENTE" disabled title="Controlado por pase de lista" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
             </div>
             ${st === 'EN RUTA' ? `<input class="destination" value="${dst}" placeholder="Destino (ej: CSS Chitré)" />` : ''}
             ${isAbsentByList ? `<div class="staff-lock">Bloqueado por pase de lista (AUSENTE)</div>` : ''}
@@ -976,16 +995,8 @@
     function ensurePinConfigured() {
       const current = localStorage.getItem(PIN_KEY);
       if (current && /^\d{4}$/.test(current)) return true;
-      const p1 = prompt('No hay PIN de Jefatura. Configure un PIN de 4 dígitos:');
-      if (!/^\d{4}$/.test(String(p1 || ''))) return false;
-      const p2 = prompt('Confirme el nuevo PIN de 4 dígitos:');
-      if (p1 !== p2) {
-        alert('El PIN no coincide.');
-        return false;
-      }
-      localStorage.setItem(PIN_KEY, p1);
-      showToast('✅ PIN configurado');
-      return true;
+      openPinManageModal(false);
+      return false;
     }
 
     function openPinModal(item) {
@@ -1031,26 +1042,51 @@
       }
     }
 
-    function changePinFlow() {
-      const currentStored = localStorage.getItem(PIN_KEY);
-      if (!currentStored) return ensurePinConfigured();
-      const current = prompt('Ingrese el PIN actual (4 dígitos):');
-      if (current !== currentStored) {
-        alert('PIN actual incorrecto.');
+    function openPinManageModal(requireCurrent) {
+      document.getElementById('pinManageTitle').textContent = requireCurrent ? '🔐 Cambiar PIN de Jefatura' : '🔐 Configurar PIN de Jefatura';
+      document.getElementById('pinManageCurrentWrap').style.display = requireCurrent ? 'block' : 'none';
+      document.getElementById('pinCurrentInput').value = '';
+      document.getElementById('pinNewInput').value = '';
+      document.getElementById('pinNewConfirmInput').value = '';
+      document.getElementById('pinManageError').textContent = '';
+      document.getElementById('pinManageModal').dataset.requireCurrent = requireCurrent ? '1' : '0';
+      document.getElementById('pinManageModal').style.display = 'flex';
+      setTimeout(() => {
+        const target = requireCurrent ? 'pinCurrentInput' : 'pinNewInput';
+        document.getElementById(target).focus();
+      }, 10);
+    }
+
+    function closePinManageModal() {
+      document.getElementById('pinManageModal').style.display = 'none';
+      document.getElementById('pinManageError').textContent = '';
+    }
+
+    function savePinFromModal() {
+      const requireCurrent = document.getElementById('pinManageModal').dataset.requireCurrent === '1';
+      const expected = localStorage.getItem(PIN_KEY) || '';
+      const current = document.getElementById('pinCurrentInput').value.trim();
+      const next = document.getElementById('pinNewInput').value.trim();
+      const confirmNext = document.getElementById('pinNewConfirmInput').value.trim();
+      if (requireCurrent && current !== expected) {
+        document.getElementById('pinManageError').textContent = 'PIN actual incorrecto';
         return;
       }
-      const next = prompt('Ingrese el nuevo PIN (4 dígitos):');
-      if (!/^\d{4}$/.test(String(next || ''))) {
-        alert('PIN inválido.');
+      if (!/^\d{4}$/.test(next)) {
+        document.getElementById('pinManageError').textContent = 'Ingrese un PIN de 4 dígitos';
         return;
       }
-      const confirmNext = prompt('Confirme el nuevo PIN:');
       if (next !== confirmNext) {
-        alert('El PIN no coincide.');
+        document.getElementById('pinManageError').textContent = 'El PIN no coincide';
         return;
       }
       localStorage.setItem(PIN_KEY, next);
+      closePinManageModal();
       showToast('✅ PIN actualizado');
+    }
+
+    function changePinFlow() {
+      openPinManageModal(!!localStorage.getItem(PIN_KEY));
     }
 
     function renderAttendanceBadge() {
@@ -1397,6 +1433,16 @@
       });
       document.getElementById('pinModal').addEventListener('click', (e) => {
         if (e.target.id === 'pinModal') closePinModal();
+      });
+      document.getElementById('pinManageCancelBtn').addEventListener('click', closePinManageModal);
+      document.getElementById('pinManageSaveBtn').addEventListener('click', savePinFromModal);
+      document.getElementById('pinManageModal').addEventListener('click', (e) => {
+        if (e.target.id === 'pinManageModal') closePinManageModal();
+      });
+      ['pinCurrentInput', 'pinNewInput', 'pinNewConfirmInput'].forEach((id) => {
+        document.getElementById(id).addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') savePinFromModal();
+        });
       });
       document.getElementById('attendanceCancelBtn').addEventListener('click', closeAttendanceModal);
       document.getElementById('attendanceSaveBtn').addEventListener('click', saveAttendance);

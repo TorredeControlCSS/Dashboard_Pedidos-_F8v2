@@ -414,9 +414,18 @@
       } else {
         document.getElementById('stPosition').textContent = 'Mi posición en el ranking: —';
       }
-      const mineHistory = readLS('historial_asistencia', []).map((h) => h.personal?.[me] === 'presente' ? 1 : 0);
-      const best = Math.max(done, ...mineHistory, 0);
-      document.getElementById('stBest').textContent = `Mejor marca personal: 🏆 ${best}`;
+      const log = readLS('almacen_log', []);
+      const byDay = {};
+      log.forEach((l) => {
+        if (!String(l.msg).includes('avanzó a')) return;
+        const parts = String(l.msg).split('·');
+        const who = parts.length ? parts[parts.length - 1].trim() : '';
+        if (who !== me) return;
+        const day = new Date(l.ts).toISOString().slice(0, 10);
+        byDay[day] = (byDay[day] || 0) + 1;
+      });
+      const bestDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];
+      document.getElementById('stBest').textContent = bestDay ? `Mejor marca personal: 🏆 ${bestDay[1]} (${bestDay[0]})` : 'Mejor marca personal: —';
       const leader = today.rows[0];
       document.getElementById('stLeader').textContent = leader ? (leader.name === me ? '👑 ¡Eres el mejor de hoy!' : `🥇 ${leader.name} ${leader.total} ← líder de hoy`) : '';
       document.getElementById('miniRanking').innerHTML = today.rows.slice(0,3).map((r) => `<div class="rank-line"><span>${r.rank===1?'🥇':r.rank===2?'🥈':'🥉'} ${r.name===me?`Tú (${me})`:r.name}</span><strong>${r.total}</strong></div>`).join('') || '<div class="small">Sin movimientos hoy.</div>';
