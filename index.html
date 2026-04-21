@@ -1,535 +1,584 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento F8 - Torre de Control</title>
-    
-    <!-- FAVICONS -->
-    <link rel="icon" href="./favicon.ico?v=1"/>
-    <link rel="shortcut icon" href="./favicon.ico?v=1"/>
-    
-    <!-- PWA -->
-    <meta name="theme-color" content="#0b1f3a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- CHART.JS + DATALABELS PLUGIN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    
-    <style>
-        /* =========================================
-           ESTILOS INSTITUCIONALES
-           ========================================= */
-        body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fa; font-size: 13px; color: #333; }
-        
-        /* HEADER */
-        .topbar {
-            background: linear-gradient(90deg, #0b1f3a, #133a74);
-            color: #fff; padding: 12px 14px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.2); position: sticky; top: 0; z-index: 9999;
-        }
-        .topbar img { width: 40px; height: 40px; object-fit: contain; }
-        .topbar .title { flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
-        .topbar .title-main { font-size: 16px; font-weight: 700; color: #fff; }
-        .topbar .title-sub { font-size: 12px; color: #cbd5e1; }
-        
-        .btn-header {
-            padding: 7px 12px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
-            background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;
-        }
-        .btn-header:hover { background: rgba(255,255,255,0.25); }
-        .btn-save { background: #0a7a2f; border-color: #0a7a2f; }
-        .btn-save:hover { background: #0c9639; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TORRE DE CONTROL — Jefatura de Almacén</title>
+  <link rel="icon" href="./favicon.ico?v=1" />
+  <link rel="shortcut icon" href="./favicon.ico?v=1" />
+  <style>
+    :root {
+      --navy: #0b1f3a;
+      --panel: #ffffff;
+      --muted: #f5f5f5;
+      --text: #1f2937;
+      --warn: #f59e0b;
+      --danger: #b71c1c;
+      --ok: #2e7d32;
+      --brown: #6d4c41;
+      --orange: #ef6c00;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #eef2f7; color: var(--text); }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      background: linear-gradient(90deg, #0b1f3a, #133a74);
+      color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    }
+    .topbar img { width: 44px; height: 44px; object-fit: contain; }
+    .title { flex: 1; min-width: 0; }
+    .title h1 { margin: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .title p { margin: 2px 0 0; font-size: 12px; color: #cbd5e1; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); color: #fff;
+      border-radius: 8px; padding: 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: rgba(255,255,255,.2); }
+    .wrap { padding: 12px; }
+    .kpis { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; }
+    .kpi { background: var(--panel); border-radius: 10px; padding: 10px; border-left: 6px solid #9ca3af; min-width: 150px; }
+    .kpi .label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 700; }
+    .kpi .value { font-size: 26px; font-weight: 800; margin-top: 4px; }
+    .kpi-total { border-color: #0b1f3a; }
+    .kpi-picking { border-color: #fbc02d; }
+    .kpi-fact { border-color: #ef6c00; }
+    .kpi-pack { border-color: #6d4c41; }
+    .kpi-desp { border-color: #2e7d32; }
+    .kpi-sla { border-color: #b71c1c; }
+    .blink { animation: blink 1s step-start infinite; }
+    @keyframes blink { 50% { opacity: .35; } }
 
-        /* CONTENEDOR */
-        .container { max-width: 100%; margin: 0 auto; padding: 15px; }
-
-        /* KPIS */
-        .kpi-dashboard-compact { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .kpi-compact {
-            background: white; padding: 10px; border-radius: 8px; text-align: center; flex: 1; min-width: 120px;
-            border: 1px solid #e5e5e5; border-bottom: 3px solid #ccc;
-        }
-        .kpi-compact .kpi-value { font-size: 1.5rem; font-weight: 700; color: #0b1f3a; margin: 4px 0; }
-        .kpi-compact .kpi-label { font-size: 0.7rem; color: #666; font-weight: 700; text-transform: uppercase; }
-        .kpi-blue { border-bottom-color: #3498db; }
-        .kpi-orange { border-bottom-color: #f39c12; }
-        .kpi-green { border-bottom-color: #0a7a2f; }
-        
-        /* GRÁFICOS (V12 - CLEAN LAYOUT) */
-        .charts-container { 
-            display: grid; 
-            grid-template-columns: 1.5fr 1fr 1fr; /* 3 Columnas */
-            gap: 15px; 
-            margin: 15px 0; 
-            height: 260px; /* Altura Fija pero suficiente */
-        }
-        
-        .chart-card {
-            background: white; 
-            padding: 10px; 
-            border-radius: 8px;
-            border: 1px solid #e5e5e5;
-            display: flex; 
-            flex-direction: column;
-            overflow: hidden; /* ¡ADIÓS SCROLLBARS! */
-            position: relative;
-        }
-        
-        .chart-title { 
-            font-weight: 700; color: #666; font-size: 12px; 
-            margin-bottom: 5px; text-align: center; height: 15px;
-        }
-        
-        /* Contenedor del Canvas para que ocupe todo el espacio restante */
-        .chart-canvas-wrapper {
-            flex: 1;
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* TABLA PRINCIPAL */
-        .table-container {
-            background-color: white; border-radius: 8px; overflow: auto; 
-            margin-bottom: 15px; max-height: 65vh; border: 1px solid #ddd;
-        }
-        table { width: 100%; border-collapse: collapse; min-width: 1800px; font-size: 12px; }
-        thead { background-color: #f7f7f7; position: sticky; top: 0; z-index: 10; }
-        th { padding: 8px 10px; text-align: left; font-weight: 700; text-transform: uppercase; color: #444; border-bottom: 2px solid #ddd; border-right: 1px solid #eee; }
-        td { padding: 4px 8px; border-bottom: 1px solid #eee; vertical-align: middle; border-right: 1px solid #eee; }
-        tbody tr:hover { background-color: #f0f7ff; }
-
-        /* INPUTS */
-        .editable-cell select, .editable-cell input { width: 100%; padding: 4px; border: 1px solid transparent; background: transparent; font-size: 11px; border-radius: 4px; }
-        .editable-cell select { border: 1px solid #ddd; background: white; font-weight: bold; cursor: pointer; }
-        .editable-cell input:hover, .editable-cell input:focus { background: white; border: 1px solid #3498db; outline: none; }
-        input[type="date"] { font-family: 'Arial', sans-serif; color: #333; }
-
-        /* ESPECIALES */
-        .col-factura { background-color: #e8f5e9 !important; border-left: 2px solid #c8e6c9; border-right: 2px solid #c8e6c9; }
-        .col-factura input { font-weight: 700; color: #0a7a2f; text-align: center; }
-        .col-number { text-align: right; font-family: monospace; font-size: 12px; }
-        
-        /* Loading & Toast */
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0b1f3a; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 10000; bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 13px; }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
-
-        @media (max-width: 1200px) { .charts-container { grid-template-columns: 1fr; height: auto; } .chart-card { height: 280px; margin-bottom: 10px; } }
-    </style>
+    .board { margin-top: 12px; display: grid; grid-template-columns: repeat(6, minmax(270px, 1fr)); gap: 10px; overflow-x: auto; }
+    .col { background: #f5f5f5; border-radius: 10px; min-height: 360px; max-height: 70vh; display: flex; flex-direction: column; border: 1px solid #e5e7eb; }
+    .col-head { padding: 10px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; }
+    .count { background: #0b1f3a; color: #fff; min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
+    .cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+    .card {
+      border-left: 6px solid #90a4ae; border-radius: 10px; background: #fff; border-top: 4px solid transparent;
+      padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.07); font-size: 13px;
+    }
+    .card.urg { border-top-color: #b71c1c; background: #fff8f8; }
+    .badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
+    .badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff; }
+    .badge.urg { background: #b71c1c; }
+    .badge.men { background: #455a64; }
+    .meta { color: #4b5563; margin-top: 3px; }
+    .id { font-weight: 800; color: #0b1f3a; font-size: 15px; }
+    .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .card-actions button {
+      border: none; background: #e5e7eb; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-weight: 700; font-size: 12px;
+    }
+    .card-actions .advance { background: #0b1f3a; color: #fff; }
+    .warn { margin-top: 6px; padding: 6px; background: #fff3cd; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 12px; }
+    .section { margin-top: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .section-head { padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; font-weight: 800; }
+    .toggle { background: transparent; border: none; font-size: 18px; cursor: pointer; }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+    .tab { border: 1px solid #cbd5e1; background: #f8fafc; padding: 6px 9px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+    .tab.active { background: #0b1f3a; color: #fff; border-color: #0b1f3a; }
+    .people { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+    .person { border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; }
+    .person strong { display: block; }
+    .small { color: #6b7280; font-size: 12px; }
+    .st-buttons { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+    .st-buttons button { border: 1px solid #d1d5db; background: #f9fafb; border-radius: 8px; padding: 5px 7px; cursor: pointer; font-size: 12px; }
+    .st-buttons button.active { background: #0b1f3a; color: #fff; border-color: #0b1f3a; }
+    .destination { width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px; }
+    .log { padding: 10px; font-size: 13px; }
+    .log ul { margin: 0; padding-left: 18px; }
+    .log li { margin-bottom: 4px; }
+    .sync { font-weight: 700; color: #bfdbfe; }
+    .hidden { display: none !important; }
+    #modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 30;
+    }
+    #modal .box { background: #fff; border-radius: 10px; width: min(420px, 92vw); padding: 14px; }
+    #toast {
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: #111827; color: #fff;
+      border-radius: 999px; padding: 8px 14px; font-size: 13px; display: none; z-index: 40;
+    }
+    @media (max-width: 980px) {
+      .kpis { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+      .title h1 { font-size: 14px; }
+    }
+    @media (max-width: 640px) {
+      .kpis { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .topbar { align-items: flex-start; }
+      .actions { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-
-    <div id="loadingOverlay">
-        <div class="spinner"></div>
-        <p style="margin-top: 15px; font-weight: 500; color: #555;">Sincronizando con CEDIS PANAMA...</p>
+  <header class="topbar">
+    <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
+    <div class="title">
+      <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
+      <p><span id="clock">--</span> · V13.0 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span></p>
     </div>
-
-    <div id="toast">Notificación</div>
-
-    <div class="topbar">
-        <img src="icons/icon-512.png" alt="Logo" width="40" height="40" onerror="this.style.display='none'">
-        <div class="title">
-            <div class="title-main">TORRE DE CONTROL — SEGUIMIENTO F8 - CEDIS PANAMA</div>
-            <div class="title-sub">
-                <span id="currentDateTime">Cargando fecha...</span>
-                <span style="opacity:.8; margin-left:8px;"> | V12.0 (Seguimiento por Grupos)</span>
-            </div>
-        </div>
-        <div class="top-actions">
-            <button id="refreshBtn" class="btn-header">🔄 Actualizar</button>
-            <button id="saveBtn" class="btn-header btn-save">💾 Guardar</button>
-        </div>
+    <div class="actions">
+      <button class="btn" id="refreshBtn">🔄 Actualizar</button>
+      <a class="btn" href="almacenista.html">👤 Almacenista</a>
+      <a class="btn" href="tracker.html">📡 Tracker UE</a>
     </div>
-    
-    <div class="container">
-        
-        <!-- KPIS -->
-        <div class="kpi-dashboard-compact">
-            <div class="kpi-compact kpi-blue">
-                <div class="kpi-label">Total Pedidos</div>
-                <div class="kpi-value" id="kpi-total">0</div>
-            </div>
-            <div class="kpi-compact kpi-orange">
-                <div class="kpi-label">Asignados</div>
-                <div class="kpi-value" id="kpi-asignados">0</div>
-            </div>
-            <div class="kpi-compact kpi-green">
-                <div class="kpi-label">En Proceso</div>
-                <div class="kpi-value" id="kpi-proceso">0</div>
-                <small style="color:#999; font-size:9px;">Picking + Empaque</small>
-            </div>
-            <div class="kpi-compact kpi-green" style="border-bottom-color: #0a7a2f;">
-                <div class="kpi-label">Facturados</div>
-                <div class="kpi-value" id="kpi-facturados">0</div>
-            </div>
-            <div class="kpi-compact">
-                <div class="kpi-label">Avance Global</div>
-                <div class="kpi-value" id="kpi-avance">0%</div>
-                <small style="color:#999; font-size:9px;">Ponderado</small>
-            </div>
-        </div>
+  </header>
 
-        <!-- GRÁFICOS (V12 - SIN TABLAS, MAXIMIZADOS) -->
-        <div class="charts-container">
-            
-            <!-- 1. BARRAS EVOLUCIÓN -->
-            <div class="chart-card">
-                <div class="chart-title">Formas 8 Asignadas</div>
-                <div class="chart-canvas-wrapper">
-                    <canvas id="evolutionChart"></canvas>
-                </div>
-            </div>
+  <main class="wrap">
+    <section class="kpis">
+      <article class="kpi kpi-total"><div class="label">Total F8s</div><div id="kTotal" class="value">0</div></article>
+      <article class="kpi kpi-picking"><div class="label">En Picking</div><div id="kPicking" class="value">0</div></article>
+      <article class="kpi kpi-fact"><div class="label">En Facturación</div><div id="kFact" class="value">0</div></article>
+      <article class="kpi kpi-pack"><div class="label">En Empaque</div><div id="kPack" class="value">0</div></article>
+      <article class="kpi kpi-desp"><div class="label">Despachadas Hoy</div><div id="kDespHoy" class="value">0</div></article>
+      <article class="kpi kpi-sla" id="kSlaWrap"><div class="label">⚠️ Alertas SLA</div><div id="kSla" class="value">0</div></article>
+    </section>
 
-            <!-- 2. DONA ESTADOS -->
-            <div class="chart-card">
-                <div class="chart-title">Por Estado</div>
-                <div class="chart-canvas-wrapper">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
+    <section class="board" id="board"></section>
 
-            <!-- 3. DONA GRUPOS -->
-            <div class="chart-card">
-                <div class="chart-title">Por Grupo</div>
-                <div class="chart-canvas-wrapper">
-                    <canvas id="groupChart"></canvas>
-                </div>
-            </div>
+    <section class="section" id="staffSection">
+      <div class="section-head">👥 Personal Disponible — Gestión de Capacidad <button class="toggle" data-target="staffBody">▼</button></div>
+      <div id="staffBody">
+        <div id="staffTabs" class="tabs"></div>
+        <div id="staffCards" class="people"></div>
+      </div>
+    </section>
 
-        </div>
-        
-        <!-- FILTROS -->
-        <div class="controls" style="padding: 10px; margin-bottom: 10px; border:1px solid #ddd; border-radius:8px; background:white;">
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar ID, Grupo, Unidad..." style="flex-grow:1; padding:6px; border:1px solid #ccc; border-radius:6px;">
-                <select id="filterStatus" style="width: 150px; padding:6px; border:1px solid #ccc; border-radius:6px;">
-                    <option value="">Todos los Estados</option>
-                    <option value="ASIGNADO">ASIGNADO</option>
-                    <option value="PICKING">PICKING</option>
-                    <option value="EMPACADO">EMPACADO</option>
-                    <option value="FACTURADO">FACTURADO</option>
-                    <option value="DESPACHADO">DESPACHADO</option>
-                    <option value="ENTREGADO">ENTREGADO</option>
-                </select>
-            </div>
-        </div>
+    <section class="section" id="logSection">
+      <div class="section-head">🧾 Log de Actividad <button class="toggle" data-target="logBody">▼</button></div>
+      <div id="logBody" class="log"></div>
+    </section>
+  </main>
 
-        <!-- TABLA -->
-        <div class="table-container">
-            <table id="ordersTable">
-                <thead>
-                    <tr>
-                        <th style="width: 130px;">ID Pedido</th>
-                        <th style="width: 220px;">Unidad Ejecutora</th>
-                        <th style="width: 120px;">Grupo</th>
-                        <th style="width: 90px;">F. Asig.</th>
-                        <th style="width: 80px; text-align:right;">T. Solic.</th>
-                        <th style="width: 80px; text-align:right;">T. Asig.</th>
-                        <th style="width: 70px; text-align:center;">Items</th>
-                        <th style="width: 130px;">Estado</th>
-                        <th style="width: 110px;">Picking</th>
-                        <th style="width: 110px; background:#e8f5e9; color:#0a7a2f;">FACTURACIÓN</th>
-                        <th style="width: 110px;">Empaque</th>
-                        <th style="width: 110px;">Despacho</th>
-                        <th style="width: 110px;">Entrega</th>
-                        <th style="width: 200px;">Comentarios</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-        
-        <div style="text-align: center; color: #aaa; padding: 10px; font-size: 10px;">
-            Torre de Control - CEDIS PANAMA © 2026
-        </div>
+  <div id="modal">
+    <div class="box">
+      <h3 style="margin-top:0">👤 Reasignar almacenista</h3>
+      <p id="modalTitle" class="small"></p>
+      <select id="assignSelect" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></select>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="cancelAssign">Cancelar</button>
+        <button id="saveAssign" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">Guardar</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // REGISTRAR PLUGIN DE ETIQUETAS
-        Chart.register(ChartDataLabels);
+  <div id="toast"></div>
 
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
-        let ordersData = [];
-        let charts = {};
+  <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+    const STAFF = [
+      { name: "Alfonso Mendez", group: "GRUPO 2", cargo: "ALMACENISTA I"  },
+      { name: "Anthony D. Allca", group: "FRÍO", cargo: "ALMACENISTA II" },
+      { name: "Aurelio Rojas", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Bey Mario Reluz", group: "EMPAQUE", cargo: "ALMACENISTA II" },
+      { name: "Boris Lasso", group: "FRÍO", cargo: "ALMACENISTA II" },
+      { name: "Carlos Mendoza", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
+      { name: "David Magallon", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Erasmo Valencia", group: "URGENCIAS", cargo: "ALMACENISTA II" },
+      { name: "Eric Castro", group: "VENCIDOS", cargo: "ALMACENISTA II" },
+      { name: "Eric Medina", group: "MÓDULO", cargo: "ALMACENISTA II" },
+      { name: "Fernando Ruíz", group: "GRUPO 4", cargo: "ALMACENISTA II" },
+      { name: "Francisco Pachay", group: "GRUPO 1", cargo: "CAMILLERO II" },
+      { name: "Franklin Almanza", group: "VENCIDOS", cargo: "ALMACENISTA II" },
+      { name: "Gaspar Salcedo", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
+      { name: "Jean Carlos Labrador", group: "GRUPO 2", cargo: "ALMACENISTA I" },
+      { name: "Jesus Reyna", group: "GRUPO 2", cargo: "ALMACENISTA I" },
+      { name: "Joel Sanchez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Juan Rodriguez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Luis M. Visuete", group: "GRUPO 3", cargo: "ALMACENISTA I" },
+      { name: "Luis Miranda", group: "GRUPO 3", cargo: "ALMACENISTA II" },
+      { name: "Luis Urrutia", group: "GRUPO 2", cargo: "ALMACENISTA II" },
+      { name: "Luis Wtges", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Maximino Villarreal", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Miguel A. Rodriguez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
+      { name: "Osvaldo Loaiza", group: "GRUPO 2", cargo: "ALMACENISTA II" },
+      { name: "Roman Perez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
+      { name: "Sebastian Hidalgo", group: "EMPAQUE", cargo: "ALMACENISTA II" },
+      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" }
+    ];
+    const GROUP_COLORS = {
+      "GRUPO 1": "#1565c0",
+      "GRUPO 2": "#2e7d32",
+      "GRUPO 3": "#6a1b9a",
+      "GRUPO 4-5-11": "#e65100",
+      "GRUPO 4": "#bf360c",
+      "FRÍO": "#0277bd",
+      "EMPAQUE": "#4e342e",
+      "URGENCIAS": "#b71c1c",
+      "MÓDULO": "#37474f",
+      "VENCIDOS": "#558b2f"
+    };
+    const STATES = ["ASIGNADA", "PICKING", "FACTURACIÓN", "EMPACADO", "DESPACHADO", "ENTREGADO"];
+    const NEXT_STATE = {
+      "ASIGNADA": "PICKING",
+      "PICKING": "FACTURACIÓN",
+      "FACTURACIÓN": "EMPACADO",
+      "EMPACADO": "DESPACHADO",
+      "DESPACHADO": "ENTREGADO"
+    };
+    const DATE_FIELD_BY_STATE = {
+      "PICKING": "FECHA_PICKING",
+      "FACTURACIÓN": "FECHA_FACTURACION",
+      "EMPACADO": "FECHA_EMPACADO",
+      "DESPACHADO": "FECHA_DESPACHO",
+      "ENTREGADO": "FECHA_ENTREGA"
+    };
+    const SLA = {
+      "PICKING": { warn: 4, crit: 8 },
+      "FACTURACIÓN": { warn: 3, crit: 6 },
+      "EMPACADO": { warn: 6, crit: 12 },
+      "DESPACHADO": { warn: 24, crit: 48 }
+    };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadData();
-            setupEventListeners();
-            startClock();
+    let tracking = [];
+    let pendingAssignId = null;
+    let currentGroupTab = "";
+
+    const readLS = (k, fallback) => {
+      try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
+      catch { return fallback; }
+    };
+    const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const showToast = (msg) => {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 2500);
+    };
+    const nowStamp = () => {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    };
+    const humanClock = () => {
+      const d = new Date();
+      return d.toLocaleString('es-PA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    };
+    const hhmm = () => new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+    const normalizeGroup = (g = "") => {
+      const up = String(g).trim().toUpperCase();
+      if (GROUP_COLORS[up]) return up;
+      if (up.includes('URG')) return 'URGENCIAS';
+      return up || 'GRUPO 1';
+    };
+    const normalizeState = (s = "") => {
+      const up = String(s).trim().toUpperCase();
+      if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
+      if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
+      if (up === 'EMPACANDO') return 'EMPACADO';
+      return STATES.includes(up) ? up : 'ASIGNADA';
+    };
+
+    function updateStateTimestamps(items) {
+      const stateMap = readLS('almacen_state_timestamps', {});
+      let changed = false;
+      items.forEach(item => {
+        const row = stateMap[item.id] || {};
+        if (!row.state) {
+          stateMap[item.id] = { state: item.estado };
+          changed = true;
+          return;
+        }
+        if (row.state !== item.estado) {
+          stateMap[item.id] = { state: item.estado, enteredAt: Date.now() };
+          changed = true;
+        }
+      });
+      if (changed) writeLS('almacen_state_timestamps', stateMap);
+      return stateMap;
+    }
+
+    function getElapsed(item, stateMap) {
+      const entry = stateMap[item.id];
+      if (!entry || !entry.enteredAt) return null;
+      const hours = (Date.now() - Number(entry.enteredAt)) / 36e5;
+      const h = Math.floor(hours);
+      const m = Math.floor((hours - h) * 60);
+      return { hours, label: `${h}h ${m}m` };
+    }
+
+    function getSla(item, elapsed) {
+      const t = SLA[item.estado];
+      if (!elapsed || !t) return { icon: '⚪', text: '—', level: 'none', alert: false };
+      if (elapsed.hours > t.crit) return { icon: '🔴', text: elapsed.label, level: 'crit', alert: true };
+      if (elapsed.hours > t.warn) return { icon: '🟡', text: elapsed.label, level: 'warn', alert: false };
+      return { icon: '🟢', text: elapsed.label, level: 'ok', alert: false };
+    }
+
+    async function postUpdate(id, field, value) {
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'updateStatus', id, field, value })
+      });
+    }
+
+    function addLog(msg) {
+      const log = readLS('almacen_log', []);
+      log.unshift({ ts: Date.now(), msg });
+      writeLS('almacen_log', log.slice(0, 50));
+      renderLog();
+    }
+
+    function autoAssign(items) {
+      const asig = readLS('almacen_asignaciones', {});
+      const personal = readLS('almacen_personal', {});
+      let changed = false;
+      items.forEach(item => {
+        if (asig[item.id]) return;
+        const candidate = STAFF.find(p => p.group === item.group && (!personal[p.name] || personal[p.name].status === 'DISPONIBLE'));
+        if (candidate) {
+          asig[item.id] = candidate.name;
+          changed = true;
+        }
+      });
+      if (changed) writeLS('almacen_asignaciones', asig);
+      return asig;
+    }
+
+    function activeCountByPerson(items, asig) {
+      const out = {};
+      items.filter(i => i.estado !== 'ENTREGADO').forEach(i => {
+        const p = asig[i.id];
+        if (p) out[p] = (out[p] || 0) + 1;
+      });
+      return out;
+    }
+
+    function renderKPIs(items, stateMap) {
+      const c = { PICKING: 0, FACTURACIÓN: 0, EMPACADO: 0, DESPACHADO: 0 };
+      let despHoy = 0;
+      let slaAlerts = 0;
+      items.forEach(i => {
+        if (c[i.estado] !== undefined) c[i.estado]++;
+        if (i.estado === 'DESPACHADO' && String(i.fechaDespacho || '').includes(nowStamp())) despHoy++;
+        const elapsed = getElapsed(i, stateMap);
+        if (getSla(i, elapsed).alert) slaAlerts++;
+      });
+      document.getElementById('kTotal').textContent = items.length;
+      document.getElementById('kPicking').textContent = c.PICKING;
+      document.getElementById('kFact').textContent = c['FACTURACIÓN'];
+      document.getElementById('kPack').textContent = c.EMPACADO;
+      document.getElementById('kDespHoy').textContent = despHoy;
+      document.getElementById('kSla').textContent = slaAlerts;
+      document.getElementById('kSlaWrap').classList.toggle('blink', slaAlerts > 0);
+    }
+
+    function renderBoard(items, stateMap, asig, personal) {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      STATES.forEach(state => {
+        const colItems = items.filter(i => i.estado === state);
+        const col = document.createElement('section');
+        col.className = 'col';
+        col.innerHTML = `<div class="col-head">${state} <span class="count">${colItems.length}</span></div><div class="cards"></div>`;
+        const cards = col.querySelector('.cards');
+        colItems.forEach(item => {
+          const who = asig[item.id] || 'Sin asignar';
+          const elapsed = getElapsed(item, stateMap);
+          const sla = getSla(item, elapsed);
+          const st = personal[who]?.status;
+          const warn = st && st !== 'DISPONIBLE' && item.estado !== 'ENTREGADO';
+          const card = document.createElement('article');
+          card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''}`;
+          card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
+          card.innerHTML = `
+            <div class="badges">
+              <span class="badge ${item.tipo === 'URGENCIA' ? 'urg' : 'men'}">${item.tipo === 'URGENCIA' ? 'URGENCIA🔴' : 'MENSUAL'}</span>
+              <span class="badge" style="background:${GROUP_COLORS[item.group] || '#607d8b'}">${item.group}</span>
+            </div>
+            <div class="id">${item.id}</div>
+            <div class="meta">${item.unidad}</div>
+            <div class="meta">Asig: ${Number(item.totalAsig || 0).toLocaleString('es-PA')} uds</div>
+            <div class="meta">👤 ${who}</div>
+            <div class="meta">⏱ ${elapsed ? elapsed.label : '—'} en este estado ${sla.icon}</div>
+            ${warn ? `<div class="warn">⚠️ ${who} está ${st}${personal[who]?.destination ? ` · ${personal[who].destination}` : ''}</div>` : ''}
+            <div class="card-actions">
+              <button class="reassign" data-id="${item.id}">👤 Reasignar</button>
+              ${NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : ''}
+            </div>
+          `;
+          cards.appendChild(card);
         });
+        board.appendChild(col);
+      });
+    }
 
-        function setupEventListeners() {
-            document.getElementById('refreshBtn').addEventListener('click', loadData);
-            document.getElementById('saveBtn').addEventListener('click', () => showToast('ℹ️ Guardado automático activo', 3000));
-            document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-            document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    function renderStaff(items, asig) {
+      const tabsWrap = document.getElementById('staffTabs');
+      const cardsWrap = document.getElementById('staffCards');
+      const groups = [...new Set(STAFF.map(s => s.group))];
+      if (!currentGroupTab) currentGroupTab = groups[0];
+      tabsWrap.innerHTML = groups.map(g => `<button class="tab ${g === currentGroupTab ? 'active' : ''}" data-group="${g}">${g}</button>`).join('');
+      const personal = readLS('almacen_personal', {});
+      const activeBy = activeCountByPerson(items, asig);
+      cardsWrap.innerHTML = STAFF.filter(s => s.group === currentGroupTab).map(s => {
+        const st = personal[s.name]?.status || 'DISPONIBLE';
+        const dst = personal[s.name]?.destination || '';
+        return `
+          <article class="person" data-name="${s.name}">
+            <strong>${s.name}</strong>
+            <span class="small">${s.cargo}</span>
+            <div class="small" style="margin-top:4px">${activeBy[s.name] || 0} F8s activas</div>
+            <div class="st-buttons">
+              <button data-status="DISPONIBLE" class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
+              <button data-status="EN RUTA" class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
+              <button data-status="AUSENTE" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
+            </div>
+            ${st === 'EN RUTA' ? `<input class="destination" value="${dst}" placeholder="Destino (ej: CSS Chitré)" />` : ''}
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderLog() {
+      const logs = readLS('almacen_log', []).slice(0, 15);
+      const box = document.getElementById('logBody');
+      if (!logs.length) {
+        box.innerHTML = '<em>Sin actividad registrada.</em>';
+        return;
+      }
+      box.innerHTML = `<ul>${logs.map(l => `<li>${new Date(l.ts).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })} — ${l.msg}</li>`).join('')}</ul>`;
+    }
+
+    function openAssignModal(id, group) {
+      pendingAssignId = id;
+      const sel = document.getElementById('assignSelect');
+      const personal = readLS('almacen_personal', {});
+      const candidates = STAFF.filter(s => s.group === group)
+        .sort((a,b) => ((personal[a.name]?.status === 'DISPONIBLE' ? -1 : 1) - (personal[b.name]?.status === 'DISPONIBLE' ? -1 : 1)));
+      sel.innerHTML = candidates.map(c => `<option value="${c.name}">${c.name} (${personal[c.name]?.status || 'DISPONIBLE'})</option>`).join('');
+      document.getElementById('modalTitle').textContent = `${id} · ${group}`;
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeAssignModal() {
+      pendingAssignId = null;
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    async function advanceItem(item) {
+      const next = NEXT_STATE[item.estado];
+      if (!next) return;
+      if (!confirm(`¿Avanzar ${item.id} de ${item.estado} a ${next}?`)) return;
+      const asig = readLS('almacen_asignaciones', {});
+      const who = asig[item.id] || 'Sin asignar';
+      const stateMap = readLS('almacen_state_timestamps', {});
+      const elapsed = getElapsed(item, stateMap);
+      try {
+        await postUpdate(item.id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
+        await postUpdate(item.id, DATE_FIELD_BY_STATE[next], nowStamp());
+        addLog(`${item.id} avanzó a ${next} · ${who}${elapsed ? ` · ${elapsed.label}` : ''}`);
+        showToast('✅ Estado actualizado');
+        await loadData(false);
+      } catch (e) {
+        console.error(e);
+        showToast('❌ No se pudo actualizar');
+      }
+    }
+
+    async function loadData(showMessage = true) {
+      try {
+        const r = await fetch(`${WEB_APP_URL}?file=tracking`);
+        const raw = await r.json();
+        tracking = (Array.isArray(raw) ? raw : []).map(row => {
+          const group = normalizeGroup(row.GRUPO || '');
+          return {
+            id: row.ID_PEDIDO || '---',
+            unidad: row.UNIDAD_EJECUTORA || 'Sin UE',
+            group,
+            tipo: String(row.TIPO || group).toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
+            estado: normalizeState(row.ESTADO || 'ASIGNADA'),
+            totalAsig: Number(row.TOTAL_ASIG || 0),
+            fechaDespacho: row.FECHA_DESPACHO || ''
+          };
+        }).filter(i => i.id && i.id !== '---');
+
+        const asig = autoAssign(tracking);
+        const stateMap = updateStateTimestamps(tracking);
+        const personal = readLS('almacen_personal', {});
+        renderKPIs(tracking, stateMap);
+        renderBoard(tracking, stateMap, asig, personal);
+        renderStaff(tracking, asig);
+        renderLog();
+        document.getElementById('lastSync').textContent = `Última sync: ${hhmm()}`;
+        if (showMessage) showToast('✅ Datos actualizados');
+      } catch (e) {
+        console.error(e);
+        showToast('⚠️ Backend no disponible. Intente nuevamente.');
+      }
+    }
+
+    function bindEvents() {
+      document.getElementById('refreshBtn').addEventListener('click', () => loadData(true));
+      document.querySelectorAll('.toggle').forEach(btn => btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.target);
+        target.classList.toggle('hidden');
+        btn.textContent = target.classList.contains('hidden') ? '▲' : '▼';
+      }));
+      document.getElementById('board').addEventListener('click', async (e) => {
+        const id = e.target.dataset.id;
+        if (!id) return;
+        const item = tracking.find(t => t.id === id);
+        if (!item) return;
+        if (e.target.classList.contains('reassign')) {
+          openAssignModal(id, item.group);
         }
-
-        function startClock() {
-            const update = () => {
-                const now = new Date();
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' };
-                document.getElementById('currentDateTime').innerText = now.toLocaleDateString('es-ES', options);
-            };
-            update(); setInterval(update, 1000);
+        if (e.target.classList.contains('advance')) {
+          await advanceItem(item);
         }
+      });
+      document.getElementById('staffTabs').addEventListener('click', (e) => {
+        if (!e.target.dataset.group) return;
+        currentGroupTab = e.target.dataset.group;
+        renderStaff(tracking, readLS('almacen_asignaciones', {}));
+      });
+      document.getElementById('staffCards').addEventListener('click', (e) => {
+        const st = e.target.dataset.status;
+        if (!st) return;
+        const person = e.target.closest('.person')?.dataset.name;
+        if (!person) return;
+        const personal = readLS('almacen_personal', {});
+        personal[person] = { ...(personal[person] || {}), status: st, updatedAt: Date.now(), destination: st === 'EN RUTA' ? (personal[person]?.destination || '') : '' };
+        writeLS('almacen_personal', personal);
+        addLog(`${person} marcado como ${st}`);
+        renderStaff(tracking, readLS('almacen_asignaciones', {}));
+        renderBoard(tracking, readLS('almacen_state_timestamps', {}), readLS('almacen_asignaciones', {}), personal);
+      });
+      document.getElementById('staffCards').addEventListener('change', (e) => {
+        if (!e.target.classList.contains('destination')) return;
+        const person = e.target.closest('.person')?.dataset.name;
+        if (!person) return;
+        const personal = readLS('almacen_personal', {});
+        personal[person] = { ...(personal[person] || {}), destination: e.target.value.trim(), updatedAt: Date.now(), status: 'EN RUTA' };
+        writeLS('almacen_personal', personal);
+        addLog(`${person} reporta ruta: ${e.target.value.trim() || 'Sin destino'}`);
+      });
+      document.getElementById('cancelAssign').addEventListener('click', closeAssignModal);
+      document.getElementById('saveAssign').addEventListener('click', () => {
+        if (!pendingAssignId) return;
+        const who = document.getElementById('assignSelect').value;
+        const asig = readLS('almacen_asignaciones', {});
+        asig[pendingAssignId] = who;
+        writeLS('almacen_asignaciones', asig);
+        addLog(`${pendingAssignId} reasignada a ${who}`);
+        closeAssignModal();
+        renderBoard(tracking, readLS('almacen_state_timestamps', {}), asig, readLS('almacen_personal', {}));
+        renderStaff(tracking, asig);
+      });
+      document.getElementById('modal').addEventListener('click', (e) => {
+        if (e.target.id === 'modal') closeAssignModal();
+      });
+    }
 
-        async function loadData() {
-            showLoading(true);
-            try {
-                const response = await fetch(`${WEB_APP_URL}?file=tracking`);
-                const rawData = await response.json(); 
-                
-                ordersData = rawData.map(fila => ({
-                    id:          fila['ID_PEDIDO'] || "---",
-                    unidad:      fila['UNIDAD_EJECUTORA'] || "Sin Nombre",
-                    grupo:       fila['GRUPO'] || "GENÉRICO",
-                    fechaAsig:   formatDateLatino(fila['FECHA_ASIGNACION']), 
-                    totalSolic:  Number(fila['TOTAL_SOLIC'] || 0),
-                    totalAsig:   Number(fila['TOTAL_ASIG'] || 0),
-                    items:       `${fila['ITEMS_ASIG'] || 0} / ${fila['ITEMS_SOLIC'] || 0}`,
-                    estado:      fila['ESTADO'] || "ASIGNADO",
-                    picking:     fila['FECHA_PICKING'],
-                    empaque:     fila['FECHA_EMPACADO'],
-                    facturacion: fila['FECHA_FACTURACION'],
-                    despacho:    fila['FECHA_DESPACHO'],
-                    entrega:     fila['FECHA_ENTREGA'],
-                    comentarios: fila['COMENTARIOS'] || ""
-                }));
+    function startClock() {
+      setInterval(() => { document.getElementById('clock').textContent = humanClock(); }, 1000);
+      document.getElementById('clock').textContent = humanClock();
+    }
 
-                renderTable(ordersData);
-                updateKPIs(ordersData);
-                updateCharts(ordersData);
-                showToast("✅ Datos Actualizados");
-
-            } catch (error) { console.error(error); showToast("❌ Error de conexión"); } 
-            finally { showLoading(false); }
-        }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                let stStyle = "background:#eee; color:#333;";
-                if(item.estado === "ASIGNADO") stStyle = "background:#e3f2fd; color:#1565c0;";
-                if(item.estado === "PICKING") stStyle = "background:#fffde7; color:#fbc02d;";
-                if(item.estado === "EMPACADO") stStyle = "background:#fff3e0; color:#ef6c00;";
-                if(item.estado === "FACTURADO") stStyle = "background:#e8f5e9; color:#0a7a2f;";
-                if(item.estado === "DESPACHADO") stStyle = "background:#f3e5f5; color:#7b1fa2;";
-
-                const isoPick = toISO(item.picking);
-                const isoPack = toISO(item.empaque);
-                const isoFact = toISO(item.facturacion);
-                const isoDesp = toISO(item.despacho);
-                const isoEntr = toISO(item.entrega);
-
-                tr.innerHTML = `
-                    <td style="font-weight:bold; color:#0b1f3a;">${item.id}</td>
-                    <td>${item.unidad}</td>
-                    <td><span style="background:#eee; padding:2px 5px; border-radius:4px; font-size:10px;">${item.grupo}</span></td>
-                    <td style="font-size:11px;">${item.fechaAsig}</td>
-                    <td class="col-number">${item.totalSolic.toLocaleString()}</td>
-                    <td class="col-number" style="font-weight:bold; color:#0b1f3a;">${item.totalAsig.toLocaleString()}</td>
-                    <td style="text-align:center">${item.items}</td>
-                    <td class="editable-cell">
-                        <select onchange="saveChange('${item.id}', 'ESTADO', this.value)" style="${stStyle}">
-                            <option value="ASIGNADO" ${item.estado==='ASIGNADO'?'selected':''}>ASIGNADO</option>
-                            <option value="PICKING" ${item.estado==='PICKING'?'selected':''}>PICKING</option>
-                            <option value="EMPACADO" ${item.estado==='EMPACADO'?'selected':''}>EMPACADO</option>
-                            <option value="FACTURADO" ${item.estado==='FACTURADO'?'selected':''}>FACTURADO</option>
-                            <option value="DESPACHADO" ${item.estado==='DESPACHADO'?'selected':''}>DESPACHADO</option>
-                            <option value="ENTREGADO" ${item.estado==='ENTREGADO'?'selected':''}>ENTREGADO</option>
-                        </select>
-                    </td>
-                    <td class="editable-cell"><input type="date" value="${isoPick}" onchange="handleDateChange('${item.id}', 'FECHA_PICKING', this.value)"></td>
-                    <td class="editable-cell col-factura"><input type="date" value="${isoFact}" onchange="handleDateChange('${item.id}', 'FECHA_FACTURACION', this.value)"></td>
-                    <td class="editable-cell"><input type="date" value="${isoPack}" onchange="handleDateChange('${item.id}', 'FECHA_EMPACADO', this.value)"></td>
-                    <td class="editable-cell"><input type="date" value="${isoDesp}" onchange="handleDateChange('${item.id}', 'FECHA_DESPACHO', this.value)"></td>
-                    <td class="editable-cell"><input type="date" value="${isoEntr}" onchange="handleDateChange('${item.id}', 'FECHA_ENTREGA', this.value)"></td>
-                    <td class="editable-cell"><input type="text" value="${item.comentarios}" placeholder="..." onchange="saveChange('${item.id}', 'COMENTARIOS', this.value)"></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function handleDateChange(id, field, isoValue) {
-            const latinoValue = toLatino(isoValue);
-            const item = ordersData.find(i => i.id === id);
-            if(item) {
-                if(field === 'FECHA_PICKING') item.picking = latinoValue;
-                if(field === 'FECHA_EMPACADO') item.empaque = latinoValue;
-                if(field === 'FECHA_FACTURACION') item.facturacion = latinoValue;
-                if(field === 'FECHA_DESPACHO') item.despacho = latinoValue;
-                if(field === 'FECHA_ENTREGA') item.entrega = latinoValue;
-            }
-            saveChange(id, field, latinoValue);
-        }
-
-        async function saveChange(id, field, value) {
-            showToast("Guardando...");
-            const item = ordersData.find(i => i.id === id);
-            if(item && field === 'ESTADO') {
-                item.estado = value;
-                updateKPIs(ordersData); updateCharts(ordersData); renderTable(ordersData);
-            }
-            try {
-                await fetch(WEB_APP_URL, {
-                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'updateStatus', id: id, field: field, value: value })
-                });
-                showToast("✅ Guardado");
-            } catch (error) { console.error(error); showToast("❌ Error al guardar"); }
-        }
-
-        function updateKPIs(data) {
-            const counts = { ASIGNADO:0, PICKING:0, EMPACADO:0, FACTURADO:0, DESPACHADO:0, ENTREGADO:0 };
-            let weightedSum = 0;
-            data.forEach(d => { 
-                if(counts[d.estado] !== undefined) counts[d.estado]++;
-                if(d.estado === 'PICKING') weightedSum += 0.2;
-                if(d.estado === 'EMPACADO') weightedSum += 0.5;
-                if(d.estado === 'FACTURADO') weightedSum += 0.8;
-                if(d.estado === 'DESPACHADO') weightedSum += 0.9;
-                if(d.estado === 'ENTREGADO') weightedSum += 1.0;
-            });
-            const total = data.length;
-            const percent = total > 0 ? Math.round((weightedSum/total)*100) : 0;
-
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-asignados').innerText = counts.ASIGNADO;
-            document.getElementById('kpi-proceso').innerText = counts.PICKING + counts.EMPACADO;
-            document.getElementById('kpi-facturados').innerText = counts.FACTURADO;
-            document.getElementById('kpi-avance').innerText = percent + "%";
-        }
-
-        function updateCharts(data) {
-            const total = data.length;
-
-            // 1. EVOLUCIÓN (BARRAS)
-            const dateCounts = {};
-            data.forEach(d => { if(d.fechaAsig) dateCounts[d.fechaAsig] = (dateCounts[d.fechaAsig] || 0) + 1; });
-            const labelsEvo = Object.keys(dateCounts).sort((a,b) => parseLatino(a) - parseLatino(b)).slice(-10);
-            
-            drawChart('evolutionChart', 'bar', labelsEvo, Object.values(dateCounts), ['#0b1f3a']);
-
-            // 2. ESTADOS (DONA MAXIMIZADA + PORCENTAJES)
-            const statusCounts = {};
-            data.forEach(d => { statusCounts[d.estado] = (statusCounts[d.estado] || 0) + 1; });
-            const statusColors = {'ASIGNADO':'#3498db', 'PICKING':'#fbc02d', 'EMPACADO':'#ef6c00', 'FACTURADO':'#0a7a2f', 'DESPACHADO':'#7b1fa2', 'ENTREGADO':'#37474f'};
-            
-            drawDonut('statusChart', statusCounts, statusColors, total);
-
-            // 3. GRUPOS (DONA MAXIMIZADA + PORCENTAJES)
-            const groupCounts = {};
-            data.forEach(d => { groupCounts[d.grupo] = (groupCounts[d.grupo] || 0) + 1; });
-            const groupColors = ['#8e44ad', '#2980b9', '#e67e22', '#27ae60', '#c0392b', '#7f8c8d'];
-            
-            drawDonut('groupChart', groupCounts, groupColors, total);
-        }
-
-        // --- FUNCIÓN GRÁFICO DE BARRAS ---
-        function drawChart(id, type, labels, data, colors) {
-            const ctx = document.getElementById(id).getContext('2d');
-            if(charts[id]) charts[id].destroy();
-            
-            charts[id] = new Chart(ctx, {
-                type: type,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderRadius: 4,
-                        borderWidth: 0
-                    }]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: { display: false } // No labels en barras
-                    },
-                    scales: { y: {beginAtZero:true}, x: {grid:{display:false}} }
-                }
-            });
-        }
-
-        // --- FUNCIÓN GRÁFICO DONA (CON ETIQUETAS %) ---
-        function drawDonut(id, countsObj, colorMapOrArray, total) {
-            const ctx = document.getElementById(id).getContext('2d');
-            if(charts[id]) charts[id].destroy();
-            
-            const labels = Object.keys(countsObj);
-            const data = Object.values(countsObj);
-            const bgColors = Array.isArray(colorMapOrArray) 
-                ? colorMapOrArray 
-                : labels.map(k => colorMapOrArray[k] || '#999');
-
-            charts[id] = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderWidth: 1,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false,
-                    cutout: '50%', // Dona más gruesa
-                    layout: { padding: 10 },
-                    plugins: { 
-                        legend: { 
-                            position: 'right', // LEYENDA A LA DERECHA
-                            labels: { font: {size: 10}, boxWidth: 10, padding: 10 }
-                        },
-                        // CONFIGURACIÓN DE PORCENTAJES SOBRE EL GRÁFICO
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 11 },
-                            formatter: (value) => {
-                                const pct = Math.round((value/total)*100);
-                                return pct > 4 ? pct + '%' : ''; // Solo mostrar si > 4%
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // HELPERS GLOBALES
-        function toLatino(isoDate) { if(!isoDate) return ""; const [y, m, d] = isoDate.split('-'); return `${d}/${m}/${y}`; }
-        function toISO(latinoDate) { if(!latinoDate || latinoDate.includes('-')) return latinoDate; const parts = latinoDate.split('/'); return (parts.length===3) ? `${parts[2].substr(0,4)}-${parts[1]}-${parts[0]}` : ""; }
-        function parseLatino(str) { if(!str) return 0; const parts = str.split('/'); return new Date(parts[2], parts[1]-1, parts[0]); }
-        function formatDateLatino(iso) { if(!iso) return ""; if(iso.includes("T")) { const date = new Date(iso); return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`; } return iso; }
-        function applyFilters() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const status = document.getElementById('filterStatus').value;
-            const filtered = ordersData.filter(item => {
-                const matchTerm = item.id.toLowerCase().includes(term) || item.unidad.toLowerCase().includes(term) || item.grupo.toLowerCase().includes(term);
-                return matchTerm && (status === "" || item.estado === status);
-            });
-            renderTable(filtered);
-        }
-        function showLoading(show) { document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
-        function showToast(msg, duration=3000) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.className = "show";
-            setTimeout(() => { t.className = t.className.replace("show", ""); }, duration);
-        }
-    </script>
+    startClock();
+    bindEvents();
+    loadData();
+    setInterval(() => loadData(false), 5 * 60 * 1000);
+  </script>
 </body>
 </html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CEDIS PANAMÁ — Consulta de Requisiciones</title>
+  <link rel="icon" href="./favicon.ico?v=1" />
+  <style>
+    :root { --navy:#0b1f3a; --blue:#1565c0; --ok:#2e7d32; --gray:#cbd5e1; }
+    *{ box-sizing: border-box; }
+    body{ margin:0; font-family: Arial, sans-serif; background:#f3f6fb; color:#1f2937; }
+    .topbar{ background:linear-gradient(90deg,#0b1f3a,#133a74); color:#fff; padding:12px; text-align:center; }
+    .topbar h1{ margin:0; font-size:22px; }
+    .topbar p{ margin:4px 0 0; color:#cbd5e1; }
+    .wrap{ max-width:920px; margin:0 auto; padding:16px; }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px; }
+    .hero{ text-align:center; margin-top:12px; }
+    .hero input{ width:min(520px,100%); min-height:48px; border-radius:10px; border:1px solid #cbd5e1; padding:10px; font-size:20px; }
+    .hero button{ margin-top:10px; min-height:46px; border:none; border-radius:10px; background:var(--navy); color:#fff; font-weight:700; padding:0 18px; font-size:18px; cursor:pointer; }
+    .chips{ margin-top:12px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+    .chip{ border:1px solid #cbd5e1; border-radius:999px; padding:5px 10px; cursor:pointer; background:#f8fafc; }
+    .hidden{ display:none; }
+    .result h2{ margin:0; color:#0b1f3a; }
+    .meta{ margin-top:4px; color:#4b5563; }
+    .timeline{ margin-top:16px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px; position:relative; }
+    .timeline::before{ content:""; position:absolute; top:18px; left:8%; right:8%; height:4px; background:#dbe3ed; z-index:0; }
+    .step{ text-align:center; position:relative; z-index:1; }
+    .dot{ width:28px; height:28px; border-radius:999px; margin:0 auto 6px; border:3px solid var(--gray); background:#fff; }
+    .step.done .dot{ background:var(--ok); border-color:var(--ok); }
+    .step.current .dot{ background:var(--blue); border-color:var(--blue); animation:pulse 1s infinite; }
+    .step .name{ font-weight:700; font-size:12px; }
+    .step .date{ font-size:12px; color:#6b7280; min-height:16px; }
+    @keyframes pulse{ 50%{ transform:scale(1.08);} }
+    .bar{ margin-top:16px; }
+    .meter{ width:100%; height:20px; border-radius:999px; background:#e5e7eb; overflow:hidden; }
+    .meter > span{ display:block; height:100%; background:#2e7d32; }
+    .msg{ margin-top:10px; padding:10px; background:#eef4ff; border-left:4px solid var(--blue); border-radius:8px; }
+    .footer{ margin-top:14px; color:#6b7280; font-size:13px; }
+    .err{ margin-top:12px; background:#fff3cd; border-left:4px solid #f59e0b; border-radius:8px; padding:10px; }
+    .spinner{ width:24px; height:24px; border:3px solid #d1d5db; border-top-color:#0b1f3a; border-radius:999px; margin:12px auto; animation:spin 1s linear infinite; }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:780px){
+      .timeline{ grid-template-columns:1fr; }
+      .timeline::before{ left:14px; top:20px; bottom:20px; width:4px; right:auto; height:auto; }
+      .step{ text-align:left; padding-left:42px; }
+      .dot{ margin:0; position:absolute; left:0; top:0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>CEDIS PANAMÁ — Consulta de Requisiciones</h1>
+    <p>Sistema de Seguimiento de Formas 8</p>
+  </header>
+
+  <main class="wrap">
+    <section class="card hero">
+      <h2 style="margin-top:0">📦 Consulte su Requisición F8</h2>
+      <label for="f8Input" style="display:block;margin:8px 0">Número de Forma 8:</label>
+      <input id="f8Input" placeholder="Ej: F8-2026-00001" />
+      <div><button id="searchBtn">🔍 Consultar</button></div>
+      <div class="small" style="margin-top:8px;color:#6b7280">Búsquedas recientes:</div>
+      <div id="recent" class="chips"></div>
+      <div id="loading" class="hidden"><div class="spinner"></div></div>
+      <div id="noFound" class="err hidden">⚠️ No se encontró la Forma 8 ingresada.<br/>Verifique el número e intente nuevamente.<br/>Si el problema persiste, contacte a Torre de Control.</div>
+    </section>
+
+    <section id="result" class="card result hidden" style="margin-top:12px"></section>
+    <div style="text-align:center;margin-top:12px"><a href="almacenista.html" style="color:#64748b">Acceso Personal</a></div>
+  </main>
+
+  <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+    const STAFF = [
+      { name: "Alfonso Mendez", group: "GRUPO 2", cargo: "ALMACENISTA I"  },
+      { name: "Anthony D. Allca", group: "FRÍO", cargo: "ALMACENISTA II" },
+      { name: "Aurelio Rojas", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Bey Mario Reluz", group: "EMPAQUE", cargo: "ALMACENISTA II" },
+      { name: "Boris Lasso", group: "FRÍO", cargo: "ALMACENISTA II" },
+      { name: "Carlos Mendoza", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
+      { name: "David Magallon", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Erasmo Valencia", group: "URGENCIAS", cargo: "ALMACENISTA II" },
+      { name: "Eric Castro", group: "VENCIDOS", cargo: "ALMACENISTA II" },
+      { name: "Eric Medina", group: "MÓDULO", cargo: "ALMACENISTA II" },
+      { name: "Fernando Ruíz", group: "GRUPO 4", cargo: "ALMACENISTA II" },
+      { name: "Francisco Pachay", group: "GRUPO 1", cargo: "CAMILLERO II" },
+      { name: "Franklin Almanza", group: "VENCIDOS", cargo: "ALMACENISTA II" },
+      { name: "Gaspar Salcedo", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
+      { name: "Jean Carlos Labrador", group: "GRUPO 2", cargo: "ALMACENISTA I" },
+      { name: "Jesus Reyna", group: "GRUPO 2", cargo: "ALMACENISTA I" },
+      { name: "Joel Sanchez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Juan Rodriguez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Luis M. Visuete", group: "GRUPO 3", cargo: "ALMACENISTA I" },
+      { name: "Luis Miranda", group: "GRUPO 3", cargo: "ALMACENISTA II" },
+      { name: "Luis Urrutia", group: "GRUPO 2", cargo: "ALMACENISTA II" },
+      { name: "Luis Wtges", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Maximino Villarreal", group: "GRUPO 1", cargo: "ALMACENISTA II" },
+      { name: "Miguel A. Rodriguez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
+      { name: "Osvaldo Loaiza", group: "GRUPO 2", cargo: "ALMACENISTA II" },
+      { name: "Roman Perez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
+      { name: "Sebastian Hidalgo", group: "EMPAQUE", cargo: "ALMACENISTA II" },
+      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" }
+    ];
+    const GROUP_COLORS = {
+      "GRUPO 1": "#1565c0", "GRUPO 2": "#2e7d32", "GRUPO 3": "#6a1b9a", "GRUPO 4-5-11": "#e65100", "GRUPO 4": "#bf360c",
+      "FRÍO": "#0277bd", "EMPAQUE": "#4e342e", "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f"
+    };
+    const FLOW = ['ASIGNADA','PICKING','FACTURACIÓN','EMPACADO','DESPACHADO','ENTREGADO'];
+
+    const normalizeState = s => {
+      const up = String(s || '').toUpperCase();
+      if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
+      if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
+      if (up === 'EMPACANDO') return 'EMPACADO';
+      return up || 'ASIGNADA';
+    };
+
+    function setLoading(on){ document.getElementById('loading').classList.toggle('hidden', !on); }
+
+    function getRecent(){ try { return JSON.parse(localStorage.getItem('tracker_recientes')) || []; } catch { return []; } }
+    function saveRecent(id){
+      const rec = getRecent().filter(x => x !== id);
+      rec.unshift(id);
+      localStorage.setItem('tracker_recientes', JSON.stringify(rec.slice(0,5)));
+      renderRecent();
+    }
+
+    function renderRecent(){
+      const box = document.getElementById('recent');
+      const arr = getRecent();
+      box.innerHTML = arr.length ? arr.map(x => `<span class="chip" data-id="${x}">${x}</span>`).join('') : '<span class="small">Sin búsquedas recientes.</span>';
+    }
+
+    function cacheKey(id){ return `tracker_cache_${id}`; }
+    function readCache(id){
+      try {
+        const v = JSON.parse(sessionStorage.getItem(cacheKey(id)));
+        if (!v) return null;
+        if (Date.now() - v.ts > 2 * 60 * 1000) return null;
+        return v.data;
+      } catch { return null; }
+    }
+    function writeCache(id, data){ sessionStorage.setItem(cacheKey(id), JSON.stringify({ ts: Date.now(), data })); }
+
+    function contextual(state){
+      if (state === 'EMPACADO') return 'Su pedido está siendo preparado para despacho. Tiempo estimado: en las próximas horas.';
+      if (state === 'DESPACHADO') return 'Su pedido ha sido despachado. Por favor coordine la recepción.';
+      if (state === 'ENTREGADO') return '✅ Pedido entregado y cerrado.';
+      return 'Su requisición está en proceso interno de almacén.';
+    }
+
+    function fmtDate(s){
+      if (!s) return '—';
+      if (String(s).includes('T')) {
+        const d = new Date(s);
+        return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      }
+      return s;
+    }
+
+    function renderResult(r){
+      const state = normalizeState(r.ESTADO);
+      const idx = FLOW.indexOf(state);
+      const byDate = {
+        ASIGNADA: fmtDate(r.FECHA_ASIGNACION),
+        PICKING: fmtDate(r.FECHA_PICKING),
+        'FACTURACIÓN': fmtDate(r.FECHA_FACTURACION),
+        EMPACADO: fmtDate(r.FECHA_EMPACADO),
+        DESPACHADO: fmtDate(r.FECHA_DESPACHO),
+        ENTREGADO: fmtDate(r.FECHA_ENTREGA)
+      };
+      const totalSolic = Number(r.TOTAL_SOLIC || 0);
+      const totalAsig = Number(r.TOTAL_ASIG || 0);
+      const itemsSolic = Number(r.ITEMS_SOLIC || 0);
+      const itemsAsig = Number(r.ITEMS_ASIG || 0);
+      const pct = totalSolic ? Math.max(0, Math.min(100, (totalAsig / totalSolic) * 100)) : 0;
+
+      document.getElementById('result').innerHTML = `
+        <h2>📋 ${r.ID_PEDIDO || '—'}</h2>
+        <div class="meta">${r.UNIDAD_EJECUTORA || 'Sin UE'}</div>
+        <div class="meta">Fecha de Requisición: ${fmtDate(r.FECHA_ASIGNACION)} · Grupo: ${r.GRUPO || '—'}</div>
+        <div class="timeline">
+          ${FLOW.map((s, i) => `<div class="step ${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''}"><div class="dot"></div><div class="name">${s === 'FACTURACIÓN' ? 'FACTURACIÓN' : s}</div><div class="date">${i === idx && !byDate[s] ? 'En proceso...' : (byDate[s] || '—')}</div></div>`).join('')}
+        </div>
+        <div class="bar">
+          <div>Unidades Asignadas: ${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} solicitadas</div>
+          <div class="meter"><span style="width:${pct.toFixed(1)}%"></span></div>
+          <div>${pct.toFixed(1)}%</div>
+          <div style="margin-top:6px">Items: ${itemsAsig} de ${itemsSolic} renglones asignados</div>
+        </div>
+        <div class="msg">${contextual(state)}</div>
+        <div class="footer">Última actualización: ${new Date().toLocaleString('es-PA')} · <a href="#" id="refreshNow">🔄 Actualizar</a></div>
+      `;
+      document.getElementById('result').classList.remove('hidden');
+      document.getElementById('refreshNow').addEventListener('click', (e) => { e.preventDefault(); doSearch(true); });
+    }
+
+    async function findById(id, force = false){
+      if (!force) {
+        const cached = readCache(id);
+        if (cached) return cached;
+      }
+      const r = await fetch(`${WEB_APP_URL}?file=tracking`);
+      const raw = await r.json();
+      const row = (Array.isArray(raw) ? raw : []).find(x => String(x.ID_PEDIDO || '').toUpperCase() === id.toUpperCase());
+      if (row) writeCache(id, row);
+      return row || null;
+    }
+
+    async function doSearch(force = false){
+      const id = document.getElementById('f8Input').value.trim();
+      if (!id) return;
+      document.getElementById('noFound').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      setLoading(true);
+      try {
+        const row = await findById(id, force);
+        if (!row) {
+          document.getElementById('noFound').classList.remove('hidden');
+          return;
+        }
+        saveRecent(id);
+        renderResult(row);
+      } catch (e) {
+        document.getElementById('noFound').innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
+        document.getElementById('noFound').classList.remove('hidden');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', () => doSearch(false));
+    document.getElementById('f8Input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(false); });
+    document.getElementById('recent').addEventListener('click', (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+      document.getElementById('f8Input').value = id;
+      doSearch(false);
+    });
+    renderRecent();
+  </script>
+</body>
+</html>
