@@ -296,8 +296,11 @@
       if (!raw) return '—';
       if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
       if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
-        const [d, m, y] = raw.split('/');
-        return `${y}-${m}-${d}`;
+        const [d, m, y] = raw.split('/').map(Number);
+        if (m < 1 || m > 12 || d < 1 || d > 31) return '—';
+        const dt = new Date(y, m - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== (m - 1) || dt.getDate() !== d) return '—';
+        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       }
       const dt = new Date(raw);
       if (Number.isNaN(dt.getTime())) return '—';
@@ -308,7 +311,7 @@
     function writePrevStates(v) { writeLS(PREV_STATE_KEY, v); }
     function isUndoAvailable(id) {
       const prev = readPrevStates()[id];
-      return !!(prev && (Date.now() - Number(prev.timestamp || 0)) <= UNDO_TIMEOUT_MS);
+      return !!(prev && (Date.now() - Number(prev.timestamp || 0)) < UNDO_TIMEOUT_MS);
     }
     function getDateFieldForState(state) {
       if (state === 'ASIGNADA') return 'FECHA_ASIGNACION';
@@ -362,7 +365,7 @@
           </div>
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
             <strong>${r.id}</strong>
-            <button class="details-toggle toggleDetail" data-id="${r.id}">▶ Ver detalle ▼</button>
+            <button class="details-toggle toggleDetail" data-id="${r.id}">Ver detalle ▼</button>
           </div>
           <div>${r.ue} · 📋 F8: ${toIsoDate(r.fechaF8)}</div>
           <div class="small">Asig: ${fmtNum(r.totalAsig)} uds | Estado: ${r.estado}</div>
@@ -433,7 +436,7 @@
     async function undoLast(id) {
       const prevStates = readPrevStates();
       const prev = prevStates[id];
-      if (!prev || (Date.now() - Number(prev.timestamp || 0)) > UNDO_TIMEOUT_MS) return;
+      if (!prev || (Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) return;
       const prevEstado = prev.prevEstado || 'ASIGNADA';
       await postUpdate(id, 'ESTADO', prevEstado === 'FACTURACIÓN' ? 'FACTURADO' : prevEstado);
       const prevField = getDateFieldForState(prevEstado);
@@ -563,7 +566,7 @@
       }
       if (e.target.classList.contains('toggleDetail')) {
         const opened = await renderAllocationDetail(e.target.dataset.id);
-        e.target.textContent = opened ? '▲ Ocultar' : '▶ Ver detalle ▼';
+        e.target.textContent = opened ? '▲ Ocultar' : 'Ver detalle ▼';
         return;
       }
       if (e.target.classList.contains('doUndo')) {

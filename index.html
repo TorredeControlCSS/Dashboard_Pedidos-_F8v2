@@ -473,7 +473,7 @@
       const prev = readPrevStates();
       let changed = false;
       Object.keys(prev).forEach((id) => {
-        if ((Date.now() - Number(prev[id]?.timestamp || 0)) > UNDO_TIMEOUT_MS) {
+        if ((Date.now() - Number(prev[id]?.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
           delete prev[id];
           changed = true;
         }
@@ -486,7 +486,7 @@
       if (undoTicker) return;
       undoTicker = setInterval(() => {
         const prev = readPrevStates();
-        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) <= UNDO_TIMEOUT_MS);
+        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) < UNDO_TIMEOUT_MS);
         if (!active) {
           cleanupExpiredPrevStates();
           clearInterval(undoTicker);
@@ -696,8 +696,10 @@
           const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
           const undoInfo = prevStates[item.id];
-          const undoActive = undoInfo && (Date.now() - Number(undoInfo.timestamp || 0)) <= UNDO_TIMEOUT_MS;
-          const undoSecs = undoActive ? Math.ceil((UNDO_TIMEOUT_MS - (Date.now() - Number(undoInfo.timestamp || 0))) / 1000) : 0;
+          const elapsedUndoMs = Date.now() - Number(undoInfo?.timestamp || 0);
+          const remainingUndoMs = UNDO_TIMEOUT_MS - elapsedUndoMs;
+          const undoActive = !!undoInfo && elapsedUndoMs < UNDO_TIMEOUT_MS;
+          const undoSecs = undoActive ? Math.max(0, Math.floor(remainingUndoMs / 1000)) : 0;
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
           card.innerHTML = `
@@ -875,7 +877,7 @@
       const prevStates = readPrevStates();
       const prev = prevStates[item.id];
       if (!prev) return;
-      if ((Date.now() - Number(prev.timestamp || 0)) > UNDO_TIMEOUT_MS) {
+      if ((Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
         delete prevStates[item.id];
         writePrevStates(prevStates);
         renderDashboard();
