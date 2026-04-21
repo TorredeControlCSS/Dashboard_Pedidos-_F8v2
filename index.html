@@ -106,9 +106,25 @@
     .count { background: #0b1f3a; color: #fff; min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
     .cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
     .card {
+      position: relative;
       border-left: 6px solid #90a4ae; border-radius: 10px; background: #fff; border-top: 4px solid transparent;
       padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.07); font-size: 13px;
     }
+    .card-undo {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      border: none;
+      background: transparent;
+      color: #90a4ae;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 6px;
+    }
+    .card-undo:hover { background: #eceff1; }
     .card.urgent-delivery { border-top: 3px solid #f9a825 !important; background: #fffdf4; }
     .card.urg { border-top-color: #b71c1c; background: #fff8f8; }
     .badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
@@ -122,7 +138,68 @@
       border: none; background: #e5e7eb; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-weight: 700; font-size: 12px;
     }
     .card-actions .advance { background: #0b1f3a; color: #fff; }
-    .card-actions .undo { background: #e65100; color: #fff; }
+    .pin-error { color: #b71c1c; font-size: 12px; margin-top: 6px; min-height: 16px; }
+    .attendance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0 6px;
+      font-weight: 800;
+    }
+    .attendance-list { display: grid; gap: 8px; max-height: 50vh; overflow: auto; }
+    .attendance-row {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: #f0fdf4;
+    }
+    .attendance-row.absent { background: #ffebee; }
+    .attendance-row.absent .attendance-name { text-decoration: line-through; color: #b71c1c; }
+    .attendance-name { font-weight: 700; }
+    .attendance-actions { display: flex; gap: 6px; }
+    .attendance-actions button {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .attendance-actions button.active-present { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+    .attendance-actions button.active-absent { background: #b71c1c; border-color: #b71c1c; color: #fff; }
+    .btn-badge {
+      background: #b71c1c;
+      color: #fff;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      margin-left: 6px;
+    }
+    .ranking-list { display: grid; gap: 6px; }
+    .ranking-row {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .ranking-row.top { background: #fff8e1; border-color: #f9a825; }
+    .staff-lock {
+      font-size: 11px;
+      margin-top: 6px;
+      color: #b71c1c;
+      font-weight: 700;
+    }
     .warn { margin-top: 6px; padding: 6px; background: #fff3cd; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 12px; }
     .fillrate { margin-top: 6px; }
     .fillrate .line { height: 4px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
@@ -220,6 +297,9 @@
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
       <button class="btn" id="saveBtn">💾 Guardar</button>
+      <button class="btn" id="attendanceBtn">📋 Pase de Lista <span id="attendanceBadge" class="btn-badge">!</span></button>
+      <button class="btn" id="closeShiftBtn">📸 Cerrar Turno</button>
+      <button class="btn" id="changePinBtn">🔐 Cambiar PIN</button>
       <a class="btn" href="almacenista.html">👤 Almacenista</a>
       <a class="btn" href="tracker.html">📡 Tracker UE</a>
     </div>
@@ -262,6 +342,7 @@
     <section class="section" id="staffSection">
       <div class="section-head">👥 Personal Disponible — Gestión de Capacidad <button class="toggle" data-target="staffBody">▼</button></div>
       <div id="staffBody">
+        <div id="staffModeTabs" class="tabs"></div>
         <div id="staffTabs" class="tabs"></div>
         <div id="staffCards" class="people"></div>
       </div>
@@ -281,6 +362,33 @@
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
         <button id="cancelAssign">Cancelar</button>
         <button id="saveAssign" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pinModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
+    <div class="box" style="background:#fff;border-radius:10px;width:min(420px,92vw);padding:14px;">
+      <h3 id="pinModalTitle" style="margin:0 0 6px;">🔐 Confirmar Reversión</h3>
+      <div id="pinModalF8" class="small" style="font-weight:700;color:#0b1f3a;"></div>
+      <div id="pinModalFlow" class="small" style="margin-bottom:10px;"></div>
+      <label for="pinInput" class="small" style="display:block;font-weight:700;">PIN de Jefatura:</label>
+      <input id="pinInput" maxlength="4" inputmode="numeric" placeholder="_ _ _ _" style="width:100%;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:18px;letter-spacing:6px;text-align:center;" />
+      <div id="pinError" class="pin-error"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="pinCancelBtn">Cancelar</button>
+        <button id="pinConfirmBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">✅ Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="attendanceModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
+    <div class="box" style="background:#fff;border-radius:10px;width:min(900px,95vw);padding:14px;">
+      <h3 id="attendanceTitle" style="margin:0 0 4px;">📋 PASE DE LISTA</h3>
+      <div class="small">Marque la asistencia del personal de hoy</div>
+      <div id="attendanceList" class="attendance-list"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="attendanceCancelBtn">Cancelar</button>
+        <button id="attendanceSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">💾 Guardar Pase de Lista</button>
       </div>
     </div>
   </div>
@@ -347,6 +455,13 @@
       "DESPACHADO": "FECHA_DESPACHO",
       "ENTREGADO": "FECHA_ENTREGA"
     };
+    const PREV_BY_STATE = {
+      "PICKING": "ASIGNADA",
+      "FACTURACIÓN": "PICKING",
+      "EMPACADO": "FACTURACIÓN",
+      "DESPACHADO": "EMPACADO",
+      "ENTREGADO": "DESPACHADO"
+    };
     const SLA = {
       "PICKING": { warn: 4, crit: 8 },
       "FACTURACIÓN": { warn: 3, crit: 6 },
@@ -358,11 +473,15 @@
     let filteredTracking = [];
     let pendingAssignId = null;
     let currentGroupTab = "";
+    let currentStaffMode = "staff";
     let lastSuccessfulSync = "";
-    let undoTicker = null;
+    let pendingRevertItemId = null;
+    let attendanceDraft = {};
     const filters = { search: "", group: "", tipo: "", todayOnly: false };
-    const PREV_STATE_KEY = 'almacen_prev_state';
-    const UNDO_TIMEOUT_MS = 15000;
+    const PIN_KEY = 'jefatura_pin';
+    const ATTENDANCE_KEY = 'pase_lista';
+    const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
+    const SHIFT_HISTORY_KEY = 'historial_turnos';
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -377,6 +496,10 @@
     const nowStamp = () => {
       const d = new Date();
       return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    };
+    const isoToday = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     };
     const humanClock = () => {
       const d = new Date();
@@ -460,43 +583,8 @@
       return DATE_FIELD_BY_STATE[state] || '';
     }
 
-    function readPrevStates() {
-      return readLS(PREV_STATE_KEY, {});
-    }
-
-    function writePrevStates(v) {
-      writeLS(PREV_STATE_KEY, v);
-      writeLS('almacen_estados_prev', v);
-    }
-
-    function cleanupExpiredPrevStates() {
-      const prev = readPrevStates();
-      let changed = false;
-      Object.keys(prev).forEach((id) => {
-        if ((Date.now() - Number(prev[id]?.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
-          delete prev[id];
-          changed = true;
-        }
-      });
-      if (changed) writePrevStates(prev);
-      return changed;
-    }
-
-    function ensureUndoTicker() {
-      if (undoTicker) return;
-      undoTicker = setInterval(() => {
-        const prev = readPrevStates();
-        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) < UNDO_TIMEOUT_MS);
-        if (!active) {
-          cleanupExpiredPrevStates();
-          clearInterval(undoTicker);
-          undoTicker = null;
-          renderDashboard();
-          return;
-        }
-        cleanupExpiredPrevStates();
-        renderDashboard();
-      }, 1000);
+    function getPreviousState(current) {
+      return PREV_BY_STATE[current] || null;
     }
 
     function setConnectionStatus(isOnline) {
@@ -562,6 +650,7 @@
       log.unshift({ ts: Date.now(), msg });
       writeLS('almacen_log', log.slice(0, 50));
       renderLog();
+      renderStaff(filteredTracking.length ? filteredTracking : tracking, readLS('almacen_asignaciones', {}));
     }
 
     function autoAssign(items) {
@@ -676,7 +765,6 @@
     function renderBoard(items, stateMap, asig, personal) {
       const board = document.getElementById('board');
       board.innerHTML = '';
-      const prevStates = readPrevStates();
       STATES.forEach(state => {
         const colItems = items
           .filter(i => i.estado === state)
@@ -695,14 +783,11 @@
           const pct = item.totalSolic > 0 ? Math.max(0, Math.min(100, (item.totalAsig / item.totalSolic) * 100)) : 0;
           const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
-          const undoInfo = prevStates[item.id];
-          const elapsedUndoMs = Date.now() - Number(undoInfo?.timestamp || 0);
-          const remainingUndoMs = UNDO_TIMEOUT_MS - elapsedUndoMs;
-          const undoActive = !!undoInfo && elapsedUndoMs < UNDO_TIMEOUT_MS;
-          const undoSecs = undoActive ? Math.max(0, Math.floor(remainingUndoMs / 1000)) : 0;
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
+          const previousState = getPreviousState(item.estado);
           card.innerHTML = `
+            ${previousState ? `<button class="card-undo open-pin-revert" data-id="${item.id}" data-prev="${previousState}" title="Deshacer">↩</button>` : ''}
             <div class="badges">
               <span class="badge ${item.tipo === 'URGENCIA' ? 'urg' : 'men'}">${item.tipo === 'URGENCIA' ? 'URGENCIA🔴' : 'MENSUAL'}</span>
               <span class="badge" style="background:${GROUP_COLORS[item.group] || '#607d8b'}">${item.group}</span>
@@ -722,7 +807,7 @@
             ${warn ? `<div class="warn">⚠️ ${who} está ${st}${personal[who]?.destination ? ` · ${personal[who].destination}` : ''}</div>` : ''}
             <div class="card-actions">
               <button class="reassign" data-id="${item.id}">👤 Reasignar</button>
-              ${undoActive ? `<button class="undo" data-id="${item.id}">↩ Deshacer (${undoSecs}s)</button>` : (NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : '')}
+              ${NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : ''}
             </div>
           `;
           cards.appendChild(card);
@@ -732,15 +817,30 @@
     }
 
     function renderStaff(items, asig) {
+      const modeTabs = document.getElementById('staffModeTabs');
       const tabsWrap = document.getElementById('staffTabs');
       const cardsWrap = document.getElementById('staffCards');
+      modeTabs.innerHTML = `
+        <button class="tab ${currentStaffMode === 'staff' ? 'active' : ''}" data-mode="staff">👥 Personal</button>
+        <button class="tab ${currentStaffMode === 'ranking' ? 'active' : ''}" data-mode="ranking">🏆 Ranking</button>
+      `;
+      if (currentStaffMode === 'ranking') {
+        tabsWrap.innerHTML = '';
+        cardsWrap.className = 'log';
+        cardsWrap.innerHTML = renderRankingHtml('today');
+        return;
+      }
+      cardsWrap.className = 'people';
       const groups = [...new Set(STAFF.map(s => s.group))];
       if (!currentGroupTab) currentGroupTab = groups[0];
       tabsWrap.innerHTML = groups.map(g => `<button class="tab ${g === currentGroupTab ? 'active' : ''}" data-group="${g}">${g}</button>`).join('');
       const personal = readLS('almacen_personal', {});
+      const attendance = readLS(ATTENDANCE_KEY, {});
+      const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const activeBy = activeCountByPerson(items, asig);
       cardsWrap.innerHTML = STAFF.filter(s => s.group === currentGroupTab).map(s => {
-        const st = personal[s.name]?.status || 'DISPONIBLE';
+        const isAbsentByList = attendanceToday[s.name] === 'ausente';
+        const st = isAbsentByList ? 'AUSENTE' : (personal[s.name]?.status || 'DISPONIBLE');
         const dst = personal[s.name]?.destination || '';
         return `
           <article class="person" data-name="${s.name}">
@@ -748,14 +848,60 @@
             <span class="small">${s.cargo}</span>
             <div class="small" style="margin-top:4px">${activeBy[s.name] || 0} F8s activas</div>
             <div class="st-buttons">
-              <button data-status="DISPONIBLE" class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
-              <button data-status="EN RUTA" class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
-              <button data-status="AUSENTE" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
+              <button data-status="DISPONIBLE" ${isAbsentByList ? 'disabled' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
+              <button data-status="EN RUTA" ${isAbsentByList ? 'disabled' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
+              <button data-status="AUSENTE" disabled class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
             </div>
             ${st === 'EN RUTA' ? `<input class="destination" value="${dst}" placeholder="Destino (ej: CSS Chitré)" />` : ''}
+            ${isAbsentByList ? `<div class="staff-lock">Bloqueado por pase de lista (AUSENTE)</div>` : ''}
           </article>
         `;
       }).join('');
+    }
+
+    function parseLogPerson(msg = '') {
+      const parts = String(msg).split('·');
+      return parts.length >= 2 ? String(parts[parts.length - 1]).trim() : '';
+    }
+
+    function getRankingRows(scope = 'today') {
+      const logs = readLS('almacen_log', []);
+      const now = new Date();
+      const start = new Date(now);
+      if (scope === 'week') {
+        const day = start.getDay();
+        const diff = (day + 6) % 7;
+        start.setDate(start.getDate() - diff);
+      }
+      start.setHours(0, 0, 0, 0);
+      const counts = {};
+      logs.forEach((l) => {
+        if (!String(l.msg).includes('avanzó a')) return;
+        const ts = new Date(l.ts);
+        if (Number.isNaN(ts.getTime()) || ts < start) return;
+        const who = parseLogPerson(l.msg);
+        if (!who) return;
+        counts[who] = (counts[who] || 0) + 1;
+      });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([name, total], idx) => ({ rank: idx + 1, name, total }));
+    }
+
+    function renderRankingHtml(scope = 'today') {
+      const rows = getRankingRows(scope);
+      if (!rows.length) return '<div class="small">Sin avances registrados para este periodo.</div>';
+      const title = scope === 'week' ? '🏆 RANKING DE DESEMPEÑO — SEMANA' : '🏆 RANKING DE DESEMPEÑO — HOY';
+      return `
+        <div style="font-weight:800;margin-bottom:8px;">${title}</div>
+        <div class="ranking-list">
+          ${rows.map((r) => `
+            <div class="ranking-row ${r.rank <= 3 ? 'top' : ''}">
+              <span>${r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : ''} ${r.rank}. ${r.name}</span>
+              <strong>${r.total} F8s avanzadas</strong>
+            </div>
+          `).join('')}
+        </div>
+        ${scope === 'today' ? '<button id="weeklyRankingBtn" style="margin-top:10px;border:1px solid #cbd5e1;border-radius:8px;padding:7px 9px;background:#fff;cursor:pointer;font-weight:700;">📊 Ver ranking semanal</button>' : '<button id="dailyRankingBtn" style="margin-top:10px;border:1px solid #cbd5e1;border-radius:8px;padding:7px 9px;background:#fff;cursor:pointer;font-weight:700;">↩ Volver al ranking de hoy</button>'}
+      `;
     }
 
     function renderOperationalMetrics(items, asig) {
@@ -827,6 +973,185 @@
       box.innerHTML = `<ul>${logs.map(l => `<li>${new Date(l.ts).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })} — ${l.msg}</li>`).join('')}</ul>`;
     }
 
+    function ensurePinConfigured() {
+      const current = localStorage.getItem(PIN_KEY);
+      if (current && /^\d{4}$/.test(current)) return true;
+      const p1 = prompt('No hay PIN de Jefatura. Configure un PIN de 4 dígitos:');
+      if (!/^\d{4}$/.test(String(p1 || ''))) return false;
+      const p2 = prompt('Confirme el nuevo PIN de 4 dígitos:');
+      if (p1 !== p2) {
+        alert('El PIN no coincide.');
+        return false;
+      }
+      localStorage.setItem(PIN_KEY, p1);
+      showToast('✅ PIN configurado');
+      return true;
+    }
+
+    function openPinModal(item) {
+      if (!item) return;
+      if (!ensurePinConfigured()) return;
+      pendingRevertItemId = item.id;
+      const prevState = getPreviousState(item.estado);
+      document.getElementById('pinModalTitle').textContent = '🔐 Confirmar Reversión';
+      document.getElementById('pinModalF8').textContent = item.id;
+      document.getElementById('pinModalFlow').textContent = `${item.estado} → ${prevState || 'ASIGNADA'}`;
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinError').textContent = '';
+      document.getElementById('pinModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('pinInput').focus(), 10);
+    }
+
+    function closePinModal() {
+      pendingRevertItemId = null;
+      document.getElementById('pinModal').style.display = 'none';
+      document.getElementById('pinError').textContent = '';
+    }
+
+    async function confirmRevertWithPin() {
+      const pin = document.getElementById('pinInput').value.trim();
+      const expected = localStorage.getItem(PIN_KEY) || '';
+      if (pin !== expected) {
+        document.getElementById('pinError').textContent = 'PIN incorrecto';
+        return;
+      }
+      const item = tracking.find(t => t.id === pendingRevertItemId);
+      if (!item) return closePinModal();
+      const prevState = getPreviousState(item.estado);
+      if (!prevState) return closePinModal();
+      try {
+        await postUpdate(item.id, 'ESTADO', prevState === 'FACTURACIÓN' ? 'FACTURADO' : prevState);
+        addLog(`${item.id} ↩ Revertido por Jefatura`);
+        showToast('↩ Estado revertido');
+        closePinModal();
+        await loadData(false);
+      } catch (e) {
+        console.error(e);
+        showToast('❌ No se pudo revertir');
+      }
+    }
+
+    function changePinFlow() {
+      const currentStored = localStorage.getItem(PIN_KEY);
+      if (!currentStored) return ensurePinConfigured();
+      const current = prompt('Ingrese el PIN actual (4 dígitos):');
+      if (current !== currentStored) {
+        alert('PIN actual incorrecto.');
+        return;
+      }
+      const next = prompt('Ingrese el nuevo PIN (4 dígitos):');
+      if (!/^\d{4}$/.test(String(next || ''))) {
+        alert('PIN inválido.');
+        return;
+      }
+      const confirmNext = prompt('Confirme el nuevo PIN:');
+      if (next !== confirmNext) {
+        alert('El PIN no coincide.');
+        return;
+      }
+      localStorage.setItem(PIN_KEY, next);
+      showToast('✅ PIN actualizado');
+    }
+
+    function renderAttendanceBadge() {
+      const badge = document.getElementById('attendanceBadge');
+      const record = readLS(ATTENDANCE_KEY, {});
+      badge.style.display = record?.fecha === isoToday() ? 'none' : 'inline-block';
+    }
+
+    function openAttendanceModal() {
+      const today = new Date();
+      document.getElementById('attendanceTitle').textContent = `📋 PASE DE LISTA — ${today.toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+      const saved = readLS(ATTENDANCE_KEY, {});
+      const base = (saved?.fecha === isoToday() && saved.personal) ? saved.personal : {};
+      attendanceDraft = STAFF.reduce((acc, s) => ({ ...acc, [s.name]: base[s.name] || 'presente' }), {});
+      renderAttendanceList();
+      document.getElementById('attendanceModal').style.display = 'flex';
+    }
+
+    function closeAttendanceModal() {
+      document.getElementById('attendanceModal').style.display = 'none';
+    }
+
+    function renderAttendanceList() {
+      const grouped = STAFF.reduce((acc, s) => {
+        acc[s.group] = acc[s.group] || [];
+        acc[s.group].push(s);
+        return acc;
+      }, {});
+      const container = document.getElementById('attendanceList');
+      container.innerHTML = Object.keys(grouped).sort().map((group) => `
+        <div>
+          <div class="attendance-header">${group}</div>
+          ${grouped[group].map((s) => {
+            const val = attendanceDraft[s.name] || 'presente';
+            return `
+              <div class="attendance-row ${val === 'ausente' ? 'absent' : ''}" data-name="${s.name}">
+                <span class="attendance-name">${s.name}</span>
+                <div class="attendance-actions">
+                  <button class="attendance-set ${val === 'presente' ? 'active-present' : ''}" data-name="${s.name}" data-value="presente">✅ Presente</button>
+                  <button class="attendance-set ${val === 'ausente' ? 'active-absent' : ''}" data-name="${s.name}" data-value="ausente">❌ Ausente</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `).join('');
+    }
+
+    function saveAttendance() {
+      const payload = { fecha: isoToday(), personal: { ...attendanceDraft } };
+      writeLS(ATTENDANCE_KEY, payload);
+      const history = readLS(ATTENDANCE_HISTORY_KEY, []);
+      const updated = [payload, ...history.filter(h => h?.fecha !== payload.fecha)].slice(0, 120);
+      writeLS(ATTENDANCE_HISTORY_KEY, updated);
+      const personal = readLS('almacen_personal', {});
+      STAFF.forEach((s) => {
+        const isAbsent = payload.personal[s.name] === 'ausente';
+        personal[s.name] = {
+          ...(personal[s.name] || {}),
+          status: isAbsent ? 'AUSENTE' : (personal[s.name]?.status === 'AUSENTE' ? 'DISPONIBLE' : (personal[s.name]?.status || 'DISPONIBLE'))
+        };
+      });
+      writeLS('almacen_personal', personal);
+      const ausentes = Object.values(payload.personal).filter(v => v === 'ausente').length;
+      const presentes = STAFF.length - ausentes;
+      showToast(`Pase de lista guardado · ${presentes} presentes · ${ausentes} ausentes`);
+      closeAttendanceModal();
+      renderAttendanceBadge();
+      renderDashboard();
+    }
+
+    function closeShiftSnapshot() {
+      if (!confirm('¿Cerrar turno de hoy? Esto guardará una foto del estado actual.')) return;
+      const personalMap = readLS('almacen_personal', {});
+      const detail = STAFF.map((s) => ({ nombre: s.name, estado: personalMap[s.name]?.status || 'DISPONIBLE' }));
+      const disponibles = detail.filter(d => d.estado === 'DISPONIBLE').length;
+      const en_ruta = detail.filter(d => d.estado === 'EN RUTA').length;
+      const ausentes = detail.filter(d => d.estado === 'AUSENTE').length;
+      const byState = STATES.reduce((acc, st) => ({ ...acc, [st]: 0 }), {});
+      tracking.forEach((r) => { byState[r.estado] = (byState[r.estado] || 0) + 1; });
+      const snapshot = {
+        fecha: isoToday(),
+        hora_cierre: hhmm(),
+        personal: { disponibles, en_ruta, ausentes, detalle: detail },
+        f8s: {
+          total: tracking.length,
+          asignadas: byState.ASIGNADA || 0,
+          picking: byState.PICKING || 0,
+          facturacion: byState['FACTURACIÓN'] || 0,
+          empacado: byState.EMPACADO || 0,
+          despachado: byState.DESPACHADO || 0,
+          entregado: byState.ENTREGADO || 0
+        },
+        log_del_dia: readLS('almacen_log', []).slice(0, 50)
+      };
+      const hist = readLS(SHIFT_HISTORY_KEY, []);
+      hist.unshift(snapshot);
+      writeLS(SHIFT_HISTORY_KEY, hist.slice(0, 365));
+      showToast('📸 Cierre de turno guardado');
+    }
+
     function openAssignModal(id, group) {
       pendingAssignId = id;
       const sel = document.getElementById('assignSelect');
@@ -851,16 +1176,6 @@
       const who = asig[item.id] || 'Sin asignar';
       const stateMap = readLS('almacen_state_timestamps', {});
       const elapsed = getElapsed(item, stateMap);
-      const prevStates = readPrevStates();
-      const prevStateField = getDateFieldForState(item.estado);
-      prevStates[item.id] = {
-        prevEstado: item.estado,
-        prevFechaCampo: prevStateField ? (item[prevStateField] || '') : '',
-        timestamp: Date.now()
-      };
-      writePrevStates(prevStates);
-      ensureUndoTicker();
-      renderDashboard();
       try {
         await postUpdate(item.id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
         await postUpdate(item.id, DATE_FIELD_BY_STATE[next], nowStamp());
@@ -870,34 +1185,6 @@
       } catch (e) {
         console.error(e);
         showToast('❌ No se pudo actualizar');
-      }
-    }
-
-    async function undoItem(item) {
-      const prevStates = readPrevStates();
-      const prev = prevStates[item.id];
-      if (!prev) return;
-      if ((Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
-        delete prevStates[item.id];
-        writePrevStates(prevStates);
-        renderDashboard();
-        return;
-      }
-      try {
-        const prevEstado = prev.prevEstado || 'ASIGNADA';
-        await postUpdate(item.id, 'ESTADO', prevEstado === 'FACTURACIÓN' ? 'FACTURADO' : prevEstado);
-        const prevField = getDateFieldForState(prevEstado);
-        if (prevField && prev.prevFechaCampo) {
-          await postUpdate(item.id, prevField, prev.prevFechaCampo);
-        }
-        delete prevStates[item.id];
-        writePrevStates(prevStates);
-        addLog(`${item.id} deshecho a ${prevEstado}`);
-        showToast('↩ Cambio deshecho');
-        await loadData(false);
-      } catch (e) {
-        console.error(e);
-        showToast('❌ No se pudo deshacer');
       }
     }
 
@@ -921,7 +1208,7 @@
             diasEntrega,
             deliveryToday: isDeliveryToday(diasEntrega),
             categoria: row.CATEGORIA || row.CATEG || '',
-            fechaF8: row.FECHA_F8 || row.fechaF8 || '',
+            fechaF8: row.FECHA_F8 || row.fechaF8 || row.fecha_f8 || '',
             FECHA_ASIGNACION: row.FECHA_ASIGNACION || '',
             FECHA_PICKING: row.FECHA_PICKING || '',
             FECHA_FACTURACION: row.FECHA_FACTURACION || '',
@@ -937,6 +1224,7 @@
         updateGroupFilterOptions(tracking);
         renderDashboard();
         renderLog();
+        renderAttendanceBadge();
         lastSuccessfulSync = hhmm();
         document.getElementById('lastSync').textContent = `Última sync: ${lastSuccessfulSync}`;
         setConnectionStatus(true);
@@ -966,6 +1254,9 @@
         URL.revokeObjectURL(url);
         showToast('✅ Backup descargado');
       });
+      document.getElementById('attendanceBtn').addEventListener('click', openAttendanceModal);
+      document.getElementById('closeShiftBtn').addEventListener('click', closeShiftSnapshot);
+      document.getElementById('changePinBtn').addEventListener('click', changePinFlow);
       document.getElementById('exportReportBtn').addEventListener('click', () => {
         if (typeof XLSX === 'undefined') {
           showToast('❌ SheetJS no está disponible');
@@ -1021,6 +1312,27 @@
         const logSheet = [['timestamp', 'mensaje'], ...logs.map(l => [new Date(l.ts).toLocaleString('es-PA'), l.msg])];
         XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(logSheet), 'Log de Actividad');
 
+        const turnos = readLS(SHIFT_HISTORY_KEY, []);
+        const turnosSheet = [
+          ['fecha', 'hora_cierre', 'disponibles', 'en_ruta', 'ausentes', 'f8_total', 'asignadas', 'picking', 'facturacion', 'empacado', 'despachado', 'entregado', 'log_entradas'],
+          ...turnos.map(t => [
+            t.fecha || '',
+            t.hora_cierre || '',
+            t.personal?.disponibles || 0,
+            t.personal?.en_ruta || 0,
+            t.personal?.ausentes || 0,
+            t.f8s?.total || 0,
+            t.f8s?.asignadas || 0,
+            t.f8s?.picking || 0,
+            t.f8s?.facturacion || 0,
+            t.f8s?.empacado || 0,
+            t.f8s?.despachado || 0,
+            t.f8s?.entregado || 0,
+            Array.isArray(t.log_del_dia) ? t.log_del_dia.length : 0
+          ])
+        ];
+        XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(turnosSheet), 'Historial Turnos');
+
         const d = new Date();
         const fileName = `Reporte_Operativo_CEDIS_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
         XLSX.writeFile(book, fileName);
@@ -1074,20 +1386,56 @@
         if (e.target.classList.contains('advance')) {
           await advanceItem(item);
         }
-        if (e.target.classList.contains('undo')) {
-          await undoItem(item);
+        if (e.target.classList.contains('open-pin-revert')) {
+          openPinModal(item);
         }
+      });
+      document.getElementById('pinCancelBtn').addEventListener('click', closePinModal);
+      document.getElementById('pinConfirmBtn').addEventListener('click', confirmRevertWithPin);
+      document.getElementById('pinInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmRevertWithPin();
+      });
+      document.getElementById('pinModal').addEventListener('click', (e) => {
+        if (e.target.id === 'pinModal') closePinModal();
+      });
+      document.getElementById('attendanceCancelBtn').addEventListener('click', closeAttendanceModal);
+      document.getElementById('attendanceSaveBtn').addEventListener('click', saveAttendance);
+      document.getElementById('attendanceList').addEventListener('click', (e) => {
+        if (!e.target.classList.contains('attendance-set')) return;
+        const name = e.target.dataset.name;
+        const value = e.target.dataset.value;
+        if (!name || !value) return;
+        attendanceDraft[name] = value;
+        renderAttendanceList();
+      });
+      document.getElementById('attendanceModal').addEventListener('click', (e) => {
+        if (e.target.id === 'attendanceModal') closeAttendanceModal();
       });
       document.getElementById('staffTabs').addEventListener('click', (e) => {
         if (!e.target.dataset.group) return;
         currentGroupTab = e.target.dataset.group;
         renderStaff(tracking, readLS('almacen_asignaciones', {}));
       });
+      document.getElementById('staffModeTabs').addEventListener('click', (e) => {
+        if (!e.target.dataset.mode) return;
+        currentStaffMode = e.target.dataset.mode;
+        renderStaff(tracking, readLS('almacen_asignaciones', {}));
+      });
       document.getElementById('staffCards').addEventListener('click', (e) => {
+        if (e.target.id === 'weeklyRankingBtn') {
+          document.getElementById('staffCards').innerHTML = renderRankingHtml('week');
+          return;
+        }
+        if (e.target.id === 'dailyRankingBtn') {
+          document.getElementById('staffCards').innerHTML = renderRankingHtml('today');
+          return;
+        }
         const st = e.target.dataset.status;
         if (!st) return;
         const person = e.target.closest('.person')?.dataset.name;
         if (!person) return;
+        const attendance = readLS(ATTENDANCE_KEY, {});
+        if (attendance?.fecha === isoToday() && attendance.personal?.[person] === 'ausente') return;
         const personal = readLS('almacen_personal', {});
         personal[person] = { ...(personal[person] || {}), status: st, updatedAt: Date.now(), destination: st === 'EN RUTA' ? (personal[person]?.destination || '') : '' };
         writeLS('almacen_personal', personal);
@@ -1130,6 +1478,7 @@
     bindEvents();
     loadData();
     setInterval(() => loadData(false), 5 * 60 * 1000);
+    renderAttendanceBadge();
   </script>
 </body>
 </html>
