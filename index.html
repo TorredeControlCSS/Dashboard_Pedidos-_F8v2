@@ -48,7 +48,57 @@
     .kpi-desp { border-color: #2e7d32; }
     .kpi-sla { border-color: #b71c1c; }
     .blink { animation: blink 1s step-start infinite; }
+    .pulse { animation: pulse 1s ease-in-out infinite; }
     @keyframes blink { 50% { opacity: .35; } }
+    @keyframes pulse { 50% { transform: scale(1.08); } }
+    .offline-banner {
+      display: none;
+      background: #fff3cd;
+      border-left: 4px solid #f59e0b;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: #6b4f00;
+    }
+    .delivery-widget {
+      margin-top: 12px;
+      background: #fff8e1;
+      border-left: 4px solid #f9a825;
+      border-radius: 10px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      padding: 10px;
+    }
+    .delivery-title { font-weight: 800; margin-bottom: 8px; }
+    .delivery-row { display: flex; gap: 8px; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(0,0,0,.12); }
+    .delivery-row:last-child { border-bottom: none; }
+    .delivery-row .left { min-width: 0; }
+    .delivery-row .left strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .delivery-summary { margin-top: 8px; font-size: 12px; color: #6b7280; }
+    .filters {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: minmax(200px, 1fr) repeat(2, minmax(140px, 180px)) auto auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .filters input, .filters select {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 13px;
+      background: #fff;
+    }
+    .filters label { font-size: 12px; color: #4b5563; display: flex; align-items: center; gap: 6px; }
+    .filters button {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      background: #fff;
+      font-weight: 700;
+      font-size: 12px;
+    }
 
     .board { margin-top: 12px; display: grid; grid-template-columns: repeat(6, minmax(270px, 1fr)); gap: 10px; overflow-x: auto; }
     .col { background: #f5f5f5; border-radius: 10px; min-height: 360px; max-height: 70vh; display: flex; flex-direction: column; border: 1px solid #e5e7eb; }
@@ -59,6 +109,7 @@
       border-left: 6px solid #90a4ae; border-radius: 10px; background: #fff; border-top: 4px solid transparent;
       padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.07); font-size: 13px;
     }
+    .card.urgent-delivery { border-top: 3px solid #f9a825 !important; background: #fffdf4; }
     .card.urg { border-top-color: #b71c1c; background: #fff8f8; }
     .badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
     .badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #fff; }
@@ -72,6 +123,10 @@
     }
     .card-actions .advance { background: #0b1f3a; color: #fff; }
     .warn { margin-top: 6px; padding: 6px; background: #fff3cd; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 12px; }
+    .fillrate { margin-top: 6px; }
+    .fillrate .line { height: 4px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+    .fillrate .line span { display: block; height: 100%; }
+    .fillrate .txt { margin-top: 3px; font-size: 11px; color: #6b7280; }
     .section { margin-top: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
     .section-head { padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; font-weight: 800; }
     .toggle { background: transparent; border: none; font-size: 18px; cursor: pointer; }
@@ -107,6 +162,7 @@
       .kpis { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
       .topbar { align-items: flex-start; }
       .actions { width: 100%; }
+      .filters { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -115,14 +171,16 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V13.0 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span></p>
+      <p><span id="clock">--</span> · V13.0 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
+      <button class="btn" id="saveBtn">💾 Guardar</button>
       <a class="btn" href="almacenista.html">👤 Almacenista</a>
       <a class="btn" href="tracker.html">📡 Tracker UE</a>
     </div>
   </header>
+  <div class="offline-banner" id="offlineBanner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="wrap">
     <section class="kpis">
@@ -130,8 +188,18 @@
       <article class="kpi kpi-picking"><div class="label">En Picking</div><div id="kPicking" class="value">0</div></article>
       <article class="kpi kpi-fact"><div class="label">En Facturación</div><div id="kFact" class="value">0</div></article>
       <article class="kpi kpi-pack"><div class="label">En Empaque</div><div id="kPack" class="value">0</div></article>
-      <article class="kpi kpi-desp"><div class="label">Despachadas Hoy</div><div id="kDespHoy" class="value">0</div></article>
+      <article class="kpi kpi-desp"><div class="label">Despachadas Hoy</div><div id="kDespHoy" class="value">0</div><div id="kDespSub" class="small">0 de 0 con entrega hoy</div></article>
       <article class="kpi kpi-sla" id="kSlaWrap"><div class="label">⚠️ Alertas SLA</div><div id="kSla" class="value">0</div></article>
+    </section>
+
+    <section class="delivery-widget" id="deliveryWidget"></section>
+
+    <section class="filters">
+      <input id="searchInput" placeholder="🔍 Buscar F8..." />
+      <select id="groupFilter"><option value="">Grupo: TODOS</option></select>
+      <select id="typeFilter"><option value="">Tipo: TODOS</option><option value="MENSUAL">Tipo: MENSUAL</option><option value="URGENCIA">Tipo: URGENCIA</option></select>
+      <label><input type="checkbox" id="todayOnlyFilter" /> Solo con entrega hoy</label>
+      <button id="clearFiltersBtn">↺ Limpiar filtros</button>
     </section>
 
     <section class="board" id="board"></section>
@@ -231,8 +299,11 @@
     };
 
     let tracking = [];
+    let filteredTracking = [];
     let pendingAssignId = null;
     let currentGroupTab = "";
+    let lastSuccessfulSync = "";
+    const filters = { search: "", group: "", tipo: "", todayOnly: false };
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -253,6 +324,7 @@
       return d.toLocaleString('es-PA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
     const hhmm = () => new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+    const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     const normalizeGroup = (g = "") => {
       const up = String(g).trim().toUpperCase();
       if (GROUP_COLORS[up]) return up;
@@ -266,6 +338,53 @@
       if (up === 'EMPACANDO') return 'EMPACADO';
       return STATES.includes(up) ? up : 'ASIGNADA';
     };
+    const DAY_MAP = {
+      0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO'
+    };
+
+    function isDeliveryToday(diasEntrega) {
+      if (!diasEntrega) return false;
+      const today = DAY_MAP[new Date().getDay()];
+      return normalizeText(diasEntrega).includes(today);
+    }
+
+    function getDeliveryIcon(row) {
+      const cat = normalizeText(row.categoria || row.group || row.unidad || '');
+      if (cat.includes('HOSP')) return '🏥';
+      if (cat.includes('POL')) return '🏨';
+      if (cat.includes('CAPPS')) return '💊';
+      if (cat.includes('ULAPS')) return '🏪';
+      if (cat.includes('CEDIS')) return '🏭';
+      return '📦';
+    }
+
+    function getStatusColor(state) {
+      if (state === 'ASIGNADA') return '#546e7a';
+      if (state === 'PICKING') return '#f9a825';
+      if (state === 'FACTURACIÓN') return '#ef6c00';
+      if (state === 'EMPACADO') return '#6d4c41';
+      if (state === 'DESPACHADO') return '#2e7d32';
+      if (state === 'ENTREGADO') return '#1b5e20';
+      return '#607d8b';
+    }
+
+    function formatTodayLabel() {
+      const txt = new Date().toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long' });
+      return normalizeText(txt);
+    }
+
+    function setConnectionStatus(isOnline) {
+      const status = document.getElementById('connStatus');
+      const banner = document.getElementById('offlineBanner');
+      if (isOnline) {
+        status.textContent = '🟢 En línea';
+        banner.style.display = 'none';
+      } else {
+        status.textContent = '🔴 Sin conexión';
+        banner.style.display = 'block';
+        banner.textContent = `⚠️ Mostrando datos en caché. Última actualización: ${lastSuccessfulSync || '--:--'}`;
+      }
+    }
 
     function updateStateTimestamps(items) {
       const stateMap = readLS('almacen_state_timestamps', {});
@@ -348,26 +467,92 @@
       const c = { PICKING: 0, FACTURACIÓN: 0, EMPACADO: 0, DESPACHADO: 0 };
       let despHoy = 0;
       let slaAlerts = 0;
+      let conEntregaHoy = 0;
+      let despachadasEntregaHoy = 0;
       items.forEach(i => {
         if (c[i.estado] !== undefined) c[i.estado]++;
         if (i.estado === 'DESPACHADO' && String(i.fechaDespacho || '').includes(nowStamp())) despHoy++;
         const elapsed = getElapsed(i, stateMap);
-        if (getSla(i, elapsed).alert) slaAlerts++;
+        const sla = getSla(i, elapsed);
+        if (sla.alert) slaAlerts++;
+        if (i.deliveryToday) {
+          conEntregaHoy++;
+          if (i.estado === 'DESPACHADO') despachadasEntregaHoy++;
+        }
       });
       document.getElementById('kTotal').textContent = items.length;
       document.getElementById('kPicking').textContent = c.PICKING;
       document.getElementById('kFact').textContent = c['FACTURACIÓN'];
       document.getElementById('kPack').textContent = c.EMPACADO;
       document.getElementById('kDespHoy').textContent = despHoy;
+      document.getElementById('kDespSub').textContent = `${despachadasEntregaHoy} de ${conEntregaHoy} con entrega hoy`;
       document.getElementById('kSla').textContent = slaAlerts;
       document.getElementById('kSlaWrap').classList.toggle('blink', slaAlerts > 0);
+      document.getElementById('kSla').classList.toggle('pulse', slaAlerts > 0);
+    }
+
+    function renderDeliveryWidget(items) {
+      const todayList = items.filter(i => i.deliveryToday);
+      const box = document.getElementById('deliveryWidget');
+      if (!todayList.length) {
+        box.innerHTML = `<div class="delivery-title">📅 ENTREGAS PROGRAMADAS PARA HOY — ${formatTodayLabel()}</div><div class="small">Sin entregas programadas para hoy</div>`;
+        return;
+      }
+      const listas = todayList.filter(i => i.estado === 'DESPACHADO' || i.estado === 'ENTREGADO').length;
+      const pendientes = todayList.length - listas;
+      box.innerHTML = `
+        <div class="delivery-title">📅 ENTREGAS PROGRAMADAS PARA HOY — ${formatTodayLabel()}</div>
+        ${todayList.map(i => `
+          <div class="delivery-row">
+            <div class="left">
+              <strong>${getDeliveryIcon(i)} ${i.unidad}</strong>
+              <div class="small">${i.diasEntrega || 'Sin días registrados'}</div>
+            </div>
+            <span class="badge" style="background:${getStatusColor(i.estado)}">${i.estado}</span>
+          </div>
+        `).join('')}
+        <div class="delivery-summary">── ${todayList.length} entregas hoy · ${listas} listas · ${pendientes} pendientes ──</div>
+      `;
+    }
+
+    function updateGroupFilterOptions(items) {
+      const groups = [...new Set(items.map(i => i.group))].sort();
+      const sel = document.getElementById('groupFilter');
+      const current = sel.value;
+      sel.innerHTML = `<option value="">Grupo: TODOS</option>${groups.map(g => `<option value="${g}">Grupo: ${g}</option>`).join('')}`;
+      if (groups.includes(current)) sel.value = current;
+    }
+
+    function applyFilters() {
+      filteredTracking = tracking.filter(i => {
+        const q = filters.search;
+        const bySearch = !q || i.id.toUpperCase().includes(q) || i.unidad.toUpperCase().includes(q);
+        const byGroup = !filters.group || i.group === filters.group;
+        const byType = !filters.tipo || i.tipo === filters.tipo;
+        const byToday = !filters.todayOnly || i.deliveryToday;
+        return bySearch && byGroup && byType && byToday;
+      });
+      return filteredTracking;
+    }
+
+    function renderDashboard() {
+      const stateMap = readLS('almacen_state_timestamps', {});
+      const asig = readLS('almacen_asignaciones', {});
+      const personal = readLS('almacen_personal', {});
+      const items = applyFilters();
+      renderKPIs(items, stateMap);
+      renderDeliveryWidget(items);
+      renderBoard(items, stateMap, asig, personal);
+      renderStaff(items, asig);
     }
 
     function renderBoard(items, stateMap, asig, personal) {
       const board = document.getElementById('board');
       board.innerHTML = '';
       STATES.forEach(state => {
-        const colItems = items.filter(i => i.estado === state);
+        const colItems = items
+          .filter(i => i.estado === state)
+          .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || Number(b.tipo === 'URGENCIA') - Number(a.tipo === 'URGENCIA'));
         const col = document.createElement('section');
         col.className = 'col';
         col.innerHTML = `<div class="col-head">${state} <span class="count">${colItems.length}</span></div><div class="cards"></div>`;
@@ -378,18 +563,26 @@
           const sla = getSla(item, elapsed);
           const st = personal[who]?.status;
           const warn = st && st !== 'DISPONIBLE' && item.estado !== 'ENTREGADO';
+          const pct = item.totalSolic > 0 ? Math.max(0, Math.min(100, (item.totalAsig / item.totalSolic) * 100)) : 0;
+          const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
-          card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''}`;
+          card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
           card.innerHTML = `
             <div class="badges">
               <span class="badge ${item.tipo === 'URGENCIA' ? 'urg' : 'men'}">${item.tipo === 'URGENCIA' ? 'URGENCIA🔴' : 'MENSUAL'}</span>
               <span class="badge" style="background:${GROUP_COLORS[item.group] || '#607d8b'}">${item.group}</span>
+              ${item.deliveryToday ? `<span class="badge" style="background:#f9a825">📅 ENTREGA HOY</span>` : ''}
             </div>
             <div class="id">${item.id}</div>
             <div class="meta">${item.unidad}</div>
             <div class="meta">Asig: ${Number(item.totalAsig || 0).toLocaleString('es-PA')} uds</div>
+            <div class="fillrate">
+              <div class="line"><span style="width:${pct.toFixed(1)}%;background:${fillColor}"></span></div>
+              <div class="txt">${pct.toFixed(0)}% (${Number(item.totalAsig || 0).toLocaleString('es-PA')} / ${Number(item.totalSolic || 0).toLocaleString('es-PA')} uds)</div>
+            </div>
             <div class="meta">👤 ${who}</div>
+            ${item.diasEntrega ? `<div class="meta" style="color:#666;font-size:10px">📅 Entrega: ${item.diasEntrega}</div>` : ''}
             <div class="meta">⏱ ${elapsed ? elapsed.label : '—'} en este estado ${sla.icon}</div>
             ${warn ? `<div class="warn">⚠️ ${who} está ${st}${personal[who]?.destination ? ` · ${personal[who].destination}` : ''}</div>` : ''}
             <div class="card-actions">
@@ -482,39 +675,95 @@
         const raw = await r.json();
         tracking = (Array.isArray(raw) ? raw : []).map(row => {
           const group = normalizeGroup(row.GRUPO || '');
+          const diasEntrega = String(row.Dias_Entrega || row.DIAS_ENTREGA || row.dias_entrega || '').trim();
+          const totalAsig = Number(row.TOTAL_ASIG || 0);
+          const totalSolic = Number(row.TOTAL_SOLIC || 0);
           return {
             id: row.ID_PEDIDO || '---',
             unidad: row.UNIDAD_EJECUTORA || 'Sin UE',
             group,
             tipo: String(row.TIPO || group).toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
             estado: normalizeState(row.ESTADO || 'ASIGNADA'),
-            totalAsig: Number(row.TOTAL_ASIG || 0),
+            totalAsig,
+            totalSolic,
+            diasEntrega,
+            deliveryToday: isDeliveryToday(diasEntrega),
+            categoria: row.CATEGORIA || row.CATEG || '',
             fechaDespacho: row.FECHA_DESPACHO || ''
           };
         }).filter(i => i.id && i.id !== '---');
 
-        const asig = autoAssign(tracking);
-        const stateMap = updateStateTimestamps(tracking);
-        const personal = readLS('almacen_personal', {});
-        renderKPIs(tracking, stateMap);
-        renderBoard(tracking, stateMap, asig, personal);
-        renderStaff(tracking, asig);
+        autoAssign(tracking);
+        updateStateTimestamps(tracking);
+        updateGroupFilterOptions(tracking);
+        renderDashboard();
         renderLog();
-        document.getElementById('lastSync').textContent = `Última sync: ${hhmm()}`;
+        lastSuccessfulSync = hhmm();
+        document.getElementById('lastSync').textContent = `Última sync: ${lastSuccessfulSync}`;
+        setConnectionStatus(true);
         if (showMessage) showToast('✅ Datos actualizados');
       } catch (e) {
         console.error(e);
+        setConnectionStatus(false);
+        if (tracking.length) renderDashboard();
         showToast('⚠️ Backend no disponible. Intente nuevamente.');
       }
     }
 
     function bindEvents() {
       document.getElementById('refreshBtn').addEventListener('click', () => loadData(true));
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        const payload = {
+          almacen_asignaciones: readLS('almacen_asignaciones', {}),
+          almacen_personal: readLS('almacen_personal', {})
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const today = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `backup_jefatura_${today}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ Backup descargado');
+      });
       document.querySelectorAll('.toggle').forEach(btn => btn.addEventListener('click', () => {
         const target = document.getElementById(btn.dataset.target);
         target.classList.toggle('hidden');
         btn.textContent = target.classList.contains('hidden') ? '▲' : '▼';
       }));
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        filters.search = String(e.target.value || '').trim().toUpperCase();
+        renderDashboard();
+      });
+      document.getElementById('groupFilter').addEventListener('change', (e) => {
+        filters.group = e.target.value;
+        renderDashboard();
+      });
+      document.getElementById('typeFilter').addEventListener('change', (e) => {
+        filters.tipo = e.target.value;
+        renderDashboard();
+      });
+      document.getElementById('todayOnlyFilter').addEventListener('change', (e) => {
+        filters.todayOnly = e.target.checked;
+        renderDashboard();
+      });
+      document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+        filters.search = '';
+        filters.group = '';
+        filters.tipo = '';
+        filters.todayOnly = false;
+        document.getElementById('searchInput').value = '';
+        document.getElementById('groupFilter').value = '';
+        document.getElementById('typeFilter').value = '';
+        document.getElementById('todayOnlyFilter').checked = false;
+        renderDashboard();
+      });
+      document.getElementById('kSlaWrap').addEventListener('click', () => {
+        const firstCritical = document.querySelector('.card.critical-sla');
+        if (!firstCritical) return;
+        firstCritical.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
       document.getElementById('board').addEventListener('click', async (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
@@ -541,8 +790,8 @@
         personal[person] = { ...(personal[person] || {}), status: st, updatedAt: Date.now(), destination: st === 'EN RUTA' ? (personal[person]?.destination || '') : '' };
         writeLS('almacen_personal', personal);
         addLog(`${person} marcado como ${st}`);
-        renderStaff(tracking, readLS('almacen_asignaciones', {}));
-        renderBoard(tracking, readLS('almacen_state_timestamps', {}), readLS('almacen_asignaciones', {}), personal);
+        renderStaff(filteredTracking, readLS('almacen_asignaciones', {}));
+        renderBoard(filteredTracking, readLS('almacen_state_timestamps', {}), readLS('almacen_asignaciones', {}), personal);
       });
       document.getElementById('staffCards').addEventListener('change', (e) => {
         if (!e.target.classList.contains('destination')) return;
@@ -562,8 +811,8 @@
         writeLS('almacen_asignaciones', asig);
         addLog(`${pendingAssignId} reasignada a ${who}`);
         closeAssignModal();
-        renderBoard(tracking, readLS('almacen_state_timestamps', {}), asig, readLS('almacen_personal', {}));
-        renderStaff(tracking, asig);
+        renderBoard(filteredTracking, readLS('almacen_state_timestamps', {}), asig, readLS('almacen_personal', {}));
+        renderStaff(filteredTracking, asig);
       });
       document.getElementById('modal').addEventListener('click', (e) => {
         if (e.target.id === 'modal') closeAssignModal();

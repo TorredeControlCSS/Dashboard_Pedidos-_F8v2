@@ -27,8 +27,13 @@
     .login { max-width:460px; margin:36px auto; }
     .queue { display:grid; gap:8px; }
     .card { border:1px solid #e5e7eb; border-left:6px solid #64748b; border-radius:10px; background:#fff; padding:10px; }
+    .card.today { background:#fff8e1; }
     .badges{ display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
     .badge{ color:#fff; border-radius:999px; padding:2px 8px; font-size:12px; font-weight:700; }
+    .priority-box{ background:#fff8e1; border-left:4px solid #f9a825; border-radius:10px; padding:10px; margin-bottom:10px; }
+    .priority-item{ padding:4px 0; border-bottom:1px dashed rgba(0,0,0,.1); }
+    .priority-item:last-child{ border-bottom:none; }
+    .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
     .action-btn { margin-top:8px; background:#0b1f3a; color:#fff; width:100%; }
     .small { color:#6b7280; font-size:13px; }
     .group-list{ display:grid; gap:7px; }
@@ -41,7 +46,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — VISTA ALMACENISTA · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V13.0</p>
+      <p><span id="clock">--</span> · V13.0 · <span id="connStatus">🟢 En línea</span></p>
     </div>
     <div class="actions">
       <a class="btn" href="index.html">← Jefatura</a>
@@ -49,6 +54,7 @@
       <button class="btn" id="changeUserBtn">Cambiar</button>
     </div>
   </header>
+  <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="main">
     <section id="identity" class="panel login">
@@ -70,6 +76,7 @@
 
       <article class="panel">
         <h2>Mi Cola de Trabajo</h2>
+        <div id="priorityQueue"></div>
         <div id="queue" class="queue"></div>
       </article>
 
@@ -126,8 +133,11 @@
     const DATE_FIELD = { PICKING: 'FECHA_PICKING', 'FACTURACIÓN': 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
 
     let rows = [];
+    let lastSuccessfulSync = "";
     const readLS = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
     const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    const DAY_MAP = { 0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO' };
     const normalizeState = s => {
       const up = String(s || '').toUpperCase();
       if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
@@ -135,6 +145,19 @@
       if (up === 'EMPACANDO') return 'EMPACADO';
       return up || 'ASIGNADA';
     };
+    const isDeliveryToday = (diasEntrega) => diasEntrega ? normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]) : false;
+    function setConnectionStatus(isOnline) {
+      const status = document.getElementById('connStatus');
+      const banner = document.getElementById('offlineBanner');
+      if (isOnline) {
+        status.textContent = '🟢 En línea';
+        banner.style.display = 'none';
+      } else {
+        status.textContent = '🔴 Sin conexión';
+        banner.style.display = 'block';
+        banner.textContent = `⚠️ Mostrando datos en caché. Última actualización: ${lastSuccessfulSync || '--:--'}`;
+      }
+    }
     const normalizeGroup = g => {
       const up = String(g || '').toUpperCase();
       if (GROUP_COLORS[up]) return up;
@@ -161,7 +184,9 @@
         group: normalizeGroup(x.GRUPO),
         tipo: String(x.TIPO || x.GRUPO || '').toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
         estado: normalizeState(x.ESTADO),
-        totalAsig: Number(x.TOTAL_ASIG || 0)
+        totalAsig: Number(x.TOTAL_ASIG || 0),
+        diasEntrega: String(x.Dias_Entrega || x.DIAS_ENTREGA || x.dias_entrega || '').trim(),
+        deliveryToday: isDeliveryToday(x.Dias_Entrega || x.DIAS_ENTREGA || x.dias_entrega || '')
       })).filter(x => x.id !== '---');
     }
 
@@ -203,7 +228,7 @@
           const hours = entry ? (Date.now() - entry) / 36e5 : -1;
           return { ...r, wait: hours };
         })
-        .sort((a, b) => (b.tipo === 'URGENCIA') - (a.tipo === 'URGENCIA') || b.wait - a.wait);
+        .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || (b.tipo === 'URGENCIA') - (a.tipo === 'URGENCIA') || b.wait - a.wait);
     }
 
     function fmtWait(hours) {
@@ -215,19 +240,30 @@
     function renderQueue() {
       const q = queueForMe();
       const box = document.getElementById('queue');
+      const priority = document.getElementById('priorityQueue');
       if (!q.length) {
+        priority.innerHTML = '';
         box.innerHTML = '<div class="small">Sin F8s asignadas en este momento.</div>';
         return;
       }
+      const priorityRows = q.filter(r => r.deliveryToday);
+      priority.innerHTML = priorityRows.length ? `
+        <div class="priority-box">
+          <strong>⚡ PRIORIDAD — ENTREGA HOY (${priorityRows.length})</strong>
+          ${priorityRows.map(r => `<div class="priority-item">${r.id} · ${r.ue}</div>`).join('')}
+        </div>
+      ` : '';
       box.innerHTML = q.map(r => `
-        <article class="card" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}">
+        <article class="card ${r.deliveryToday ? 'today' : ''}" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}">
           <div class="badges">
             <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
             <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+            ${r.deliveryToday ? '<span class="badge" style="background:#f9a825">📅 ENTREGA HOY</span>' : ''}
           </div>
           <strong>${r.id}</strong>
           <div>${r.ue}</div>
           <div class="small">${Number(r.totalAsig).toLocaleString('es-PA')} uds · Estado: ${r.estado} · Tiempo: ${fmtWait(r.wait)}</div>
+          ${r.diasEntrega ? `<div class="small">📅 Días de entrega: ${r.diasEntrega}</div>` : ''}
           ${NEXT[r.estado] ? `<button class="action-btn doNext" data-id="${r.id}">✅ Marcar como ${NEXT[r.estado]}</button>` : ''}
         </article>
       `).join('');
@@ -334,7 +370,14 @@
 
     (async () => {
       document.getElementById('clock').textContent = new Date().toLocaleString('es-PA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
-      try { await loadData(); } catch { alert('Backend no disponible en este momento.'); }
+      try {
+        await loadData();
+        lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
+        setConnectionStatus(true);
+      } catch {
+        setConnectionStatus(false);
+        alert('Backend no disponible en este momento.');
+      }
       renderAll();
     })();
   </script>

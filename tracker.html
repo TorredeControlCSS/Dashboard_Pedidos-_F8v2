@@ -12,6 +12,7 @@
     .topbar{ background:linear-gradient(90deg,#0b1f3a,#133a74); color:#fff; padding:12px; text-align:center; }
     .topbar h1{ margin:0; font-size:22px; }
     .topbar p{ margin:4px 0 0; color:#cbd5e1; }
+    .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
     .wrap{ max-width:920px; margin:0 auto; padding:16px; }
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px; }
     .hero{ text-align:center; margin-top:12px; }
@@ -35,6 +36,7 @@
     .meter{ width:100%; height:20px; border-radius:999px; background:#e5e7eb; overflow:hidden; }
     .meter > span{ display:block; height:100%; background:#2e7d32; }
     .msg{ margin-top:10px; padding:10px; background:#eef4ff; border-left:4px solid var(--blue); border-radius:8px; }
+    .delivery-info{ margin-top:10px; padding:10px; background:#fff8e1; border-left:4px solid #f9a825; border-radius:8px; }
     .footer{ margin-top:14px; color:#6b7280; font-size:13px; }
     .err{ margin-top:12px; background:#fff3cd; border-left:4px solid #f59e0b; border-radius:8px; padding:10px; }
     .spinner{ width:24px; height:24px; border:3px solid #d1d5db; border-top-color:#0b1f3a; border-radius:999px; margin:12px auto; animation:spin 1s linear infinite; }
@@ -50,8 +52,9 @@
 <body>
   <header class="topbar">
     <h1>CEDIS PANAMÁ — Consulta de Requisiciones</h1>
-    <p>Sistema de Seguimiento de Formas 8</p>
+    <p>Sistema de Seguimiento de Formas 8 · <span id="connStatus">🟢 En línea</span></p>
   </header>
+  <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="wrap">
     <section class="card hero">
@@ -106,6 +109,9 @@
       "FRÍO": "#0277bd", "EMPAQUE": "#4e342e", "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f"
     };
     const FLOW = ['ASIGNADA','PICKING','FACTURACIÓN','EMPACADO','DESPACHADO','ENTREGADO'];
+    let lastSuccessfulSync = "";
+    const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    const DAY_MAP = { 0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO' };
 
     const normalizeState = s => {
       const up = String(s || '').toUpperCase();
@@ -114,6 +120,36 @@
       if (up === 'EMPACANDO') return 'EMPACADO';
       return up || 'ASIGNADA';
     };
+    const isDeliveryToday = (diasEntrega) => diasEntrega ? normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]) : false;
+    function nextDeliveryDate(diasEntrega) {
+      if (!diasEntrega) return null;
+      const DAY_NUM = { LUNES:1, MARTES:2, MIERCOLES:3, JUEVES:4, VIERNES:5 };
+      const days = normalizeText(diasEntrega).split('/').map(d => DAY_NUM[d.trim()]).filter(Boolean);
+      if (!days.length) return null;
+      const today = new Date();
+      const todayNum = today.getDay();
+      let minDiff = 8;
+      for (const d of days) {
+        let diff = d - todayNum;
+        if (diff <= 0) diff += 7;
+        if (diff < minDiff) minDiff = diff;
+      }
+      const next = new Date(today);
+      next.setDate(today.getDate() + minDiff);
+      return next.toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long' });
+    }
+    function setConnectionStatus(isOnline) {
+      const status = document.getElementById('connStatus');
+      const banner = document.getElementById('offlineBanner');
+      if (isOnline) {
+        status.textContent = '🟢 En línea';
+        banner.style.display = 'none';
+      } else {
+        status.textContent = '🔴 Sin conexión';
+        banner.style.display = 'block';
+        banner.textContent = `⚠️ Mostrando datos en caché. Última actualización: ${lastSuccessfulSync || '--:--'}`;
+      }
+    }
 
     function setLoading(on){ document.getElementById('loading').classList.toggle('hidden', !on); }
 
@@ -142,7 +178,10 @@
     }
     function writeCache(id, data){ sessionStorage.setItem(cacheKey(id), JSON.stringify({ ts: Date.now(), data })); }
 
-    function contextual(state){
+    function contextual(state, deliveryToday){
+      if (state === 'EMPACADO' && deliveryToday) return '🚀 Su pedido está listo y tiene entrega programada HOY. Coordine la recepción inmediatamente.';
+      if (state === 'PICKING' && deliveryToday) return '⚡ Su pedido está siendo preparado con PRIORIDAD — tiene entrega programada para hoy.';
+      if (state === 'ASIGNADA' && deliveryToday) return '⚠️ Su pedido aún está en proceso de preparación. Tiene entrega programada para hoy. Contacte a Torre de Control si es urgente.';
       if (state === 'EMPACADO') return 'Su pedido está siendo preparado para despacho. Tiempo estimado: en las próximas horas.';
       if (state === 'DESPACHADO') return 'Su pedido ha sido despachado. Por favor coordine la recepción.';
       if (state === 'ENTREGADO') return '✅ Pedido entregado y cerrado.';
@@ -160,6 +199,9 @@
 
     function renderResult(r){
       const state = normalizeState(r.ESTADO);
+      const diasEntrega = String(r.Dias_Entrega || r.DIAS_ENTREGA || r.dias_entrega || '').trim();
+      const deliveryToday = isDeliveryToday(diasEntrega);
+      const nextDate = nextDeliveryDate(diasEntrega);
       const idx = FLOW.indexOf(state);
       const byDate = {
         ASIGNADA: fmtDate(r.FECHA_ASIGNACION),
@@ -182,13 +224,19 @@
         <div class="timeline">
           ${FLOW.map((s, i) => `<div class="step ${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''}"><div class="dot"></div><div class="name">${s === 'FACTURACIÓN' ? 'FACTURACIÓN' : s}</div><div class="date">${i === idx && !byDate[s] ? 'En proceso...' : (byDate[s] || '—')}</div></div>`).join('')}
         </div>
+        <div class="delivery-info">
+          <strong>📅 Información de Entrega</strong>
+          <div>Días programados: ${diasEntrega || 'No definidos'}</div>
+          <div>Próxima entrega: ${nextDate ? nextDate : 'No disponible'}</div>
+          <div style="margin-top:6px">💡 Si su pedido está en DESPACHADO, por favor coordine la recepción.</div>
+        </div>
         <div class="bar">
           <div>Unidades Asignadas: ${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} solicitadas</div>
           <div class="meter"><span style="width:${pct.toFixed(1)}%"></span></div>
           <div>${pct.toFixed(1)}%</div>
           <div style="margin-top:6px">Items: ${itemsAsig} de ${itemsSolic} renglones asignados</div>
         </div>
-        <div class="msg">${contextual(state)}</div>
+        <div class="msg">${contextual(state, deliveryToday)}</div>
         <div class="footer">Última actualización: ${new Date().toLocaleString('es-PA')} · <a href="#" id="refreshNow">🔄 Actualizar</a></div>
       `;
       document.getElementById('result').classList.remove('hidden');
@@ -204,6 +252,8 @@
       const raw = await r.json();
       const row = (Array.isArray(raw) ? raw : []).find(x => String(x.ID_PEDIDO || '').toUpperCase() === id.toUpperCase());
       if (row) writeCache(id, row);
+      lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
+      setConnectionStatus(true);
       return row || null;
     }
 
@@ -222,6 +272,7 @@
         saveRecent(id);
         renderResult(row);
       } catch (e) {
+        setConnectionStatus(false);
         document.getElementById('noFound').innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
         document.getElementById('noFound').classList.remove('hidden');
       } finally {
