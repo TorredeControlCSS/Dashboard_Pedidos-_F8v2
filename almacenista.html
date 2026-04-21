@@ -25,8 +25,30 @@
     .status-btns button.active { background:var(--navy); color:#fff; }
     .destination, select, input { width:100%; min-height:44px; border:1px solid #d1d5db; border-radius:10px; padding:10px; font-size:16px; }
     .login { max-width:460px; margin:36px auto; }
-    .identity-modal{ position:fixed; inset:0; z-index:60; background:rgba(11,31,58,.45); display:flex; align-items:center; justify-content:center; padding:14px; }
-    .identity-modal .panel{ width:min(460px, 100%); margin:0; }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .modal-box {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    #whoSelect { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; min-height: unset; }
+    #loginBtn { width: 100%; padding: 14px; font-size: 16px; background: #0b1f3a; color: white; }
     .queue { display:grid; gap:8px; }
     .card { border:1px solid #e5e7eb; border-left:6px solid #64748b; border-radius:10px; background:#fff; padding:10px; }
     .card.today { background:#fff8e1; }
@@ -40,6 +62,14 @@
     .small { color:#6b7280; font-size:13px; }
     .group-list{ display:grid; gap:7px; }
     .row{ display:flex; justify-content:space-between; gap:8px; align-items:center; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
+    .details-toggle { border:none; background:transparent; color:#0b1f3a; font-weight:700; cursor:pointer; padding:0; }
+    .detail-box { margin-top:8px; border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#f8fafc; }
+    .detail-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
+    .detail-table th, .detail-table td { border:1px solid #d1d5db; padding:5px; text-align:left; vertical-align:top; }
+    .detail-table th { background:#eef2f7; }
+    .undo-link { display:block; margin-top:6px; font-size:12px; color:#e65100; text-decoration:none; font-weight:700; cursor:pointer; }
+    .peer-extra { margin-top:6px; padding-top:6px; border-top:1px dashed #e5e7eb; }
+    .peer-item { font-size:12px; color:#374151; margin-top:3px; }
     @media (max-width: 520px){ .status-btns{ grid-template-columns:1fr; } }
   </style>
 </head>
@@ -60,8 +90,8 @@
   <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="main">
-    <section id="identity" class="identity-modal" style="display:none">
-      <div class="panel login">
+    <section id="identity" class="modal-overlay" style="display:none">
+      <div class="modal-box">
         <h2>¿Quién eres?</h2>
         <select id="whoSelect"></select>
         <button id="loginBtn" class="action-btn" style="margin-top:10px">✅ Ingresar</button>
@@ -137,6 +167,8 @@
     const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', 'FACTURACIÓN': 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
     const DATE_FIELD = { PICKING: 'FECHA_PICKING', 'FACTURACIÓN': 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
     const IDENTITY_KEY = 'almacen_yo';
+    const PREV_STATE_KEY = 'almacen_prev_state';
+    const UNDO_TIMEOUT_MS = 15000;
 
     let rows = [];
     let lastSuccessfulSync = "";
@@ -191,6 +223,14 @@
         tipo: String(x.TIPO || x.GRUPO || '').toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
         estado: normalizeState(x.ESTADO),
         totalAsig: Number(x.TOTAL_ASIG || 0),
+        totalSolic: Number(x.TOTAL_SOLIC || 0),
+        fechaF8: x.FECHA_F8 || x.fechaF8 || '',
+        FECHA_ASIGNACION: x.FECHA_ASIGNACION || '',
+        FECHA_PICKING: x.FECHA_PICKING || '',
+        FECHA_FACTURACION: x.FECHA_FACTURACION || '',
+        FECHA_EMPACADO: x.FECHA_EMPACADO || '',
+        FECHA_DESPACHO: x.FECHA_DESPACHO || '',
+        FECHA_ENTREGA: x.FECHA_ENTREGA || '',
         diasEntrega: String(x.Dias_Entrega || x.DIAS_ENTREGA || x.dias_entrega || '').trim(),
         deliveryToday: isDeliveryToday(x.Dias_Entrega || x.DIAS_ENTREGA || x.dias_entrega || '')
       })).filter(x => x.id !== '---');
@@ -251,6 +291,52 @@
       return `${h}h ${m}m`;
     }
 
+    function toIsoDate(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '—';
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [d, m, y] = raw.split('/');
+        return `${y}-${m}-${d}`;
+      }
+      const dt = new Date(raw);
+      if (Number.isNaN(dt.getTime())) return '—';
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+
+    function readPrevStates() { return readLS(PREV_STATE_KEY, {}); }
+    function writePrevStates(v) { writeLS(PREV_STATE_KEY, v); }
+    function isUndoAvailable(id) {
+      const prev = readPrevStates()[id];
+      return !!(prev && (Date.now() - Number(prev.timestamp || 0)) <= UNDO_TIMEOUT_MS);
+    }
+    function getDateFieldForState(state) {
+      if (state === 'ASIGNADA') return 'FECHA_ASIGNACION';
+      return DATE_FIELD[state] || '';
+    }
+    function statusIcon(st = '') {
+      const up = normalizeText(st);
+      if (up.includes('COMPLETO')) return '✅';
+      if (up.includes('PARCIAL')) return '⚠️';
+      if (up.includes('SIN STOCK')) return '⛔';
+      return '📦';
+    }
+    function prioridadImportancia(imp = '') {
+      const up = normalizeText(imp);
+      if (up.includes('VITAL')) return 0;
+      if (up.includes('ESENCIAL')) return 1;
+      return 2;
+    }
+    function fmtNum(v) { return Number(v || 0).toLocaleString('es-PA'); }
+    function readSession(key, fallback) {
+      try {
+        const v = sessionStorage.getItem(key);
+        return v ? JSON.parse(v) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
     function renderQueue() {
       const q = queueForMe();
       const box = document.getElementById('queue');
@@ -274,11 +360,18 @@
             <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
             ${r.deliveryToday ? '<span class="badge" style="background:#f9a825">📅 ENTREGA HOY</span>' : ''}
           </div>
-          <strong>${r.id}</strong>
-          <div>${r.ue}</div>
-          <div class="small">${Number(r.totalAsig).toLocaleString('es-PA')} uds · Estado: ${r.estado} · Tiempo: ${fmtWait(r.wait)}</div>
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+            <strong>${r.id}</strong>
+            <button class="details-toggle toggleDetail" data-id="${r.id}">▶ Ver detalle ▼</button>
+          </div>
+          <div>${r.ue} · 📋 F8: ${toIsoDate(r.fechaF8)}</div>
+          <div class="small">Asig: ${fmtNum(r.totalAsig)} uds | Estado: ${r.estado}</div>
+          <div class="small">⏱ ${fmtWait(r.wait)} en este estado</div>
           ${r.diasEntrega ? `<div class="small">📅 Días de entrega: ${r.diasEntrega}</div>` : ''}
-          ${NEXT[r.estado] ? `<button class="action-btn doNext" data-id="${r.id}">✅ Marcar como ${NEXT[r.estado]}</button>` : ''}
+          ${r.estado === 'ASIGNADA' ? `<button class="action-btn doNext" data-id="${r.id}" style="background:#2e7d32">✅ Iniciar Picking →</button>` : ''}
+          ${r.estado === 'PICKING' ? `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0">📋 Marcar Completado →</button>` : ''}
+          ${isUndoAvailable(r.id) ? `<a class="undo-link doUndo" data-id="${r.id}">↩ Deshacer última acción</a>` : ''}
+          <div id="detail-${r.id}" class="detail-box" style="display:none"></div>
         </article>
       `).join('');
     }
@@ -293,10 +386,11 @@
       rows.filter(x => x.estado !== 'ENTREGADO').forEach(x => { if (asig[x.id]) active[asig[x.id]] = (active[asig[x.id]] || 0) + 1; });
       const peers = STAFF.filter(s => s.group === person.group);
       document.getElementById('groupList').innerHTML = peers.map(p => `
-        <div class="row">
+        <div class="row peer-row" data-name="${p.name}">
           <div><strong>${p.name}</strong><div class="small">${(personal[p.name]?.status || 'DISPONIBLE')}${personal[p.name]?.destination ? ` · ${personal[p.name].destination}` : ''}</div></div>
           <strong>${active[p.name] || 0} F8s</strong>
         </div>
+        <div id="peer-${p.name}" class="peer-extra" style="display:none"></div>
       `).join('');
     }
 
@@ -323,6 +417,10 @@
       const elapsed = sm[id]?.enteredAt ? (() => {
         const h = (Date.now() - sm[id].enteredAt) / 36e5; return `${Math.floor(h)}h ${Math.floor((h % 1) * 60)}m`;
       })() : '';
+      const prev = readPrevStates();
+      const prevField = getDateFieldForState(item.estado);
+      prev[id] = { prevEstado: item.estado, prevFechaCampo: prevField ? (item[prevField] || '') : '', timestamp: Date.now() };
+      writePrevStates(prev);
       await postUpdate(id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
       const d = new Date();
       const stamp = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
@@ -330,6 +428,91 @@
       addLog(`${id} avanzó a ${next} · ${getMe()}${elapsed ? ` · ${elapsed}` : ''}`);
       await loadData();
       renderAll();
+    }
+
+    async function undoLast(id) {
+      const prevStates = readPrevStates();
+      const prev = prevStates[id];
+      if (!prev || (Date.now() - Number(prev.timestamp || 0)) > UNDO_TIMEOUT_MS) return;
+      const prevEstado = prev.prevEstado || 'ASIGNADA';
+      await postUpdate(id, 'ESTADO', prevEstado === 'FACTURACIÓN' ? 'FACTURADO' : prevEstado);
+      const prevField = getDateFieldForState(prevEstado);
+      if (prevField && prev.prevFechaCampo) await postUpdate(id, prevField, prev.prevFechaCampo);
+      delete prevStates[id];
+      writePrevStates(prevStates);
+      addLog(`${id} deshecho a ${prevEstado} · ${getMe()}`);
+      await loadData();
+      renderAll();
+    }
+
+    async function renderAllocationDetail(id) {
+      const detailBox = document.getElementById(`detail-${id}`);
+      if (!detailBox) return false;
+      if (detailBox.dataset.open === '1') {
+        detailBox.style.display = 'none';
+        detailBox.dataset.open = '0';
+        return false;
+      }
+      detailBox.style.display = 'block';
+      detailBox.dataset.open = '1';
+      detailBox.innerHTML = '<div class="small">📦 DETALLE DE RENGLONES (cargando...)</div>';
+      const cacheKey = `detalle_${id}`;
+      try {
+        let rowsDetail = readSession(cacheKey, null);
+        if (!Array.isArray(rowsDetail)) {
+          const allocResp = await fetch(`${WEB_APP_URL}?file=allocation`);
+          const allocRaw = await allocResp.json();
+          const allAllocation = Array.isArray(allocRaw) ? allocRaw : [];
+          rowsDetail = allAllocation.filter(r => String(r.N_Doc || '') === String(id));
+          sessionStorage.setItem(cacheKey, JSON.stringify(rowsDetail));
+        }
+        const sorted = rowsDetail.slice().sort((a, b) => prioridadImportancia(a.Importancia) - prioridadImportancia(b.Importancia));
+        if (!sorted.length) {
+          detailBox.innerHTML = '<div class="small">Detalle no disponible · Intente de nuevo</div>';
+          return true;
+        }
+        const totalSolic = sorted.reduce((acc, r) => acc + Number(r.Solicitado || r.Solicitado_redondeado || 0), 0);
+        const totalAsig = sorted.reduce((acc, r) => acc + Number(r.Asignado || 0), 0);
+        const fr = totalSolic > 0 ? (totalAsig / totalSolic) * 100 : 0;
+        detailBox.innerHTML = `
+          <div style="font-weight:800">📦 DETALLE DE RENGLONES</div>
+          <table class="detail-table">
+            <thead><tr><th>Código</th><th>Suministro</th><th>Solicitado</th><th>Asignado</th><th>Estado</th><th>Lotes</th></tr></thead>
+            <tbody>
+              ${sorted.map(r => `
+                <tr>
+                  <td>${r.Codigo || '—'}</td>
+                  <td>${r.Suministro || '—'}</td>
+                  <td>${fmtNum(r.Solicitado || r.Solicitado_redondeado || 0)}</td>
+                  <td>${fmtNum(r.Asignado || 0)}</td>
+                  <td>${statusIcon(r.Estado)} ${r.Estado || '—'}</td>
+                  <td>${r.Lotes_Usados || '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="small" style="margin-top:6px">Total solicitado: ${fmtNum(totalSolic)} · Total asignado: ${fmtNum(totalAsig)} · Fill rate general: ${fr.toFixed(1)}%</div>
+        `;
+      } catch {
+        detailBox.innerHTML = '<div class="small">Detalle no disponible · Intente de nuevo</div>';
+      }
+      return true;
+    }
+
+    function togglePeerWork(name) {
+      const box = document.getElementById(`peer-${name}`);
+      if (!box) return;
+      if (box.style.display === 'block') {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+      const asig = readLS('almacen_asignaciones', {});
+      const list = rows.filter(r => asig[r.id] === name && r.estado !== 'ENTREGADO');
+      box.style.display = 'block';
+      box.innerHTML = list.length
+        ? list.map(r => `<div class="peer-item">• ${r.id} · ${r.estado}</div>`).join('')
+        : '<div class="peer-item">Sin F8s activas</div>';
     }
 
     function renderAll() {
@@ -374,8 +557,24 @@
     });
 
     document.getElementById('queue').addEventListener('click', async (e) => {
-      if (!e.target.classList.contains('doNext')) return;
-      await goNext(e.target.dataset.id);
+      if (e.target.classList.contains('doNext')) {
+        await goNext(e.target.dataset.id);
+        return;
+      }
+      if (e.target.classList.contains('toggleDetail')) {
+        const opened = await renderAllocationDetail(e.target.dataset.id);
+        e.target.textContent = opened ? '▲ Ocultar' : '▶ Ver detalle ▼';
+        return;
+      }
+      if (e.target.classList.contains('doUndo')) {
+        await undoLast(e.target.dataset.id);
+      }
+    });
+
+    document.getElementById('groupList').addEventListener('click', (e) => {
+      const row = e.target.closest('.peer-row');
+      if (!row) return;
+      togglePeerWork(row.dataset.name);
     });
 
     setInterval(() => {

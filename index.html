@@ -122,7 +122,7 @@
       border: none; background: #e5e7eb; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-weight: 700; font-size: 12px;
     }
     .card-actions .advance { background: #0b1f3a; color: #fff; }
-    .card-actions .undo { background: #ef6c00; color: #fff; }
+    .card-actions .undo { background: #e65100; color: #fff; }
     .warn { margin-top: 6px; padding: 6px; background: #fff3cd; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 12px; }
     .fillrate { margin-top: 6px; }
     .fillrate .line { height: 4px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
@@ -145,6 +145,48 @@
     .log { padding: 10px; font-size: 13px; }
     .log ul { margin: 0; padding-left: 18px; }
     .log li { margin-bottom: 4px; }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .metric-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-bottom: 3px solid #cbd5e1;
+      padding: 10px;
+    }
+    .metric-card .label {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .metric-card .value {
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1.05;
+      margin-top: 4px;
+    }
+    .metric-card .sub { font-size: 12px; color: #6b7280; margin-top: 3px; }
+    .groups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .group-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-left: 5px solid #607d8b;
+      padding: 10px;
+      min-height: 108px;
+    }
+    .group-card .name { font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .group-card .line { font-size: 12px; color: #374151; margin-top: 4px; }
+    .group-card .ratio { font-size: 13px; font-weight: 800; margin-top: 8px; }
     .sync { font-weight: 700; color: #bfdbfe; }
     .hidden { display: none !important; }
     #modal {
@@ -164,6 +206,7 @@
       .topbar { align-items: flex-start; }
       .actions { width: 100%; }
       .filters { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     }
   </style>
 </head>
@@ -430,7 +473,7 @@
       const prev = readPrevStates();
       let changed = false;
       Object.keys(prev).forEach((id) => {
-        if ((Date.now() - Number(prev[id]?.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
+        if ((Date.now() - Number(prev[id]?.timestamp || 0)) > UNDO_TIMEOUT_MS) {
           delete prev[id];
           changed = true;
         }
@@ -443,7 +486,7 @@
       if (undoTicker) return;
       undoTicker = setInterval(() => {
         const prev = readPrevStates();
-        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) < UNDO_TIMEOUT_MS);
+        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) <= UNDO_TIMEOUT_MS);
         if (!active) {
           cleanupExpiredPrevStates();
           clearInterval(undoTicker);
@@ -653,7 +696,7 @@
           const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
           const undoInfo = prevStates[item.id];
-          const undoActive = undoInfo && (Date.now() - Number(undoInfo.timestamp || 0)) < UNDO_TIMEOUT_MS;
+          const undoActive = undoInfo && (Date.now() - Number(undoInfo.timestamp || 0)) <= UNDO_TIMEOUT_MS;
           const undoSecs = undoActive ? Math.ceil((UNDO_TIMEOUT_MS - (Date.now() - Number(undoInfo.timestamp || 0))) / 1000) : 0;
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
@@ -723,23 +766,52 @@
       items.forEach(i => { if (byState[i.estado] !== undefined) byState[i.estado]++; });
       const actives = byState.PICKING + byState['FACTURACIÓN'] + byState.EMPACADO;
       const ratio = available > 0 ? (actives / available) : 0;
-      const level = ratio < 10 ? '🟢 NORMAL' : ratio <= 20 ? '🟡 ATENCIÓN' : '🔴 ALTO';
+      const level = ratio < 10 ? { icon: '🟢', text: 'NORMAL', color: '#2e7d32' } : ratio <= 20 ? { icon: '🟡', text: 'ATENCIÓN', color: '#f57f17' } : { icon: '🔴', text: 'ALTO', color: '#b71c1c' };
       const groups = [...new Set(STAFF.map(s => s.group))];
       const groupRows = groups.map(group => {
         const people = STAFF.filter(s => s.group === group && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
         const assigned = items.filter(i => i.group === group && i.estado === 'ASIGNADA').length;
         const groupRatio = people > 0 ? (assigned / people) : 0;
-        return `<div class="delivery-row"><div class="left"><strong>${group}</strong><div class="small">${people} personas · ${assigned} F8s asig · ${groupRatio.toFixed(1)} F8s/persona</div></div></div>`;
+        const groupLevel = groupRatio < 10 ? { icon: '🟢', color: '#2e7d32' } : groupRatio <= 20 ? { icon: '🟡', color: '#f57f17' } : { icon: '🔴', color: '#b71c1c' };
+        return `
+          <article class="group-card" style="border-left-color:${GROUP_COLORS[group] || '#607d8b'}">
+            <div class="name">${group}</div>
+            <div class="line">${people} personas</div>
+            <div class="line">${assigned} F8s</div>
+            <div class="ratio" style="color:${groupLevel.color}">${groupLevel.icon} ${groupRatio.toFixed(1)} /pers</div>
+          </article>
+        `;
       }).join('');
       document.getElementById('metricsBody').innerHTML = `
-        <div><strong>CAPACIDAD DEL EQUIPO</strong></div>
-        <div class="small" style="margin:4px 0 10px">Personal disponible: ${available} / ${total} · 🟡 En Ruta: ${enRuta} · ⏸ Ausentes: ${ausentes}</div>
-        <div><strong>CARGA DE TRABAJO (F8s por estado)</strong></div>
-        <div class="small" style="margin:4px 0 10px">Asignadas: ${byState.ASIGNADA} · Picking: ${byState.PICKING} · Facturación: ${byState['FACTURACIÓN']} · Empacado: ${byState.EMPACADO}</div>
-        <div><strong>ÍNDICE DE CONGESTIONAMIENTO</strong></div>
-        <div class="small" style="margin:4px 0 10px">F8s activas por almacenista disponible: ${ratio.toFixed(1)} F8s/persona · ${level}<br/>(Calculado: F8s en Picking+Facturación+Empacado / Personal disponible)</div>
-        <div><strong>DISTRIBUCIÓN DE CARGA POR GRUPO</strong></div>
-        ${groupRows || '<div class="small">Sin grupos disponibles.</div>'}
+        <div class="metrics-grid">
+          <article class="metric-card">
+            <div class="label">👥 Total personal</div>
+            <div class="value">${total}</div>
+            <div class="sub">almacenistas</div>
+          </article>
+          <article class="metric-card" style="border-bottom-color:#2e7d32">
+            <div class="label">✅ Disponible</div>
+            <div class="value">${available}</div>
+            <div class="sub">disponibles</div>
+          </article>
+          <article class="metric-card" style="border-bottom-color:#0277bd">
+            <div class="label">🚚 En ruta</div>
+            <div class="value">${enRuta}</div>
+            <div class="sub">en ruta</div>
+          </article>
+          <article class="metric-card" style="border-bottom-color:#6b7280">
+            <div class="label">⏸ Ausente</div>
+            <div class="value">${ausentes}</div>
+            <div class="sub">ausentes</div>
+          </article>
+          <article class="metric-card" style="border-bottom-color:${level.color}">
+            <div class="label">📊 Índice cong.</div>
+            <div class="value">${level.icon} ${ratio.toFixed(1)}</div>
+            <div class="sub">F8s/persona · ${level.text}</div>
+          </article>
+        </div>
+        <div style="margin-top:12px;font-weight:800">CARGA POR GRUPO</div>
+        <div class="groups-grid">${groupRows || '<div class="small">Sin grupos disponibles.</div>'}</div>
       `;
     }
 
@@ -786,6 +858,7 @@
       };
       writePrevStates(prevStates);
       ensureUndoTicker();
+      renderDashboard();
       try {
         await postUpdate(item.id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
         await postUpdate(item.id, DATE_FIELD_BY_STATE[next], nowStamp());
@@ -802,7 +875,7 @@
       const prevStates = readPrevStates();
       const prev = prevStates[item.id];
       if (!prev) return;
-      if ((Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
+      if ((Date.now() - Number(prev.timestamp || 0)) > UNDO_TIMEOUT_MS) {
         delete prevStates[item.id];
         writePrevStates(prevStates);
         renderDashboard();
