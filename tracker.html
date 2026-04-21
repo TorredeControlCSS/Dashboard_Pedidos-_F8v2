@@ -99,6 +99,7 @@
     let trackingRows = [];
     let allocationRows = [];
     let allocationLoaded = false;
+    const MAX_DETAIL_ROWS = 100;
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     const DAY_MAP = { 0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO' };
     const STATE_ICON = { ENTREGADO:'✅', DESPACHADO:'🚚', EMPACADO:'📦', 'FACTURACIÓN':'🧾', PICKING:'🔄', ASIGNADA:'📋' };
@@ -173,10 +174,10 @@
     }
 
     function sortByRecent(a, b) {
-      const aDate = new Date((a.fechaF8 || a.FECHA_F8 || a.fechaF8 || a.FECHA_ASIGNACION || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
-      const bDate = new Date((b.fechaF8 || b.FECHA_F8 || b.fechaF8 || b.FECHA_ASIGNACION || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
-      const aT = Number.isNaN(aDate.getTime()) ? 0 : aDate.getTime();
-      const bT = Number.isNaN(bDate.getTime()) ? 0 : bDate.getTime();
+      const aDate = new Date((a.fechaF8 || a.FECHA_F8 || a.FECHA_ASIGNACION || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+      const bDate = new Date((b.fechaF8 || b.FECHA_F8 || b.FECHA_ASIGNACION || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+      const aT = Number.isNaN(aDate.getTime()) ? -1 : aDate.getTime();
+      const bT = Number.isNaN(bDate.getTime()) ? -1 : bDate.getTime();
       return bT - aT || String(a.ID_PEDIDO || '').localeCompare(String(b.ID_PEDIDO || ''));
     }
 
@@ -205,8 +206,10 @@
 
     function detailsTableHTML(rows){
       if (!rows.length) return '<div class="small">Detalle no disponible en este momento</div>';
-      const safeRows = rows.slice(0, 100);
+      const safeRows = rows.slice(0, MAX_DETAIL_ROWS);
+      const limitedMsg = rows.length > MAX_DETAIL_ROWS ? `<div class="small" style="margin:6px 0">Mostrando los primeros ${MAX_DETAIL_ROWS} renglones de ${rows.length}.</div>` : '';
       return `
+        ${limitedMsg}
         <div class="details-table-wrap">
           <table>
             <thead><tr><th>Código</th><th>Suministro</th><th>Asignado</th><th>Estado</th></tr></thead>

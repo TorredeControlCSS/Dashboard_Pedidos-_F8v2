@@ -136,6 +136,7 @@
     };
     const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', 'FACTURACIÓN': 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
     const DATE_FIELD = { PICKING: 'FECHA_PICKING', 'FACTURACIÓN': 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
+    const IDENTITY_KEY = 'almacen_yo';
 
     let rows = [];
     let lastSuccessfulSync = "";
@@ -195,7 +196,7 @@
       })).filter(x => x.id !== '---');
     }
 
-    function getMe() { return localStorage.getItem('almacen_yo') || ''; }
+    function getMe() { return localStorage.getItem(IDENTITY_KEY) || ''; }
 
     function setupIdentity() {
       const sel = document.getElementById('whoSelect');
@@ -205,7 +206,7 @@
         document.getElementById('identity').style.display = 'none';
         document.getElementById('app').style.display = 'block';
       } else {
-        localStorage.removeItem('almacen_yo');
+        localStorage.removeItem(IDENTITY_KEY);
         sel.value = '';
         document.getElementById('identity').style.display = 'block';
         document.getElementById('app').style.display = 'none';
@@ -343,12 +344,12 @@
     document.getElementById('loginBtn').addEventListener('click', () => {
       const who = document.getElementById('whoSelect').value;
       if (!who) return;
-      localStorage.setItem('almacen_yo', who);
+      localStorage.setItem(IDENTITY_KEY, who);
       renderAll();
     });
 
     document.getElementById('changeUserBtn').addEventListener('click', () => {
-      localStorage.removeItem('almacen_yo');
+      localStorage.removeItem(IDENTITY_KEY);
       setupIdentity();
     });
 

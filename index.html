@@ -319,6 +319,7 @@
     let undoTicker = null;
     const filters = { search: "", group: "", tipo: "", todayOnly: false };
     const PREV_STATE_KEY = 'almacen_prev_state';
+    const UNDO_TIMEOUT_MS = 15000;
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -429,7 +430,7 @@
       const prev = readPrevStates();
       let changed = false;
       Object.keys(prev).forEach((id) => {
-        if ((Date.now() - Number(prev[id]?.timestamp || 0)) >= 15000) {
+        if ((Date.now() - Number(prev[id]?.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
           delete prev[id];
           changed = true;
         }
@@ -442,7 +443,7 @@
       if (undoTicker) return;
       undoTicker = setInterval(() => {
         const prev = readPrevStates();
-        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) < 15000);
+        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) < UNDO_TIMEOUT_MS);
         if (!active) {
           cleanupExpiredPrevStates();
           clearInterval(undoTicker);
@@ -636,6 +637,7 @@
       STATES.forEach(state => {
         const colItems = items
           .filter(i => i.estado === state)
+          // Prioridad: entrega hoy primero, luego fecha F8 más antigua, y finalmente ID alfabético.
           .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || sortableF8Date(a) - sortableF8Date(b) || String(a.id).localeCompare(String(b.id)));
         const col = document.createElement('section');
         col.className = 'col';
@@ -651,8 +653,8 @@
           const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
           const undoInfo = prevStates[item.id];
-          const undoActive = undoInfo && (Date.now() - Number(undoInfo.timestamp || 0)) < 15000;
-          const undoSecs = undoActive ? Math.ceil((15000 - (Date.now() - Number(undoInfo.timestamp || 0))) / 1000) : 0;
+          const undoActive = undoInfo && (Date.now() - Number(undoInfo.timestamp || 0)) < UNDO_TIMEOUT_MS;
+          const undoSecs = undoActive ? Math.ceil((UNDO_TIMEOUT_MS - (Date.now() - Number(undoInfo.timestamp || 0))) / 1000) : 0;
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
           card.innerHTML = `
@@ -800,7 +802,7 @@
       const prevStates = readPrevStates();
       const prev = prevStates[item.id];
       if (!prev) return;
-      if ((Date.now() - Number(prev.timestamp || 0)) >= 15000) {
+      if ((Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
         delete prevStates[item.id];
         writePrevStates(prevStates);
         renderDashboard();
@@ -815,7 +817,7 @@
         }
         delete prevStates[item.id];
         writePrevStates(prevStates);
-        addLog(`${item.id} deshecha a ${prevEstado}`);
+        addLog(`${item.id} deshecho a ${prevEstado}`);
         showToast('↩ Cambio deshecho');
         await loadData(false);
       } catch (e) {
