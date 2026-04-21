@@ -122,6 +122,7 @@
       border: none; background: #e5e7eb; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-weight: 700; font-size: 12px;
     }
     .card-actions .advance { background: #0b1f3a; color: #fff; }
+    .card-actions .undo { background: #ef6c00; color: #fff; }
     .warn { margin-top: 6px; padding: 6px; background: #fff3cd; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 12px; }
     .fillrate { margin-top: 6px; }
     .fillrate .line { height: 4px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
@@ -204,6 +205,17 @@
 
     <section class="board" id="board"></section>
 
+    <section class="section" id="metricsSection">
+      <div class="section-head">
+        📊 Métricas Operativas
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="exportReportBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:6px 8px;background:#fff;cursor:pointer;font-weight:700;font-size:12px;">📄 Exportar Reporte</button>
+          <button class="toggle" data-target="metricsBody">▼</button>
+        </div>
+      </div>
+      <div id="metricsBody" class="log"></div>
+    </section>
+
     <section class="section" id="staffSection">
       <div class="section-head">👥 Personal Disponible — Gestión de Capacidad <button class="toggle" data-target="staffBody">▼</button></div>
       <div id="staffBody">
@@ -232,6 +244,7 @@
 
   <div id="toast"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
     const STAFF = [
@@ -303,7 +316,10 @@
     let pendingAssignId = null;
     let currentGroupTab = "";
     let lastSuccessfulSync = "";
+    let undoTicker = null;
     const filters = { search: "", group: "", tipo: "", todayOnly: false };
+    const PREV_STATE_KEY = 'almacen_prev_state';
+    const UNDO_TIMEOUT_MS = 15000;
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -371,6 +387,73 @@
     function formatTodayLabel() {
       const txt = new Date().toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long' });
       return normalizeText(txt);
+    }
+
+    function parseDateValue(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return null;
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return new Date(raw.slice(0, 10));
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [d, m, y] = raw.split('/').map(Number);
+        return new Date(y, m - 1, d);
+      }
+      const dt = new Date(raw);
+      return Number.isNaN(dt.getTime()) ? null : dt;
+    }
+
+    function toIsoDate(value) {
+      const dt = parseDateValue(value);
+      if (!dt) return '—';
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+
+    function sortableF8Date(item) {
+      const dt = parseDateValue(item.fechaF8);
+      return dt ? dt.getTime() : Number.MAX_SAFE_INTEGER;
+    }
+
+    function getDateFieldForState(state) {
+      if (state === 'ASIGNADA') return 'FECHA_ASIGNACION';
+      return DATE_FIELD_BY_STATE[state] || '';
+    }
+
+    function readPrevStates() {
+      return readLS(PREV_STATE_KEY, {});
+    }
+
+    function writePrevStates(v) {
+      writeLS(PREV_STATE_KEY, v);
+      writeLS('almacen_estados_prev', v);
+    }
+
+    function cleanupExpiredPrevStates() {
+      const prev = readPrevStates();
+      let changed = false;
+      Object.keys(prev).forEach((id) => {
+        if ((Date.now() - Number(prev[id]?.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
+          delete prev[id];
+          changed = true;
+        }
+      });
+      if (changed) writePrevStates(prev);
+      return changed;
+    }
+
+    function ensureUndoTicker() {
+      if (undoTicker) return;
+      undoTicker = setInterval(() => {
+        const prev = readPrevStates();
+        const active = Object.values(prev).some(v => (Date.now() - Number(v?.timestamp || 0)) < UNDO_TIMEOUT_MS);
+        if (!active) {
+          cleanupExpiredPrevStates();
+          clearInterval(undoTicker);
+          undoTicker = null;
+          renderDashboard();
+          return;
+        }
+        cleanupExpiredPrevStates();
+        renderDashboard();
+      }, 1000);
     }
 
     function setConnectionStatus(isOnline) {
@@ -543,19 +626,22 @@
       renderKPIs(items, stateMap);
       renderDeliveryWidget(items);
       renderBoard(items, stateMap, asig, personal);
+      renderOperationalMetrics(tracking, asig);
       renderStaff(items, asig);
     }
 
     function renderBoard(items, stateMap, asig, personal) {
       const board = document.getElementById('board');
       board.innerHTML = '';
+      const prevStates = readPrevStates();
       STATES.forEach(state => {
         const colItems = items
           .filter(i => i.estado === state)
-          .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || Number(b.tipo === 'URGENCIA') - Number(a.tipo === 'URGENCIA'));
+          // Prioridad: entrega hoy primero, luego fecha F8 más antigua, y finalmente ID alfabético.
+          .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || sortableF8Date(a) - sortableF8Date(b) || String(a.id).localeCompare(String(b.id)));
         const col = document.createElement('section');
         col.className = 'col';
-        col.innerHTML = `<div class="col-head">${state} <span class="count">${colItems.length}</span></div><div class="cards"></div>`;
+        col.innerHTML = `<div class="col-head"><div>${state}<div class="small">Ordenado: más antiguo primero</div></div><span class="count">${colItems.length}</span></div><div class="cards"></div>`;
         const cards = col.querySelector('.cards');
         colItems.forEach(item => {
           const who = asig[item.id] || 'Sin asignar';
@@ -566,6 +652,9 @@
           const pct = item.totalSolic > 0 ? Math.max(0, Math.min(100, (item.totalAsig / item.totalSolic) * 100)) : 0;
           const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
+          const undoInfo = prevStates[item.id];
+          const undoActive = undoInfo && (Date.now() - Number(undoInfo.timestamp || 0)) < UNDO_TIMEOUT_MS;
+          const undoSecs = undoActive ? Math.ceil((UNDO_TIMEOUT_MS - (Date.now() - Number(undoInfo.timestamp || 0))) / 1000) : 0;
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
           card.innerHTML = `
@@ -575,6 +664,7 @@
               ${item.deliveryToday ? `<span class="badge" style="background:#f9a825">📅 ENTREGA HOY</span>` : ''}
             </div>
             <div class="id">${item.id}</div>
+            <div class="meta">📋 F8: ${toIsoDate(item.fechaF8)}</div>
             <div class="meta">${item.unidad}</div>
             <div class="meta">Asig: ${Number(item.totalAsig || 0).toLocaleString('es-PA')} uds</div>
             <div class="fillrate">
@@ -587,7 +677,7 @@
             ${warn ? `<div class="warn">⚠️ ${who} está ${st}${personal[who]?.destination ? ` · ${personal[who].destination}` : ''}</div>` : ''}
             <div class="card-actions">
               <button class="reassign" data-id="${item.id}">👤 Reasignar</button>
-              ${NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : ''}
+              ${undoActive ? `<button class="undo" data-id="${item.id}">↩ Deshacer (${undoSecs}s)</button>` : (NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : '')}
             </div>
           `;
           cards.appendChild(card);
@@ -621,6 +711,36 @@
           </article>
         `;
       }).join('');
+    }
+
+    function renderOperationalMetrics(items, asig) {
+      const personal = readLS('almacen_personal', {});
+      const total = STAFF.length;
+      const available = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+      const enRuta = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'EN RUTA').length;
+      const ausentes = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'AUSENTE').length;
+      const byState = { ASIGNADA: 0, PICKING: 0, 'FACTURACIÓN': 0, EMPACADO: 0 };
+      items.forEach(i => { if (byState[i.estado] !== undefined) byState[i.estado]++; });
+      const actives = byState.PICKING + byState['FACTURACIÓN'] + byState.EMPACADO;
+      const ratio = available > 0 ? (actives / available) : 0;
+      const level = ratio < 10 ? '🟢 NORMAL' : ratio <= 20 ? '🟡 ATENCIÓN' : '🔴 ALTO';
+      const groups = [...new Set(STAFF.map(s => s.group))];
+      const groupRows = groups.map(group => {
+        const people = STAFF.filter(s => s.group === group && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+        const assigned = items.filter(i => i.group === group && i.estado === 'ASIGNADA').length;
+        const groupRatio = people > 0 ? (assigned / people) : 0;
+        return `<div class="delivery-row"><div class="left"><strong>${group}</strong><div class="small">${people} personas · ${assigned} F8s asig · ${groupRatio.toFixed(1)} F8s/persona</div></div></div>`;
+      }).join('');
+      document.getElementById('metricsBody').innerHTML = `
+        <div><strong>CAPACIDAD DEL EQUIPO</strong></div>
+        <div class="small" style="margin:4px 0 10px">Personal disponible: ${available} / ${total} · 🟡 En Ruta: ${enRuta} · ⏸ Ausentes: ${ausentes}</div>
+        <div><strong>CARGA DE TRABAJO (F8s por estado)</strong></div>
+        <div class="small" style="margin:4px 0 10px">Asignadas: ${byState.ASIGNADA} · Picking: ${byState.PICKING} · Facturación: ${byState['FACTURACIÓN']} · Empacado: ${byState.EMPACADO}</div>
+        <div><strong>ÍNDICE DE CONGESTIONAMIENTO</strong></div>
+        <div class="small" style="margin:4px 0 10px">F8s activas por almacenista disponible: ${ratio.toFixed(1)} F8s/persona · ${level}<br/>(Calculado: F8s en Picking+Facturación+Empacado / Personal disponible)</div>
+        <div><strong>DISTRIBUCIÓN DE CARGA POR GRUPO</strong></div>
+        ${groupRows || '<div class="small">Sin grupos disponibles.</div>'}
+      `;
     }
 
     function renderLog() {
@@ -657,6 +777,15 @@
       const who = asig[item.id] || 'Sin asignar';
       const stateMap = readLS('almacen_state_timestamps', {});
       const elapsed = getElapsed(item, stateMap);
+      const prevStates = readPrevStates();
+      const prevStateField = getDateFieldForState(item.estado);
+      prevStates[item.id] = {
+        prevEstado: item.estado,
+        prevFechaCampo: prevStateField ? (item[prevStateField] || '') : '',
+        timestamp: Date.now()
+      };
+      writePrevStates(prevStates);
+      ensureUndoTicker();
       try {
         await postUpdate(item.id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
         await postUpdate(item.id, DATE_FIELD_BY_STATE[next], nowStamp());
@@ -666,6 +795,34 @@
       } catch (e) {
         console.error(e);
         showToast('❌ No se pudo actualizar');
+      }
+    }
+
+    async function undoItem(item) {
+      const prevStates = readPrevStates();
+      const prev = prevStates[item.id];
+      if (!prev) return;
+      if ((Date.now() - Number(prev.timestamp || 0)) >= UNDO_TIMEOUT_MS) {
+        delete prevStates[item.id];
+        writePrevStates(prevStates);
+        renderDashboard();
+        return;
+      }
+      try {
+        const prevEstado = prev.prevEstado || 'ASIGNADA';
+        await postUpdate(item.id, 'ESTADO', prevEstado === 'FACTURACIÓN' ? 'FACTURADO' : prevEstado);
+        const prevField = getDateFieldForState(prevEstado);
+        if (prevField && prev.prevFechaCampo) {
+          await postUpdate(item.id, prevField, prev.prevFechaCampo);
+        }
+        delete prevStates[item.id];
+        writePrevStates(prevStates);
+        addLog(`${item.id} deshecho a ${prevEstado}`);
+        showToast('↩ Cambio deshecho');
+        await loadData(false);
+      } catch (e) {
+        console.error(e);
+        showToast('❌ No se pudo deshacer');
       }
     }
 
@@ -689,6 +846,13 @@
             diasEntrega,
             deliveryToday: isDeliveryToday(diasEntrega),
             categoria: row.CATEGORIA || row.CATEG || '',
+            fechaF8: row.FECHA_F8 || row.fechaF8 || '',
+            FECHA_ASIGNACION: row.FECHA_ASIGNACION || '',
+            FECHA_PICKING: row.FECHA_PICKING || '',
+            FECHA_FACTURACION: row.FECHA_FACTURACION || '',
+            FECHA_EMPACADO: row.FECHA_EMPACADO || '',
+            FECHA_DESPACHO: row.FECHA_DESPACHO || '',
+            FECHA_ENTREGA: row.FECHA_ENTREGA || '',
             fechaDespacho: row.FECHA_DESPACHO || ''
           };
         }).filter(i => i.id && i.id !== '---');
@@ -726,6 +890,66 @@
         a.click();
         URL.revokeObjectURL(url);
         showToast('✅ Backup descargado');
+      });
+      document.getElementById('exportReportBtn').addEventListener('click', () => {
+        if (typeof XLSX === 'undefined') {
+          showToast('❌ SheetJS no está disponible');
+          return;
+        }
+        const asig = readLS('almacen_asignaciones', {});
+        const personal = readLS('almacen_personal', {});
+        const logs = readLS('almacen_log', []);
+        const book = XLSX.utils.book_new();
+
+        const byState = STATES.reduce((acc, st) => ({ ...acc, [st]: 0 }), {});
+        tracking.forEach(r => { byState[r.estado] = (byState[r.estado] || 0) + 1; });
+        const available = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+        const activeOps = (byState.PICKING || 0) + (byState['FACTURACIÓN'] || 0) + (byState.EMPACADO || 0);
+        const generalRatio = available > 0 ? (activeOps / available) : 0;
+        const groups = [...new Set(STAFF.map(s => s.group))];
+        const resumen = [
+          ['Fecha generación', new Date().toLocaleString('es-PA')],
+          [],
+          ['Total F8s por estado'],
+          ...STATES.map(st => [st, byState[st] || 0]),
+          [],
+          ['Personal por grupo', 'Disponible', 'En Ruta', 'Ausente'],
+          ...groups.map(g => [
+            g,
+            STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length,
+            STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'EN RUTA').length,
+            STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'AUSENTE').length
+          ]),
+          [],
+          ['Índice de congestionamiento general', Number(generalRatio.toFixed(2))],
+          ['Índice por grupo', 'F8s Asignadas', 'Disponibles', 'F8s/persona'],
+          ...groups.map(g => {
+            const assigned = tracking.filter(t => t.group === g && t.estado === 'ASIGNADA').length;
+            const people = STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+            return [g, assigned, people, Number((people > 0 ? assigned / people : 0).toFixed(2))];
+          })
+        ];
+        XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(resumen), 'Resumen Operativo');
+
+        const stateMap = readLS('almacen_state_timestamps', {});
+        const detalle = [
+          ['ID', 'UE', 'Grupo', 'Tipo', 'Estado', 'Almacenista Asignado', 'Fecha F8', 'Fecha Asignación', 'Días en estado actual', 'Fill Rate %'],
+          ...tracking.map(r => {
+            const entered = stateMap[r.id]?.enteredAt;
+            const days = entered ? ((Date.now() - Number(entered)) / 86400000) : 0;
+            const fill = r.totalSolic > 0 ? (r.totalAsig / r.totalSolic) * 100 : 0;
+            return [r.id, r.unidad, r.group, r.tipo, r.estado, asig[r.id] || '', toIsoDate(r.fechaF8), r.FECHA_ASIGNACION || '', Number(days.toFixed(2)), Number(fill.toFixed(2))];
+          })
+        ];
+        XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(detalle), 'Detalle F8s');
+
+        const logSheet = [['timestamp', 'mensaje'], ...logs.map(l => [new Date(l.ts).toLocaleString('es-PA'), l.msg])];
+        XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(logSheet), 'Log de Actividad');
+
+        const d = new Date();
+        const fileName = `Reporte_Operativo_CEDIS_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}.xlsx`;
+        XLSX.writeFile(book, fileName);
+        showToast('✅ Reporte exportado');
       });
       document.querySelectorAll('.toggle').forEach(btn => btn.addEventListener('click', () => {
         const target = document.getElementById(btn.dataset.target);
@@ -774,6 +998,9 @@
         }
         if (e.target.classList.contains('advance')) {
           await advanceItem(item);
+        }
+        if (e.target.classList.contains('undo')) {
+          await undoItem(item);
         }
       });
       document.getElementById('staffTabs').addEventListener('click', (e) => {

@@ -25,6 +25,8 @@
     .status-btns button.active { background:var(--navy); color:#fff; }
     .destination, select, input { width:100%; min-height:44px; border:1px solid #d1d5db; border-radius:10px; padding:10px; font-size:16px; }
     .login { max-width:460px; margin:36px auto; }
+    .identity-modal{ position:fixed; inset:0; z-index:60; background:rgba(11,31,58,.45); display:flex; align-items:center; justify-content:center; padding:14px; }
+    .identity-modal .panel{ width:min(460px, 100%); margin:0; }
     .queue { display:grid; gap:8px; }
     .card { border:1px solid #e5e7eb; border-left:6px solid #64748b; border-radius:10px; background:#fff; padding:10px; }
     .card.today { background:#fff8e1; }
@@ -50,17 +52,20 @@
     </div>
     <div class="actions">
       <a class="btn" href="index.html">← Jefatura</a>
-      <a class="btn" href="tracker.html">📡 Tracker</a>
+      <span class="btn" id="whoBadge" style="cursor:default">👤 Sin seleccionar</span>
       <button class="btn" id="changeUserBtn">Cambiar</button>
+      <a class="btn" href="tracker.html">📡 Tracker</a>
     </div>
   </header>
   <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="main">
-    <section id="identity" class="panel login">
-      <h2>¿Quién eres?</h2>
-      <select id="whoSelect"></select>
-      <button id="loginBtn" class="action-btn" style="margin-top:10px">✅ Ingresar</button>
+    <section id="identity" class="identity-modal" style="display:none">
+      <div class="panel login">
+        <h2>¿Quién eres?</h2>
+        <select id="whoSelect"></select>
+        <button id="loginBtn" class="action-btn" style="margin-top:10px">✅ Ingresar</button>
+      </div>
     </section>
 
     <section id="app" class="hidden" style="display:none">
@@ -131,6 +136,7 @@
     };
     const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', 'FACTURACIÓN': 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
     const DATE_FIELD = { PICKING: 'FECHA_PICKING', 'FACTURACIÓN': 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
+    const IDENTITY_KEY = 'almacen_yo';
 
     let rows = [];
     let lastSuccessfulSync = "";
@@ -190,19 +196,27 @@
       })).filter(x => x.id !== '---');
     }
 
-    function getMe() { return localStorage.getItem('almacen_yo') || ''; }
+    function getMe() { return localStorage.getItem(IDENTITY_KEY) || ''; }
 
     function setupIdentity() {
       const sel = document.getElementById('whoSelect');
       sel.innerHTML = '<option value="">Seleccione su nombre...</option>' + STAFF.map(s => `<option value="${s.name}">${s.name} · ${s.group}</option>`).join('');
       const me = getMe();
-      if (me) {
+      if (me && STAFF.some(s => s.name === me)) {
         document.getElementById('identity').style.display = 'none';
         document.getElementById('app').style.display = 'block';
       } else {
+        localStorage.removeItem(IDENTITY_KEY);
+        sel.value = '';
         document.getElementById('identity').style.display = 'block';
         document.getElementById('app').style.display = 'none';
       }
+      renderIdentityBadge();
+    }
+
+    function renderIdentityBadge() {
+      const me = getMe();
+      document.getElementById('whoBadge').textContent = me ? `👤 ${me}` : '👤 Sin seleccionar';
     }
 
     function renderMyStatus() {
@@ -330,13 +344,13 @@
     document.getElementById('loginBtn').addEventListener('click', () => {
       const who = document.getElementById('whoSelect').value;
       if (!who) return;
-      localStorage.setItem('almacen_yo', who);
+      localStorage.setItem(IDENTITY_KEY, who);
       renderAll();
     });
 
     document.getElementById('changeUserBtn').addEventListener('click', () => {
-      localStorage.removeItem('almacen_yo');
-      renderAll();
+      localStorage.removeItem(IDENTITY_KEY);
+      setupIdentity();
     });
 
     document.querySelector('.status-btns').addEventListener('click', (e) => {

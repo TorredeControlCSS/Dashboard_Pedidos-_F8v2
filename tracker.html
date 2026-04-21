@@ -16,11 +16,12 @@
     .wrap{ max-width:920px; margin:0 auto; padding:16px; }
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px; }
     .hero{ text-align:center; margin-top:12px; }
-    .hero input{ width:min(520px,100%); min-height:48px; border-radius:10px; border:1px solid #cbd5e1; padding:10px; font-size:20px; }
-    .hero button{ margin-top:10px; min-height:46px; border:none; border-radius:10px; background:var(--navy); color:#fff; font-weight:700; padding:0 18px; font-size:18px; cursor:pointer; }
+    .hero input, .hero select{ width:min(640px,100%); min-height:48px; border-radius:10px; border:1px solid #cbd5e1; padding:10px; font-size:18px; }
+    .hero button{ margin-top:10px; min-height:46px; border:none; border-radius:10px; background:var(--navy); color:#fff; font-weight:700; padding:0 18px; font-size:16px; cursor:pointer; }
     .chips{ margin-top:12px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
     .chip{ border:1px solid #cbd5e1; border-radius:999px; padding:5px 10px; cursor:pointer; background:#f8fafc; }
     .hidden{ display:none; }
+    .result{ margin-top:12px; }
     .result h2{ margin:0; color:#0b1f3a; }
     .meta{ margin-top:4px; color:#4b5563; }
     .timeline{ margin-top:16px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px; position:relative; }
@@ -40,6 +41,18 @@
     .footer{ margin-top:14px; color:#6b7280; font-size:13px; }
     .err{ margin-top:12px; background:#fff3cd; border-left:4px solid #f59e0b; border-radius:8px; padding:10px; }
     .spinner{ width:24px; height:24px; border:3px solid #d1d5db; border-top-color:#0b1f3a; border-radius:999px; margin:12px auto; animation:spin 1s linear infinite; }
+    .sep{ margin:16px auto 4px; color:#6b7280; font-weight:700; }
+    .counter{ margin-top:8px; color:#475569; font-size:13px; }
+    .details-toggle{ margin-top:8px; border:none; background:#f1f5f9; border-radius:8px; padding:8px 10px; cursor:pointer; font-weight:700; }
+    .details-wrap{ margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; padding:10px; background:#f8fafc; }
+    .details-table-wrap{ max-height:280px; overflow:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fff; }
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
+    th,td{ border-bottom:1px solid #e5e7eb; padding:8px; text-align:left; }
+    th{ position:sticky; top:0; background:#f8fafc; }
+    .ue-list{ margin-top:10px; display:grid; gap:8px; }
+    .ue-row{ border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:10px; }
+    .ue-head{ display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
+    .ue-btn{ border:none; background:#e2e8f0; border-radius:8px; padding:6px 8px; cursor:pointer; font-weight:700; }
     @keyframes spin{to{transform:rotate(360deg)}}
     @media (max-width:780px){
       .timeline{ grid-template-columns:1fr; }
@@ -59,59 +72,37 @@
   <main class="wrap">
     <section class="card hero">
       <h2 style="margin-top:0">📦 Consulte su Requisición F8</h2>
-      <label for="f8Input" style="display:block;margin:8px 0">Número de Forma 8:</label>
-      <input id="f8Input" placeholder="Ej: F8-2026-00001" />
+      <label for="f8Input" style="display:block;margin:8px 0">Número(s) de Forma 8:</label>
+      <input id="f8Input" placeholder="Ej: 8107-2026-1-96, 8084-2026-1-160" />
       <div><button id="searchBtn">🔍 Consultar</button></div>
+      <div id="searchCounter" class="counter hidden"></div>
+
+      <div class="sep">────── o ──────</div>
+      <div style="font-weight:700;margin-top:6px">🏥 Consultar por Unidad Ejecutora</div>
+      <select id="ueSelect"><option value="">Seleccione su institución</option></select>
+      <div><button id="ueSearchBtn">📋 Ver todos mis pedidos</button></div>
+
       <div class="small" style="margin-top:8px;color:#6b7280">Búsquedas recientes:</div>
       <div id="recent" class="chips"></div>
       <div id="loading" class="hidden"><div class="spinner"></div></div>
       <div id="noFound" class="err hidden">⚠️ No se encontró la Forma 8 ingresada.<br/>Verifique el número e intente nuevamente.<br/>Si el problema persiste, contacte a Torre de Control.</div>
     </section>
 
-    <section id="result" class="card result hidden" style="margin-top:12px"></section>
-    <div style="text-align:center;margin-top:12px"><a href="almacenista.html" style="color:#64748b">Acceso Personal</a></div>
+    <section id="results" class="result"></section>
+    <section id="ueResults" class="result"></section>
   </main>
 
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
-    const STAFF = [
-      { name: "Alfonso Mendez", group: "GRUPO 2", cargo: "ALMACENISTA I"  },
-      { name: "Anthony D. Allca", group: "FRÍO", cargo: "ALMACENISTA II" },
-      { name: "Aurelio Rojas", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Bey Mario Reluz", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Boris Lasso", group: "FRÍO", cargo: "ALMACENISTA II" },
-      { name: "Carlos Mendoza", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "David Magallon", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Erasmo Valencia", group: "URGENCIAS", cargo: "ALMACENISTA II" },
-      { name: "Eric Castro", group: "VENCIDOS", cargo: "ALMACENISTA II" },
-      { name: "Eric Medina", group: "MÓDULO", cargo: "ALMACENISTA II" },
-      { name: "Fernando Ruíz", group: "GRUPO 4", cargo: "ALMACENISTA II" },
-      { name: "Francisco Pachay", group: "GRUPO 1", cargo: "CAMILLERO II" },
-      { name: "Franklin Almanza", group: "VENCIDOS", cargo: "ALMACENISTA II" },
-      { name: "Gaspar Salcedo", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "Jean Carlos Labrador", group: "GRUPO 2", cargo: "ALMACENISTA I" },
-      { name: "Jesus Reyna", group: "GRUPO 2", cargo: "ALMACENISTA I" },
-      { name: "Joel Sanchez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Juan Rodriguez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Luis M. Visuete", group: "GRUPO 3", cargo: "ALMACENISTA I" },
-      { name: "Luis Miranda", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Luis Urrutia", group: "GRUPO 2", cargo: "ALMACENISTA II" },
-      { name: "Luis Wtges", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Maximino Villarreal", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Miguel A. Rodriguez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Osvaldo Loaiza", group: "GRUPO 2", cargo: "ALMACENISTA II" },
-      { name: "Roman Perez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Sebastian Hidalgo", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" }
-    ];
-    const GROUP_COLORS = {
-      "GRUPO 1": "#1565c0", "GRUPO 2": "#2e7d32", "GRUPO 3": "#6a1b9a", "GRUPO 4-5-11": "#e65100", "GRUPO 4": "#bf360c",
-      "FRÍO": "#0277bd", "EMPAQUE": "#4e342e", "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f"
-    };
     const FLOW = ['ASIGNADA','PICKING','FACTURACIÓN','EMPACADO','DESPACHADO','ENTREGADO'];
     let lastSuccessfulSync = "";
+    let trackingRows = [];
+    let allocationRows = [];
+    let allocationLoaded = false;
+    const MAX_DETAIL_ROWS = 100;
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     const DAY_MAP = { 0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO' };
+    const STATE_ICON = { ENTREGADO:'✅', DESPACHADO:'🚚', EMPACADO:'📦', 'FACTURACIÓN':'🧾', PICKING:'🔄', ASIGNADA:'📋' };
 
     const normalizeState = s => {
       const up = String(s || '').toUpperCase();
@@ -121,6 +112,7 @@
       return up || 'ASIGNADA';
     };
     const isDeliveryToday = (diasEntrega) => diasEntrega ? normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]) : false;
+
     function nextDeliveryDate(diasEntrega) {
       if (!diasEntrega) return null;
       const DAY_NUM = { LUNES:1, MARTES:2, MIERCOLES:3, JUEVES:4, VIERNES:5 };
@@ -138,6 +130,7 @@
       next.setDate(today.getDate() + minDiff);
       return next.toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long' });
     }
+
     function setConnectionStatus(isOnline) {
       const status = document.getElementById('connStatus');
       const banner = document.getElementById('offlineBanner');
@@ -152,31 +145,41 @@
     }
 
     function setLoading(on){ document.getElementById('loading').classList.toggle('hidden', !on); }
-
     function getRecent(){ try { return JSON.parse(localStorage.getItem('tracker_recientes')) || []; } catch { return []; } }
     function saveRecent(id){
       const rec = getRecent().filter(x => x !== id);
       rec.unshift(id);
-      localStorage.setItem('tracker_recientes', JSON.stringify(rec.slice(0,5)));
+      localStorage.setItem('tracker_recientes', JSON.stringify(rec.slice(0,10)));
       renderRecent();
     }
-
     function renderRecent(){
       const box = document.getElementById('recent');
       const arr = getRecent();
       box.innerHTML = arr.length ? arr.map(x => `<span class="chip" data-id="${x}">${x}</span>`).join('') : '<span class="small">Sin búsquedas recientes.</span>';
     }
 
-    function cacheKey(id){ return `tracker_cache_${id}`; }
-    function readCache(id){
-      try {
-        const v = JSON.parse(sessionStorage.getItem(cacheKey(id)));
-        if (!v) return null;
-        if (Date.now() - v.ts > 2 * 60 * 1000) return null;
-        return v.data;
-      } catch { return null; }
+    function fmtDate(s){
+      if (!s) return '—';
+      const raw = String(s).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0,10);
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [d,m,y] = raw.split('/');
+        return `${y}-${m}-${d}`;
+      }
+      if (raw.includes('T')) {
+        const d = new Date(raw);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+      return raw;
     }
-    function writeCache(id, data){ sessionStorage.setItem(cacheKey(id), JSON.stringify({ ts: Date.now(), data })); }
+
+    function sortByRecent(a, b) {
+      const aDate = new Date((a.fechaF8 || a.FECHA_F8 || a.FECHA_ASIGNACION || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+      const bDate = new Date((b.fechaF8 || b.FECHA_F8 || b.FECHA_ASIGNACION || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+      const aT = Number.isNaN(aDate.getTime()) ? -1 : aDate.getTime();
+      const bT = Number.isNaN(bDate.getTime()) ? -1 : bDate.getTime();
+      return bT - aT || String(a.ID_PEDIDO || '').localeCompare(String(b.ID_PEDIDO || ''));
+    }
 
     function contextual(state, deliveryToday){
       if (state === 'EMPACADO' && deliveryToday) return '🚀 Su pedido está listo y tiene entrega programada HOY. Coordine la recepción inmediatamente.';
@@ -188,20 +191,7 @@
       return 'Su requisición está en proceso interno de almacén.';
     }
 
-    function fmtDate(s){
-      if (!s) return '—';
-      if (String(s).includes('T')) {
-        const d = new Date(s);
-        return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-      }
-      return s;
-    }
-
-    function renderResult(r){
-      const state = normalizeState(r.ESTADO);
-      const diasEntrega = String(r.Dias_Entrega || r.DIAS_ENTREGA || r.dias_entrega || '').trim();
-      const deliveryToday = isDeliveryToday(diasEntrega);
-      const nextDate = nextDeliveryDate(diasEntrega);
+    function timelineHTML(r, state){
       const idx = FLOW.indexOf(state);
       const byDate = {
         ASIGNADA: fmtDate(r.FECHA_ASIGNACION),
@@ -211,84 +201,264 @@
         DESPACHADO: fmtDate(r.FECHA_DESPACHO),
         ENTREGADO: fmtDate(r.FECHA_ENTREGA)
       };
-      const totalSolic = Number(r.TOTAL_SOLIC || 0);
-      const totalAsig = Number(r.TOTAL_ASIG || 0);
-      const itemsSolic = Number(r.ITEMS_SOLIC || 0);
-      const itemsAsig = Number(r.ITEMS_ASIG || 0);
-      const pct = totalSolic ? Math.max(0, Math.min(100, (totalAsig / totalSolic) * 100)) : 0;
-
-      document.getElementById('result').innerHTML = `
-        <h2>📋 ${r.ID_PEDIDO || '—'}</h2>
-        <div class="meta">${r.UNIDAD_EJECUTORA || 'Sin UE'}</div>
-        <div class="meta">Fecha de Requisición: ${fmtDate(r.FECHA_ASIGNACION)} · Grupo: ${r.GRUPO || '—'}</div>
-        <div class="timeline">
-          ${FLOW.map((s, i) => `<div class="step ${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''}"><div class="dot"></div><div class="name">${s === 'FACTURACIÓN' ? 'FACTURACIÓN' : s}</div><div class="date">${i === idx && !byDate[s] ? 'En proceso...' : (byDate[s] || '—')}</div></div>`).join('')}
-        </div>
-        <div class="delivery-info">
-          <strong>📅 Información de Entrega</strong>
-          <div>Días programados: ${diasEntrega || 'No definidos'}</div>
-          <div>Próxima entrega: ${nextDate ? nextDate : 'No disponible'}</div>
-          <div style="margin-top:6px">💡 Si su pedido está en DESPACHADO, por favor coordine la recepción.</div>
-        </div>
-        <div class="bar">
-          <div>Unidades Asignadas: ${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} solicitadas</div>
-          <div class="meter"><span style="width:${pct.toFixed(1)}%"></span></div>
-          <div>${pct.toFixed(1)}%</div>
-          <div style="margin-top:6px">Items: ${itemsAsig} de ${itemsSolic} renglones asignados</div>
-        </div>
-        <div class="msg">${contextual(state, deliveryToday)}</div>
-        <div class="footer">Última actualización: ${new Date().toLocaleString('es-PA')} · <a href="#" id="refreshNow">🔄 Actualizar</a></div>
-      `;
-      document.getElementById('result').classList.remove('hidden');
-      document.getElementById('refreshNow').addEventListener('click', (e) => { e.preventDefault(); doSearch(true); });
+      return `<div class="timeline">${FLOW.map((s, i) => `<div class="step ${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''}"><div class="dot"></div><div class="name">${s}</div><div class="date">${i === idx && !byDate[s] ? 'En proceso...' : (byDate[s] || '—')}</div></div>`).join('')}</div>`;
     }
 
-    async function findById(id, force = false){
-      if (!force) {
-        const cached = readCache(id);
-        if (cached) return cached;
-      }
+    function detailsTableHTML(rows){
+      if (!rows.length) return '<div class="small">Detalle no disponible en este momento</div>';
+      const safeRows = rows.slice(0, MAX_DETAIL_ROWS);
+      const limitedMsg = rows.length > MAX_DETAIL_ROWS ? `<div class="small" style="margin:6px 0">Mostrando los primeros ${MAX_DETAIL_ROWS} renglones de ${rows.length}.</div>` : '';
+      return `
+        ${limitedMsg}
+        <div class="details-table-wrap">
+          <table>
+            <thead><tr><th>Código</th><th>Suministro</th><th>Asignado</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${safeRows.map(x => {
+                const code = x.CODIGO || x.Codigo || x.COD_ARTICULO || x.ITEM || x.ID || '—';
+                const suministro = x.SUMINISTRO || x.DESCRIPCION || x.DESCRIPCIÓN || x.DESCRIP || x.Nombre || '—';
+                const asignado = Number(x.ASIGNADO ?? x.CANT_ASIG ?? x.CANTIDAD_ASIGNADA ?? x.CANT ?? 0).toLocaleString('es-PA');
+                const rawEstado = String(x.ESTADO_RENGLON || x.ESTADO || '').toUpperCase();
+                const estado = rawEstado.includes('COMP') ? '✅ Completo' : (Number(x.ASIGNADO ?? x.CANT_ASIG ?? x.CANTIDAD_ASIGNADA ?? x.CANT ?? 0) <= 0 ? '⛔ Sin stock' : (rawEstado ? `⚠️ ${rawEstado}` : '⚠️ Parcial'));
+                return `<tr><td>${code}</td><td>${suministro}</td><td>${asignado}</td><td>${estado}</td></tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function resultCardHTML(r, key){
+      const state = normalizeState(r.ESTADO);
+      const diasEntrega = String(r.Dias_Entrega || r.DIAS_ENTREGA || r.dias_entrega || '').trim();
+      const deliveryToday = isDeliveryToday(diasEntrega);
+      const nextDate = nextDeliveryDate(diasEntrega);
+      const totalSolic = Number(r.TOTAL_SOLIC || 0);
+      const totalAsig = Number(r.TOTAL_ASIG || 0);
+      const itemsAsig = Number(r.ITEMS_ASIG || 0);
+      const pct = totalSolic ? Math.max(0, Math.min(100, (totalAsig / totalSolic) * 100)) : 0;
+      const f8Date = fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION);
+      return `
+        <article class="card" style="margin-top:12px">
+          <h2>${STATE_ICON[state] || '📦'} ${r.ID_PEDIDO || '—'}</h2>
+          <div class="meta">${r.UNIDAD_EJECUTORA || 'Sin UE'}</div>
+          <div class="meta">Fecha F8: ${f8Date} · Estado: ${state} · Grupo: ${r.GRUPO || '—'}</div>
+          ${timelineHTML(r, state)}
+          <div class="delivery-info">
+            <strong>📅 Información de Entrega</strong>
+            <div>Días programados: ${diasEntrega || 'No definidos'}</div>
+            <div>Próxima entrega: ${nextDate ? nextDate : 'No disponible'}</div>
+          </div>
+          <div class="bar">
+            <div>Unidades Asignadas: ${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} solicitadas</div>
+            <div class="meter"><span style="width:${pct.toFixed(1)}%"></span></div>
+            <div>${pct.toFixed(1)}% fill rate · ${itemsAsig} items asignados</div>
+            <button class="details-toggle" data-toggle-detail="${key}" data-id="${r.ID_PEDIDO || ''}" data-items="${itemsAsig}">▶ Ver detalle de renglones asignados (${itemsAsig} items)</button>
+            <div id="detail-${key}" class="details-wrap hidden"></div>
+          </div>
+          <div class="msg">${contextual(state, deliveryToday)}</div>
+        </article>
+      `;
+    }
+
+    async function fetchTracking(force = false){
+      if (trackingRows.length && !force) return trackingRows;
       const r = await fetch(`${WEB_APP_URL}?file=tracking`);
       const raw = await r.json();
-      const row = (Array.isArray(raw) ? raw : []).find(x => String(x.ID_PEDIDO || '').toUpperCase() === id.toUpperCase());
-      if (row) writeCache(id, row);
+      trackingRows = Array.isArray(raw) ? raw : [];
       lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
       setConnectionStatus(true);
-      return row || null;
+      populateUES();
+      return trackingRows;
+    }
+
+    async function fetchAllocation(force = false){
+      if (allocationLoaded && !force) return allocationRows;
+      const r = await fetch(`${WEB_APP_URL}?file=allocation`);
+      const raw = await r.json();
+      allocationRows = Array.isArray(raw) ? raw : [];
+      allocationLoaded = true;
+      return allocationRows;
+    }
+
+    function findById(id){
+      return trackingRows.find(x => String(x.ID_PEDIDO || '').toUpperCase() === id.toUpperCase()) || null;
+    }
+
+    function parseInputIds(){
+      const raw = document.getElementById('f8Input').value;
+      return [...new Set(raw.split(/[\n,]+/).map(x => x.trim()).filter(Boolean))];
+    }
+
+    function populateUES(){
+      const sel = document.getElementById('ueSelect');
+      const current = sel.value;
+      const ues = [...new Set(trackingRows.map(r => (r.UNIDAD_EJECUTORA || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+      sel.innerHTML = '<option value="">Seleccione su institución</option>' + ues.map(ue => `<option value="${ue}">${ue}</option>`).join('');
+      if (ues.includes(current)) sel.value = current;
     }
 
     async function doSearch(force = false){
-      const id = document.getElementById('f8Input').value.trim();
-      if (!id) return;
-      document.getElementById('noFound').classList.add('hidden');
-      document.getElementById('result').classList.add('hidden');
+      const ids = parseInputIds();
+      const err = document.getElementById('noFound');
+      const results = document.getElementById('results');
+      const ueResults = document.getElementById('ueResults');
+      results.innerHTML = '';
+      ueResults.innerHTML = '';
+      err.classList.add('hidden');
+      document.getElementById('searchCounter').classList.add('hidden');
+      if (!ids.length) return;
+      if (ids.length > 10) {
+        err.innerHTML = '⚠️ Máximo 10 F8s por consulta simultánea.';
+        err.classList.remove('hidden');
+        return;
+      }
       setLoading(true);
       try {
-        const row = await findById(id, force);
-        if (!row) {
-          document.getElementById('noFound').classList.remove('hidden');
+        await fetchTracking(force);
+        document.getElementById('searchCounter').textContent = `Consultando ${ids.length} de ${ids.length}...`;
+        document.getElementById('searchCounter').classList.remove('hidden');
+        const found = [];
+        const notFound = [];
+        ids.forEach(id => {
+          const row = findById(id);
+          if (row) { found.push(row); saveRecent(id); }
+          else notFound.push(id);
+        });
+        if (!found.length) {
+          err.innerHTML = '⚠️ No se encontraron las F8 ingresadas.';
+          err.classList.remove('hidden');
           return;
         }
-        saveRecent(id);
-        renderResult(row);
-      } catch (e) {
+        results.innerHTML = found.map((row, idx) => resultCardHTML(row, `search-${idx}`)).join('');
+        if (notFound.length) {
+          err.innerHTML = `⚠️ No encontradas: ${notFound.join(', ')}`;
+          err.classList.remove('hidden');
+        }
+      } catch {
         setConnectionStatus(false);
-        document.getElementById('noFound').innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
-        document.getElementById('noFound').classList.remove('hidden');
+        err.innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
+        err.classList.remove('hidden');
       } finally {
         setLoading(false);
       }
     }
 
+    async function searchByUE(){
+      const ue = document.getElementById('ueSelect').value;
+      const box = document.getElementById('ueResults');
+      const results = document.getElementById('results');
+      const err = document.getElementById('noFound');
+      box.innerHTML = '';
+      results.innerHTML = '';
+      err.classList.add('hidden');
+      if (!ue) return;
+      setLoading(true);
+      try {
+        await fetchTracking(false);
+        const rows = trackingRows.filter(r => (r.UNIDAD_EJECUTORA || '').trim() === ue).sort(sortByRecent);
+        const active = rows.filter(r => normalizeState(r.ESTADO) !== 'ENTREGADO').length;
+        const done = rows.length - active;
+        if (!rows.length) {
+          err.innerHTML = '⚠️ No hay requisiciones para esta Unidad Ejecutora.';
+          err.classList.remove('hidden');
+          return;
+        }
+        box.innerHTML = `
+          <article class="card">
+            <h2>🏥 ${ue.toUpperCase()} — ${rows.length} requisiciones</h2>
+            <div class="meta">${ue} — ${active} requisiciones activas · ${done} completadas</div>
+            <div class="ue-list">
+              ${rows.map((r, i) => {
+                const state = normalizeState(r.ESTADO);
+                const pct = Number(r.TOTAL_SOLIC || 0) ? ((Number(r.TOTAL_ASIG || 0) / Number(r.TOTAL_SOLIC || 0)) * 100) : 0;
+                return `
+                  <div class="ue-row">
+                    <div class="ue-head">
+                      <div>${STATE_ICON[state] || '📦'} <strong>${r.ID_PEDIDO || '—'}</strong> | ${state} | ${fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION)} | ${pct.toFixed(0)}% fill rate</div>
+                      <button class="ue-btn" data-toggle-ue="ue-${i}">Ver detalle ▼</button>
+                    </div>
+                    <div id="ue-${i}" class="hidden"></div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </article>
+        `;
+      } catch {
+        setConnectionStatus(false);
+        err.innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
+        err.classList.remove('hidden');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function loadDetailsForId(detailBox, f8Id){
+      detailBox.innerHTML = '<div class="spinner"></div>';
+      try {
+        await fetchAllocation(false);
+        const rows = allocationRows.filter(r => String(r.N_Doc || '').trim().toUpperCase() === String(f8Id || '').trim().toUpperCase());
+        detailBox.innerHTML = `<div><strong>Detalle de Renglones</strong></div>${detailsTableHTML(rows)}`;
+      } catch {
+        detailBox.innerHTML = '<div class="small">Detalle no disponible en este momento</div>';
+      }
+    }
+
     document.getElementById('searchBtn').addEventListener('click', () => doSearch(false));
     document.getElementById('f8Input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(false); });
+    document.getElementById('ueSearchBtn').addEventListener('click', () => searchByUE());
+
     document.getElementById('recent').addEventListener('click', (e) => {
       const id = e.target.dataset.id;
       if (!id) return;
       document.getElementById('f8Input').value = id;
       doSearch(false);
     });
+
+    document.addEventListener('click', async (e) => {
+      const detailKey = e.target.dataset.toggleDetail;
+      if (detailKey) {
+        const box = document.getElementById(`detail-${detailKey}`);
+        if (!box) return;
+        const f8Id = e.target.dataset.id || '';
+        const itemsCount = e.target.dataset.items || '0';
+        const open = !box.classList.contains('hidden');
+        if (open) {
+          box.classList.add('hidden');
+          e.target.textContent = `▶ Ver detalle de renglones asignados (${itemsCount} items)`;
+          return;
+        }
+        box.classList.remove('hidden');
+        e.target.textContent = '▲ Ocultar detalle de renglones';
+        if (!box.dataset.loaded) {
+          await loadDetailsForId(box, f8Id);
+          box.dataset.loaded = '1';
+        }
+      }
+
+      const ueKey = e.target.dataset.toggleUe;
+      if (ueKey) {
+        const box = document.getElementById(ueKey);
+        if (!box) return;
+        const row = e.target.closest('.ue-row');
+        const f8Id = row?.querySelector('strong')?.textContent || '';
+        const open = !box.classList.contains('hidden');
+        if (open) {
+          box.classList.add('hidden');
+          e.target.textContent = 'Ver detalle ▼';
+          return;
+        }
+        const target = trackingRows.find(r => String(r.ID_PEDIDO || '') === String(f8Id));
+        if (!target) return;
+        box.classList.remove('hidden');
+        e.target.textContent = 'Ocultar ▲';
+        box.innerHTML = resultCardHTML(target, `ue-detail-${f8Id.replace(/[^a-zA-Z0-9]/g, '')}`);
+      }
+    });
+
     renderRecent();
+    fetchTracking(false).catch(() => setConnectionStatus(false));
   </script>
 </body>
 </html>
