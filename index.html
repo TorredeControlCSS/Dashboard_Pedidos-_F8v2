@@ -114,17 +114,15 @@
       position: absolute;
       top: 6px;
       right: 6px;
+      font-size: 11px;
+      padding: 2px 5px;
+      background: #e0e0e0;
       border: none;
-      background: transparent;
-      color: #90a4ae;
-      font-size: 15px;
-      font-weight: 800;
+      border-radius: 4px;
       cursor: pointer;
       line-height: 1;
-      padding: 2px 4px;
-      border-radius: 6px;
     }
-    .card-undo:hover { background: #eceff1; }
+    .card-undo:hover { background: #d5d5d5; }
     .card.urgent-delivery { border-top: 3px solid #f9a825 !important; background: #fffdf4; }
     .card.urg { border-top-color: #b71c1c; background: #fff8f8; }
     .badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
@@ -153,19 +151,26 @@
       animation: blink 1s step-start infinite;
     }
     .modality-toggle {
-      position: absolute;
-      top: 6px;
-      right: 28px;
       border: none;
-      border-radius: 999px;
-      padding: 3px 8px;
+      border-radius: 10px;
+      padding: 2px 6px;
       color: #fff;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 800;
       cursor: pointer;
+      line-height: 1.2;
     }
     .modality-toggle.ruta { background: #1565c0; }
     .modality-toggle.retiro { background: #2e7d32; }
+    .card-footer {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: #4b5563;
+      font-size: 11px;
+    }
     .pending-bar {
       margin-top: 10px;
       background: #fff8e1;
@@ -500,6 +505,47 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+    const GROUP_MAP = {
+      'G1-TABLETAS': 'GRUPO 1',
+      'GRUPO 1': 'GRUPO 1',
+      'G2-SOLUCION': 'GRUPO 2',
+      'GRUPO 2': 'GRUPO 2',
+      'G3-JARABE': 'GRUPO 3',
+      'GRUPO 3': 'GRUPO 3',
+      'G4-CREMAS': 'GRUPO 4-5-11',
+      'G5-OVULOS': 'GRUPO 4-5-11',
+      'G11-ODONTOLOGIA': 'GRUPO 4-5-11',
+      'G-11-ODONTOLOGIA': 'GRUPO 4-5-11',
+      'GRUPO 4': 'GRUPO 4-5-11',
+      'GRUPO 4-5-11': 'GRUPO 4-5-11',
+      'G9-MQ': 'MÓDULO',
+      'MODULO': 'MÓDULO',
+      'MÓDULO': 'MÓDULO',
+      'FRÍO': 'FRÍO',
+      'FRIO': 'FRÍO',
+      'EMPAQUE': 'EMPAQUE',
+      'URGENCIAS': 'URGENCIAS',
+      'VENCIDOS': 'VENCIDOS',
+      'KARDEX': 'KARDEX'
+    };
+    function normalizeGroup(rawGroup) {
+      if (!rawGroup) return 'SIN GRUPO';
+      let upper = String(rawGroup).toUpperCase().trim();
+      const mojibakeFixes = { 'Ã\u0093': 'Ó', 'Ã\u0081': 'Á' };
+      Object.entries(mojibakeFixes).forEach(([bad, good]) => {
+        upper = upper.split(bad).join(good);
+      });
+      const groupEntries = Object.entries(GROUP_MAP);
+      for (const [key, val] of groupEntries) {
+        const keyUpper = key.toUpperCase();
+        if (upper === keyUpper) return val;
+      }
+      for (const [key, val] of groupEntries) {
+        const keyUpper = key.toUpperCase();
+        if (upper.includes(keyUpper) || keyUpper.includes(upper)) return val;
+      }
+      return String(rawGroup).trim();
+    }
     const STAFF = [
       { name: "Alfonso Mendez", group: "GRUPO 2", cargo: "ALMACENISTA I"  },
       { name: "Anthony D. Allca", group: "FRÍO", cargo: "ALMACENISTA II" },
@@ -593,6 +639,7 @@
     const CAUSALES_KEY = 'almacen_causales';
     const MODALIDAD_KEY = 'f8_modalidad';
     const STAFF_PINS_KEY = 'staff_pins';
+    const PREV_STATE_KEY = 'almacen_prev_states';
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -618,12 +665,6 @@
     };
     const hhmm = () => new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-    const normalizeGroup = (g = "") => {
-      const up = String(g).trim().toUpperCase();
-      if (GROUP_COLORS[up]) return up;
-      if (up.includes('URG')) return 'URGENCIAS';
-      return up || 'GRUPO 1';
-    };
     const normalizeState = (s = "") => {
       const up = String(s).trim().toUpperCase();
       if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
@@ -696,6 +737,12 @@
 
     function getPreviousState(current) {
       return PREV_BY_STATE[current] || null;
+    }
+
+    function getUndoPreviousState(item) {
+      if (!item?.id) return getPreviousState(item?.estado);
+      const saved = readLS(PREV_STATE_KEY, {})[item.id];
+      return saved || getPreviousState(item.estado);
     }
 
     function setConnectionStatus(isOnline) {
@@ -787,14 +834,14 @@
     function redistribuirEquitativamente(datos, estadoPersonal) {
       const grupos = {};
       datos.forEach((f8) => {
-        const grupo = f8.group || f8.grupo || f8.Grupo || f8.GRUPO;
+        const grupo = normalizeGroup(f8.group || f8.grupo || f8.Grupo || f8.GRUPO || f8.rawGroup || '');
         if (!grupo) return;
         if (!grupos[grupo]) grupos[grupo] = [];
         grupos[grupo].push(f8);
       });
       const asignaciones = {};
       Object.entries(grupos).forEach(([grupo, f8s]) => {
-        const miembros = STAFF.filter((s) => s.group === grupo && estadoPersonal[s.name] !== 'ausente');
+        const miembros = STAFF.filter((s) => normalizeGroup(s.group) === grupo && estadoPersonal[s.name] !== 'ausente');
         if (!miembros.length) return;
         f8s.forEach((f8, i) => {
           asignaciones[f8.id] = miembros[i % miembros.length].name;
@@ -846,7 +893,7 @@
       let changed = false;
       items.forEach(item => {
         if (asig[item.id]) return;
-        const candidate = STAFF.find(p => p.group === item.group && (!personal[p.name] || personal[p.name].status === 'DISPONIBLE'));
+        const candidate = STAFF.find(p => normalizeGroup(p.group) === normalizeGroup(item.group) && (!personal[p.name] || personal[p.name].status === 'DISPONIBLE'));
         if (candidate) {
           asig[item.id] = candidate.name;
           changed = true;
@@ -930,7 +977,7 @@
     }
 
     function updateGroupFilterOptions(items) {
-      const groups = [...new Set(items.map(i => i.group))].sort();
+      const groups = [...new Set(items.map(i => String(i.rawGroup || i.group || '').trim()).filter(Boolean))].sort();
       const sel = document.getElementById('groupFilter');
       const current = sel.value;
       sel.innerHTML = `<option value="">Grupo: TODOS</option>${groups.map(g => `<option value="${g}">Grupo: ${g}</option>`).join('')}`;
@@ -941,7 +988,7 @@
       filteredTracking = tracking.filter(i => {
         const q = filters.search;
         const bySearch = !q || i.id.toUpperCase().includes(q) || i.unidad.toUpperCase().includes(q);
-        const byGroup = !filters.group || i.group === filters.group;
+        const byGroup = !filters.group || normalizeGroup(i.rawGroup || i.group) === normalizeGroup(filters.group);
         const byType = !filters.tipo || i.tipo === filters.tipo;
         const byToday = !filters.todayOnly || i.deliveryToday;
         const f8Iso = toIsoDate(i.fechaF8);
@@ -991,19 +1038,17 @@
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
           if (pending) card.style.border = '3px solid #f9a825';
-          const previousState = getPreviousState(item.estado);
+          const previousState = getUndoPreviousState(item);
           card.innerHTML = `
             ${pending ? '<div class="pending-badge">⏳ PEND. APROBACIÓN</div>' : ''}
             ${previousState ? `<button class="card-undo open-pin-revert" data-id="${item.id}" data-prev="${previousState}" title="Deshacer">↩</button>` : ''}
-            <button class="modality-toggle ${modalidad}" data-id="${item.id}" title="Cambiar modalidad">${modalidad === 'ruta' ? '🚚 RUTA' : '🏥 RETIRO'}</button>
             <div class="badges">
               <span class="badge ${item.tipo === 'URGENCIA' ? 'urg' : 'men'}">${item.tipo === 'URGENCIA' ? 'URGENCIA🔴' : 'MENSUAL'}</span>
               <span class="badge" style="background:${GROUP_COLORS[item.group] || '#607d8b'}">${item.group}</span>
               ${item.deliveryToday ? `<span class="badge" style="background:#f9a825">📅 ENTREGA HOY</span>` : ''}
             </div>
             <div class="id">${item.id}</div>
-            <div class="meta">📋 F8: ${toIsoDate(item.fechaF8)}</div>
-            <div class="meta">${item.unidad}</div>
+            <div class="meta" style="font-weight:700;color:#111827;">${item.unidad}</div>
             <div class="meta">Asig: ${Number(item.totalAsig || 0).toLocaleString('es-PA')} uds</div>
             <div class="fillrate">
               <div class="line"><span style="width:${pct.toFixed(1)}%;background:${fillColor}"></span></div>
@@ -1013,6 +1058,10 @@
             ${item.diasEntrega ? `<div class="meta" style="color:#666;font-size:10px">📅 Entrega: ${item.diasEntrega}</div>` : ''}
             <div class="meta">⏱ ${elapsed ? elapsed.label : '—'} en este estado ${sla.icon}</div>
             ${warn ? `<div class="warn">⚠️ ${who} está ${st}${personal[who]?.destination ? ` · ${personal[who].destination}` : ''}</div>` : ''}
+            <div class="card-footer">
+              <span>📅 F8: ${toIsoDate(item.fechaF8)}</span>
+              <button class="modality-toggle ${modalidad}" data-id="${item.id}" title="Cambiar modalidad">${modalidad === 'ruta' ? '🚚 RUTA' : '🏥 RETIRO'}</button>
+            </div>
             <div class="card-actions">
               <button class="reassign" data-id="${item.id}">👤 Reasignar</button>
               ${pending ? `
@@ -1130,7 +1179,7 @@
       const groups = [...new Set(STAFF.map(s => s.group))];
       const groupRows = groups.map(group => {
         const people = STAFF.filter(s => s.group === group && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
-        const assigned = items.filter(i => i.group === group && i.estado === 'ASIGNADA').length;
+        const assigned = items.filter(i => normalizeGroup(i.group) === normalizeGroup(group) && i.estado === 'ASIGNADA').length;
         const groupRatio = people > 0 ? (assigned / people) : 0;
         const groupLevel = groupRatio < 10 ? { icon: '🟢', color: '#2e7d32' } : groupRatio <= 20 ? { icon: '🟡', color: '#f57f17' } : { icon: '🔴', color: '#b71c1c' };
         return `
@@ -1196,7 +1245,7 @@
       if (!item) return;
       if (!ensurePinConfigured()) return;
       pendingRevertItemId = item.id;
-      const prevState = getPreviousState(item.estado);
+      const prevState = getUndoPreviousState(item);
       document.getElementById('pinModalTitle').textContent = '🔐 Confirmar Reversión';
       document.getElementById('pinModalF8').textContent = item.id;
       document.getElementById('pinModalFlow').textContent = `${item.estado} → ${prevState || 'ASIGNADA'}`;
@@ -1221,10 +1270,13 @@
       }
       const item = tracking.find(t => t.id === pendingRevertItemId);
       if (!item) return closePinModal();
-      const prevState = getPreviousState(item.estado);
+      const prevState = getUndoPreviousState(item);
       if (!prevState) return closePinModal();
       try {
         await postUpdate(item.id, 'ESTADO', prevState === 'FACTURACIÓN' ? 'FACTURADO' : prevState);
+        const prevStates = readLS(PREV_STATE_KEY, {});
+        prevStates[item.id] = item.estado;
+        writeLS(PREV_STATE_KEY, prevStates);
         addLog(`${item.id} ↩ Revertido por Jefatura`);
         showToast('↩ Estado revertido');
         closePinModal();
@@ -1385,65 +1437,122 @@
       return snapshot;
     }
 
-    function exportCloseShiftPdf(snapshot) {
+    async function loadImageAsBase64(url) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.width;
+          c.height = img.height;
+          c.getContext('2d').drawImage(img, 0, 0);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    async function exportCloseShiftPdf(snapshot) {
       if (!window.jspdf?.jsPDF) {
         showToast('❌ jsPDF no está disponible');
         return;
       }
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const logs = readLS('almacen_log', []);
       const today = isoToday();
       const top = getRankingRows('today').slice(0, 3);
       const completasHoy = logs.filter((l) => String(l.msg).includes('aprobada a ENTREGADO') && new Date(l.ts).toISOString().slice(0, 10) === today).length;
-      const despHoy = logs.filter((l) => String(l.msg).includes('aprobada a DESPACHADO') && new Date(l.ts).toISOString().slice(0, 10) === today).length;
       const actives = snapshot.f8s.picking + snapshot.f8s.facturacion + snapshot.f8s.empacado;
       const ratio = snapshot.personal.disponibles > 0 ? (actives / snapshot.personal.disponibles) : 0;
-      const ausentes = snapshot.personal.detalle.filter((d) => d.estado === 'AUSENTE').map((d) => d.nombre).join(', ') || 'Ninguno';
-      const lines = [
-        'CEDIS PANAMÁ — REPORTE DE CIERRE DE TURNO',
-        `Fecha: ${new Date().toLocaleDateString('es-PA', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} · Hora: ${snapshot.hora_cierre}`,
-        '',
-        'RESUMEN DE ASISTENCIA',
-        '─────────────────────',
-        `Personal presente:   ${snapshot.personal.disponibles} / ${STAFF.length}`,
-        `Personal ausente:    ${snapshot.personal.ausentes} / ${STAFF.length} (${ausentes})`,
-        `Personal en ruta:    ${snapshot.personal.en_ruta}`,
-        '',
-        'RESUMEN OPERATIVO',
-        '─────────────────',
-        `Total F8s en sistema:     ${snapshot.f8s.total.toLocaleString('es-PA')}`,
-        `F8s completadas hoy:      ${completasHoy}`,
-        `F8s despachadas hoy:      ${despHoy}`,
-        `Alertas SLA activas:      ${document.getElementById('kSla').textContent || '0'}`,
-        '',
-        'RANKING DEL DÍA',
-        '───────────────',
-        ...(top.length ? top.map((r) => `${r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉'} ${r.rank}. ${r.name} ${r.total} F8s`) : ['Sin movimientos']),
-        '',
-        'DISTRIBUCIÓN POR ESTADO',
-        '────────────────────────',
-        `Asignadas:     ${snapshot.f8s.asignadas}`,
-        `Picking:       ${snapshot.f8s.picking}`,
-        `Facturación:   ${snapshot.f8s.facturacion}`,
-        `Empacado:      ${snapshot.f8s.empacado}`,
-        `Despachado:    ${snapshot.f8s.despachado}`,
-        `Entregado:     ${snapshot.f8s.entregado}`,
-        '',
-        `ÍNDICE DE CONGESTIONAMIENTO: ${ratio.toFixed(1)} F8s/persona · ${ratio <= 1 ? 'NORMAL' : 'ATENCIÓN'}`,
-        '',
-        '[Generado automáticamente por Torre de Control V13.0]'
+      const presentes = snapshot.personal.disponibles + snapshot.personal.en_ruta;
+      const pageW = 210;
+      const pageH = 297;
+      const left = 8;
+      const gap = 3;
+      const cardY = 33;
+      const cardW = (pageW - (left * 2) - (gap * 4)) / 5;
+      const cardH = 20;
+      const logoBase64 = await loadImageAsBase64('icons/icon-512.png');
+
+      doc.setFillColor(11, 31, 58);
+      doc.rect(0, 0, pageW, 28, 'F');
+      if (logoBase64) doc.addImage(logoBase64, 'PNG', 8, 5, 18, 18);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text('CEDIS PANAMÁ - REPORTE CIERRE DE TURNO', 30, 12);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Fecha: ${snapshot.fecha}  Hora: ${snapshot.hora_cierre}`, 30, 19);
+
+      const cards = [
+        { label: 'PRESENTES', value: String(presentes), color: [46, 125, 50] },
+        { label: 'AUSENTES', value: String(snapshot.personal.ausentes), color: [183, 28, 28] },
+        { label: 'EN RUTA', value: String(snapshot.personal.en_ruta), color: [239, 108, 0] },
+        { label: 'TOTAL F8S', value: String(snapshot.f8s.total), color: [21, 101, 192] },
+        { label: 'COMPLETADAS', value: String(completasHoy), color: [106, 27, 154] }
       ];
-      let y = 12;
-      lines.forEach((line) => {
-        doc.setFontSize(line.includes('─') || !line ? 10 : (line === line.toUpperCase() && line.length < 35 ? 12 : 10));
-        doc.text(String(line), 10, y);
-        y += 6;
-        if (y > 280) {
-          doc.addPage();
-          y = 12;
-        }
+      cards.forEach((kpi, idx) => {
+        const x = left + ((cardW + gap) * idx);
+        doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+        doc.roundedRect(x, cardY, cardW, cardH, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(kpi.label, x + 2, cardY + 7);
+        doc.setFontSize(14);
+        doc.text(kpi.value, x + 2, cardY + 15);
       });
+
+      const drawSection = (y, title, color, lines) => {
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.rect(left, y, pageW - 16, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(title, left + 2, y + 5.5);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(left, y + 8, pageW - 16, (lines.length * 5) + 6, 'F');
+        doc.setTextColor(31, 41, 55);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        lines.forEach((line, idx) => doc.text(line, left + 2, y + 14 + (idx * 5)));
+        return y + 14 + (lines.length * 5);
+      };
+
+      let y = 58;
+      y = drawSection(y, 'ASISTENCIA', [21, 101, 192], [
+        `Total personal: ${STAFF.length}`,
+        `Presentes: ${presentes}`,
+        `Ausentes: ${snapshot.personal.ausentes}`,
+        `En ruta: ${snapshot.personal.en_ruta}`
+      ]) + 4;
+      y = drawSection(y, 'DISTRIBUCIÓN POR ESTADO', [106, 27, 154], [
+        `Asignada: ${snapshot.f8s.asignadas}`,
+        `Picking: ${snapshot.f8s.picking}`,
+        `Facturación: ${snapshot.f8s.facturacion}`,
+        `Empacado: ${snapshot.f8s.empacado}`,
+        `Despachado: ${snapshot.f8s.despachado}`,
+        `Entregado: ${snapshot.f8s.entregado}`
+      ]) + 4;
+      y = drawSection(y, 'RANKING', [239, 108, 0], top.length
+        ? top.map((r, idx) => `${idx + 1}. ${r.name} - ${r.total} F8`)
+        : ['Sin movimientos en el periodo']) + 4;
+      drawSection(y, 'ÍNDICE CONG.', [0, 188, 212], [
+        `Activas: ${actives}`,
+        `Disponibles: ${snapshot.personal.disponibles}`,
+        `Indice F8/persona: ${ratio.toFixed(2)}`,
+        `Nivel: ${ratio <= 1 ? 'NORMAL' : 'ATENCIÓN'}`
+      ]);
+
+      doc.setFillColor(238, 238, 238);
+      doc.rect(0, pageH - 12, pageW, 12, 'F');
+      doc.setTextColor(66, 66, 66);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`Generado: ${new Date().toLocaleString('es-PA')}`, 8, pageH - 5);
       const d = new Date();
       doc.save(`Cierre_Turno_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}_${snapshot.hora_cierre.replace(':', '-')}.pdf`);
       showToast('📄 PDF exportado');
@@ -1465,6 +1574,9 @@
       try {
         await postUpdate(id, 'ESTADO', target === 'FACTURACIÓN' ? 'FACTURADO' : target);
         await postUpdate(id, DATE_FIELD_BY_STATE[target], nowStamp());
+        const prevStates = readLS(PREV_STATE_KEY, {});
+        prevStates[id] = req.estadoActual;
+        writeLS(PREV_STATE_KEY, prevStates);
         delete pendings[id];
         writePendings(pendings);
         addLog(`${id} aprobada a ${target} · Jefatura`);
@@ -1568,7 +1680,8 @@
         const r = await fetch(`${WEB_APP_URL}?file=tracking`);
         const raw = await r.json();
         tracking = (Array.isArray(raw) ? raw : []).map(row => {
-          const group = normalizeGroup(row.GRUPO || '');
+          const rawGroup = row.GRUPO || row.grupo || row.Grupo || '';
+          const group = normalizeGroup(rawGroup);
           const diasEntrega = String(row.Dias_Entrega || row.DIAS_ENTREGA || row.dias_entrega || '').trim();
           const totalAsig = Number(row.TOTAL_ASIG || 0);
           const totalSolic = Number(row.TOTAL_SOLIC || 0);
@@ -1576,6 +1689,7 @@
             id: row.ID_PEDIDO || '---',
             unidad: row.UNIDAD_EJECUTORA || 'Sin UE',
             group,
+            rawGroup: String(rawGroup || '').trim(),
             tipo: String(row.TIPO || group).toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
             estado: normalizeState(row.ESTADO || 'ASIGNADA'),
             totalAsig,
@@ -1658,16 +1772,16 @@
           ['Personal por grupo', 'Disponible', 'En Ruta', 'Ausente'],
           ...groups.map(g => [
             g,
-            STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length,
-            STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'EN RUTA').length,
-            STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'AUSENTE').length
+            STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length,
+            STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'EN RUTA').length,
+            STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'AUSENTE').length
           ]),
           [],
           ['Índice de congestionamiento general', Number(generalRatio.toFixed(2))],
           ['Índice por grupo', 'F8s Asignadas', 'Disponibles', 'F8s/persona'],
           ...groups.map(g => {
-            const assigned = tracking.filter(t => t.group === g && t.estado === 'ASIGNADA').length;
-            const people = STAFF.filter(s => s.group === g && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+            const assigned = tracking.filter(t => normalizeGroup(t.group) === normalizeGroup(g) && t.estado === 'ASIGNADA').length;
+            const people = STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
             return [g, assigned, people, Number((people > 0 ? assigned / people : 0).toFixed(2))];
           })
         ];
