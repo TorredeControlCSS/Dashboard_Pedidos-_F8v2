@@ -46,8 +46,21 @@
     .mini-ranking { border:1px solid #dbeafe; border-radius:10px; padding:10px; background:#fff; margin-top:10px; }
     .rank-line { display:flex; justify-content:space-between; gap:8px; margin:4px 0; }
     .hidden { display:none !important; }
-    .pin-wrap { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0; }
-    .pin-digit { min-height:52px; font-size:28px; text-align:center; border:1px solid #cbd5e1; border-radius:10px; }
+    .pin-inputs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 16px auto;
+    }
+    .pin-input {
+      width: 52px;
+      height: 60px;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+    }
     .shake { animation: shake .25s linear 2; }
     @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
     .search-wrap { margin:8px 0 10px; position:relative; }
@@ -61,11 +74,11 @@
       left: 0 !important;
       width: 100vw !important;
       height: 100vh !important;
-      background: rgba(11, 31, 58, 0.85) !important;
-      z-index: 999999 !important;
       display: none;
       align-items: center !important;
       justify-content: center !important;
+      z-index: 999999 !important;
+      background: rgba(11,31,58,0.85) !important;
       margin: 0 !important;
       padding: 0 !important;
     }
@@ -78,6 +91,12 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.4);
       text-align: center;
       position: relative;
+    }
+    #identityStep2 {
+      max-width: 320px;
+      width: 90vw;
+      padding: 28px 20px;
+      margin: 0 auto;
     }
     #whoSelect { width:100%; min-height:52px; padding:10px; font-size:18px; border-radius:10px; border:1px solid #d1d5db; }
     #loginBtn { min-height:60px; margin-top:10px; width:100%; border:none; border-radius:12px; background:#0b1f3a; color:#fff; font-size:18px; font-weight:800; cursor:pointer; }
@@ -109,19 +128,19 @@
         <div id="identityStep2" class="hidden">
           <h2 id="pinWelcome" style="margin-top:0">Bienvenido</h2>
           <div id="pinModeLabel" class="small" style="font-size:14px;"></div>
-          <div class="pin-wrap" id="pinDigitsWrap">
-            <input class="pin-digit" inputmode="numeric" maxlength="1" />
-            <input class="pin-digit" inputmode="numeric" maxlength="1" />
-            <input class="pin-digit" inputmode="numeric" maxlength="1" />
-            <input class="pin-digit" inputmode="numeric" maxlength="1" />
+          <div class="pin-inputs" id="pinDigitsWrap">
+            <input class="pin-input" inputmode="numeric" maxlength="1" />
+            <input class="pin-input" inputmode="numeric" maxlength="1" />
+            <input class="pin-input" inputmode="numeric" maxlength="1" />
+            <input class="pin-input" inputmode="numeric" maxlength="1" />
           </div>
           <div id="pinConfirmWrap" class="hidden">
             <div class="small" style="font-size:14px;">Confirmar PIN</div>
-            <div class="pin-wrap" id="pinDigitsConfirmWrap">
-              <input class="pin-digit" inputmode="numeric" maxlength="1" />
-              <input class="pin-digit" inputmode="numeric" maxlength="1" />
-              <input class="pin-digit" inputmode="numeric" maxlength="1" />
-              <input class="pin-digit" inputmode="numeric" maxlength="1" />
+            <div class="pin-inputs" id="pinDigitsConfirmWrap">
+              <input class="pin-input" inputmode="numeric" maxlength="1" />
+              <input class="pin-input" inputmode="numeric" maxlength="1" />
+              <input class="pin-input" inputmode="numeric" maxlength="1" />
+              <input class="pin-input" inputmode="numeric" maxlength="1" />
             </div>
           </div>
           <div id="pinErrorMsg" class="small" style="color:#b71c1c;min-height:18px;"></div>
@@ -201,6 +220,41 @@
 
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+    const GROUP_MAP = {
+      'G1-TABLETAS': 'GRUPO 1',
+      'GRUPO 1': 'GRUPO 1',
+      'G2-SOLUCION': 'GRUPO 2',
+      'GRUPO 2': 'GRUPO 2',
+      'G3-JARABE': 'GRUPO 3',
+      'GRUPO 3': 'GRUPO 3',
+      'G4-CREMAS': 'GRUPO 4-5-11',
+      'G5-OVULOS': 'GRUPO 4-5-11',
+      'G11-ODONTOLOGIA': 'GRUPO 4-5-11',
+      'G-11-ODONTOLOGIA': 'GRUPO 4-5-11',
+      'GRUPO 4': 'GRUPO 4-5-11',
+      'GRUPO 4-5-11': 'GRUPO 4-5-11',
+      'G9-MQ': 'MÓDULO',
+      'MODULO': 'MÓDULO',
+      'MÓDULO': 'MÓDULO',
+      'FRÍO': 'FRÍO',
+      'FRIO': 'FRÍO',
+      'EMPAQUE': 'EMPAQUE',
+      'URGENCIAS': 'URGENCIAS',
+      'VENCIDOS': 'VENCIDOS',
+      'KARDEX': 'KARDEX'
+    };
+    function normalizeGroup(rawGroup) {
+      if (!rawGroup) return 'SIN GRUPO';
+      const upper = String(rawGroup).toUpperCase().trim()
+        .replace(/Ã\x93/g, 'Ó').replace(/Ã\x81/g, 'Á');
+      for (const [key, val] of Object.entries(GROUP_MAP)) {
+        if (upper === key.toUpperCase()) return val;
+      }
+      for (const [key, val] of Object.entries(GROUP_MAP)) {
+        if (upper.includes(key.toUpperCase()) || key.toUpperCase().includes(upper)) return val;
+      }
+      return String(rawGroup).trim();
+    }
     const STAFF = [
       { name: "Alfonso Mendez", group: "GRUPO 2"  },
       { name: "Anthony D. Allca", group: "FRÍO" },
@@ -264,12 +318,6 @@
       if (up === 'EMPACANDO') return 'EMPACADO';
       return up || 'ASIGNADA';
     };
-    const normalizeGroup = (g='') => {
-      const up = String(g).trim().toUpperCase();
-      if (GROUP_COLORS[up]) return up;
-      if (up.includes('URG')) return 'URGENCIAS';
-      return up || 'GRUPO 1';
-    };
     const isDeliveryToday = (diasEntrega='') => normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]);
     const isoToday = () => {
       const d = new Date();
@@ -313,7 +361,7 @@
       rows = (Array.isArray(raw) ? raw : []).map((x) => ({
         id: x.ID_PEDIDO || '---',
         ue: x.UNIDAD_EJECUTORA || 'Sin UE',
-        group: normalizeGroup(x.GRUPO),
+        group: normalizeGroup(x.GRUPO || x.grupo || x.Grupo || ''),
         tipo: String(x.TIPO || x.GRUPO || '').toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
         estado: normalizeState(x.ESTADO),
         totalAsig: Number(x.TOTAL_ASIG || 0),
@@ -325,7 +373,7 @@
     }
 
     function bindPinInputs(wrapId) {
-      const inputs = [...document.querySelectorAll(`#${wrapId} .pin-digit`)];
+      const inputs = [...document.querySelectorAll(`#${wrapId} .pin-input`)];
       inputs.forEach((inp, idx) => {
         inp.addEventListener('input', () => {
           inp.value = (inp.value || '').replace(/\D/g, '').slice(0, 1);
@@ -340,10 +388,10 @@
     bindPinInputs('pinDigitsConfirmWrap');
 
     function pinValue(wrapId) {
-      return [...document.querySelectorAll(`#${wrapId} .pin-digit`)].map((i) => i.value || '').join('');
+      return [...document.querySelectorAll(`#${wrapId} .pin-input`)].map((i) => i.value || '').join('');
     }
     function clearPin(wrapId) {
-      [...document.querySelectorAll(`#${wrapId} .pin-digit`)].forEach((i) => { i.value = ''; });
+      [...document.querySelectorAll(`#${wrapId} .pin-input`)].forEach((i) => { i.value = ''; });
     }
     function shakePins(wrapId) {
       const wrap = document.getElementById(wrapId);
@@ -352,7 +400,7 @@
       wrap.classList.add('shake');
     }
     function focusPin(wrapId) {
-      document.querySelector(`#${wrapId} .pin-digit`)?.focus();
+      document.querySelector(`#${wrapId} .pin-input`)?.focus();
     }
 
     function resetIdentitySteps() {
@@ -461,7 +509,7 @@
       const causales = readLS(CAUSALES_KEY, {});
       const list = rows.filter((r) => {
         if (person.group === 'KARDEX') return r.estado === 'FACTURACIÓN';
-        return asig[r.id] === person.name || (!asig[r.id] && r.group === person.group);
+        return asig[r.id] === person.name || (!asig[r.id] && normalizeGroup(r.group) === normalizeGroup(person.group));
       }).map((r) => {
         const enteredAt = stateMap[r.id]?.enteredAt;
         const wait = enteredAt ? (Date.now() - enteredAt) / 36e5 : -1;
@@ -514,12 +562,16 @@
       const sel = document.getElementById('deliveryUeSelect');
       if (!byUe.length) {
         sel.innerHTML = '<option value="">Sin UEs con pedidos de ruta pendientes</option>';
-        document.getElementById('deliveryRouteList').innerHTML = '<div class="small">No hay F8s de modalidad RUTA asignadas para entrega.</div>';
+        document.getElementById('deliveryRouteList').innerHTML = '<div class="small">No hay pedidos de ruta pendientes para esta unidad.</div>';
         return;
       }
       if (!selectedDeliveryUe || !byUe.includes(selectedDeliveryUe)) selectedDeliveryUe = byUe[0];
       sel.innerHTML = byUe.map((ue) => `<option value="${ue}" ${ue === selectedDeliveryUe ? 'selected' : ''}>${ue}</option>`).join('');
       const list = rutas.filter((r) => r.ue === selectedDeliveryUe);
+      if (!list.length) {
+        document.getElementById('deliveryRouteList').innerHTML = '<div class="small">No hay pedidos de ruta pendientes para esta unidad.</div>';
+        return;
+      }
       const allDone = list.every((r) => pend[r.id]?.estadoSolicitado === 'ENTREGADO');
       document.getElementById('deliveryRouteList').innerHTML = allDone
         ? '<div class="priority-box">¡Entrega completada! Regresa al almacén.</div>'
@@ -529,7 +581,7 @@
             <div>${r.ue}</div>
             <div class="small">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades</div>
             ${pend[r.id] ? '<div class="small" style="color:#f9a825;font-weight:800;">⏳ Pendiente aprobación de entrega</div>' :
-              `<button class="action-btn doDeliver" data-id="${r.id}">✅ YA ENTREGUÉ ESTE PEDIDO</button>`}
+              `<button class="action-btn doDeliver" data-id="${r.id}">ENTREGA COMPLETADA — FINALIZAR RUTA</button>`}
           </article>
         `).join('');
     }
