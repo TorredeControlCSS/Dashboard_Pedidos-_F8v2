@@ -77,7 +77,7 @@
     .filters {
       margin-top: 12px;
       display: grid;
-      grid-template-columns: minmax(200px, 1fr) repeat(2, minmax(140px, 180px)) auto auto;
+      grid-template-columns: minmax(200px, 1fr) repeat(2, minmax(140px, 180px)) auto minmax(150px, 170px) minmax(150px, 170px) auto;
       gap: 8px;
       align-items: center;
     }
@@ -138,6 +138,45 @@
       border: none; background: #e5e7eb; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-weight: 700; font-size: 12px;
     }
     .card-actions .advance { background: #0b1f3a; color: #fff; }
+    .card-actions .approve-pending { background: #2e7d32; color: #fff; }
+    .card-actions .reject-pending { background: #b71c1c; color: #fff; }
+    .pending-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: #f9a825;
+      color: #111827;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      animation: blink 1s step-start infinite;
+    }
+    .modality-toggle {
+      position: absolute;
+      top: 6px;
+      right: 28px;
+      border: none;
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .modality-toggle.ruta { background: #1565c0; }
+    .modality-toggle.retiro { background: #2e7d32; }
+    .pending-bar {
+      margin-top: 10px;
+      background: #fff8e1;
+      border: 1px solid #f9a825;
+      border-radius: 10px;
+      padding: 10px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
     .pin-error { color: #b71c1c; font-size: 12px; margin-top: 6px; min-height: 16px; }
     .attendance-header {
       display: flex;
@@ -296,6 +335,7 @@
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
+      <button class="btn" id="redistributeBtn">⚖️ Redistribuir</button>
       <button class="btn" id="saveBtn">💾 Guardar</button>
       <button class="btn" id="attendanceBtn">📋 Pase de Lista <span id="attendanceBadge" class="btn-badge" aria-label="Pase de lista pendiente" title="Pase de lista pendiente">!</span></button>
       <button class="btn" id="closeShiftBtn">📸 Cerrar Turno</button>
@@ -317,12 +357,18 @@
     </section>
 
     <section class="delivery-widget" id="deliveryWidget"></section>
+    <section class="pending-bar" id="pendingBar">
+      <strong id="pendingBarText">⏳ 0 transiciones pendientes de aprobación</strong>
+      <button id="approveAllPendingBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:6px 8px;background:#2e7d32;color:#fff;cursor:pointer;font-weight:700;">✅ Aprobar todos</button>
+    </section>
 
     <section class="filters">
       <input id="searchInput" placeholder="🔍 Buscar F8..." />
       <select id="groupFilter"><option value="">Grupo: TODOS</option></select>
       <select id="typeFilter"><option value="">Tipo: TODOS</option><option value="MENSUAL">Tipo: MENSUAL</option><option value="URGENCIA">Tipo: URGENCIA</option></select>
       <label><input type="checkbox" id="todayOnlyFilter" /> Solo con entrega hoy</label>
+      <input id="fromDateFilter" type="date" aria-label="Desde" title="Desde" />
+      <input id="toDateFilter" type="date" aria-label="Hasta" title="Hasta" />
       <button id="clearFiltersBtn">↺ Limpiar filtros</button>
     </section>
 
@@ -412,9 +458,46 @@
     </div>
   </div>
 
+  <div id="closeShiftModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
+    <div class="box" style="background:#fff;border-radius:10px;width:min(420px,92vw);padding:14px;">
+      <h3 style="margin:0 0 8px;">📸 Cerrar Turno</h3>
+      <div class="small">Seleccione tipo de exportación para el cierre:</div>
+      <div style="display:grid;gap:8px;margin-top:10px;">
+        <button id="closeShiftExcelBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:9px 10px;background:#fff;cursor:pointer;font-weight:700;">📊 Exportar Excel</button>
+        <button id="closeShiftPdfBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:9px 10px;background:#fff;cursor:pointer;font-weight:700;">📄 Exportar PDF</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="closeShiftCancelBtn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="returnModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
+    <div class="box" style="background:#fff;border-radius:10px;width:min(560px,95vw);padding:14px;">
+      <h3 id="returnTitle" style="margin:0 0 8px;">↩ Devolver F8</h3>
+      <div class="small">Motivo de devolución:</div>
+      <div id="returnReasons" style="display:grid;gap:6px;margin-top:8px;">
+        <label><input type="radio" name="returnReason" value="Error en cantidades registradas" /> Error en cantidades registradas</label>
+        <label><input type="radio" name="returnReason" value="Documentación incompleta" /> Documentación incompleta</label>
+        <label><input type="radio" name="returnReason" value="Productos incorrectos seleccionados" /> Productos incorrectos seleccionados</label>
+        <label><input type="radio" name="returnReason" value="Pedido incompleto — faltan items" /> Pedido incompleto — faltan items</label>
+        <label><input type="radio" name="returnReason" value="Error de empaque o embalaje" /> Error de empaque o embalaje</label>
+        <label><input type="radio" name="returnReason" value="Unidad Ejecutora solicitó cambios" /> Unidad Ejecutora solicitó cambios</label>
+        <label><input type="radio" name="returnReason" value="OTRO" /> Otro (especificar)</label>
+      </div>
+      <input id="returnOtherInput" placeholder="Especificar motivo..." style="width:100%;margin-top:8px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;" />
+      <div id="returnError" class="pin-error"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+        <button id="returnCancelBtn">Cancelar</button>
+        <button id="returnConfirmBtn" style="background:#b71c1c;color:#fff;border:none;padding:8px 10px;border-radius:8px;">↩ Confirmar Devolución</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
     const STAFF = [
@@ -428,7 +511,7 @@
       { name: "Erasmo Valencia", group: "URGENCIAS", cargo: "ALMACENISTA II" },
       { name: "Eric Castro", group: "VENCIDOS", cargo: "ALMACENISTA II" },
       { name: "Eric Medina", group: "MÓDULO", cargo: "ALMACENISTA II" },
-      { name: "Fernando Ruíz", group: "GRUPO 4", cargo: "ALMACENISTA II" },
+      { name: "Fernando Ruíz", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
       { name: "Francisco Pachay", group: "GRUPO 1", cargo: "CAMILLERO II" },
       { name: "Franklin Almanza", group: "VENCIDOS", cargo: "ALMACENISTA II" },
       { name: "Gaspar Salcedo", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
@@ -445,7 +528,10 @@
       { name: "Osvaldo Loaiza", group: "GRUPO 2", cargo: "ALMACENISTA II" },
       { name: "Roman Perez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
       { name: "Sebastian Hidalgo", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" }
+      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" },
+      { name: "Facturador 1 Kardex", group: "KARDEX", cargo: "FACTURACIÓN" },
+      { name: "Facturador 2 Kardex", group: "KARDEX", cargo: "FACTURACIÓN" },
+      { name: "Facturador 3 Kardex", group: "KARDEX", cargo: "FACTURACIÓN" }
     ];
     const GROUP_COLORS = {
       "GRUPO 1": "#1565c0",
@@ -457,7 +543,8 @@
       "EMPAQUE": "#4e342e",
       "URGENCIAS": "#b71c1c",
       "MÓDULO": "#37474f",
-      "VENCIDOS": "#558b2f"
+      "VENCIDOS": "#558b2f",
+      "KARDEX": "#5d4037"
     };
     const STATES = ["ASIGNADA", "PICKING", "FACTURACIÓN", "EMPACADO", "DESPACHADO", "ENTREGADO"];
     const NEXT_STATE = {
@@ -496,11 +583,16 @@
     let lastSuccessfulSync = "";
     let pendingRevertItemId = null;
     let attendanceDraft = {};
-    const filters = { search: "", group: "", tipo: "", todayOnly: false };
+    let pendingReturnId = null;
+    const filters = { search: "", group: "", tipo: "", todayOnly: false, fromDate: "", toDate: "" };
     const PIN_KEY = 'jefatura_pin';
     const ATTENDANCE_KEY = 'pase_lista';
     const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
     const SHIFT_HISTORY_KEY = 'historial_turnos';
+    const PENDING_KEY = 'almacen_pendientes';
+    const CAUSALES_KEY = 'almacen_causales';
+    const MODALIDAD_KEY = 'f8_modalidad';
+    const STAFF_PINS_KEY = 'staff_pins';
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -672,6 +764,82 @@
       renderStaff(filteredTracking.length ? filteredTracking : tracking, readLS('almacen_asignaciones', {}));
     }
 
+    function readPendings() {
+      return readLS(PENDING_KEY, {});
+    }
+
+    function writePendings(value) {
+      writeLS(PENDING_KEY, value);
+    }
+
+    function getModalidad(id) {
+      const map = readLS(MODALIDAD_KEY, {});
+      return map[id] === 'ruta' ? 'ruta' : 'retiro';
+    }
+
+    function toggleModalidad(id) {
+      const map = readLS(MODALIDAD_KEY, {});
+      map[id] = getModalidad(id) === 'ruta' ? 'retiro' : 'ruta';
+      writeLS(MODALIDAD_KEY, map);
+      renderDashboard();
+    }
+
+    function redistribuirEquitativamente(datos, estadoPersonal) {
+      const grupos = {};
+      datos.forEach((f8) => {
+        const grupo = f8.group || f8.grupo || f8.Grupo || f8.GRUPO;
+        if (!grupo) return;
+        if (!grupos[grupo]) grupos[grupo] = [];
+        grupos[grupo].push(f8);
+      });
+      const asignaciones = {};
+      Object.entries(grupos).forEach(([grupo, f8s]) => {
+        const miembros = STAFF.filter((s) => s.group === grupo && estadoPersonal[s.name] !== 'ausente');
+        if (!miembros.length) return;
+        f8s.forEach((f8, i) => {
+          asignaciones[f8.id] = miembros[i % miembros.length].name;
+        });
+      });
+      return asignaciones;
+    }
+
+    async function runRedistribucion() {
+      if (!confirm('¿Redistribuir todas las F8s equitativamente entre el personal disponible? Esto no afecta F8s ya en PICKING o estados avanzados.')) return;
+      const attendance = readLS(ATTENDANCE_KEY, {});
+      const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
+      const personal = readLS('almacen_personal', {});
+      const estadoPersonal = {};
+      STAFF.forEach((s) => {
+        const absentByList = attendanceToday[s.name] === 'ausente';
+        const status = personal[s.name]?.status || 'DISPONIBLE';
+        estadoPersonal[s.name] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
+      });
+      const asignables = tracking.filter((t) => t.estado === 'ASIGNADA');
+      const proposed = redistribuirEquitativamente(asignables, estadoPersonal);
+      if (!Object.keys(proposed).length) {
+        showToast('⚠️ No hay F8s ASIGNADAS con personal disponible');
+        return;
+      }
+      const asig = readLS('almacen_asignaciones', {});
+      const resumen = {};
+      for (const item of asignables) {
+        const who = proposed[item.id];
+        if (!who) continue;
+        asig[item.id] = who;
+        resumen[item.group] = resumen[item.group] || {};
+        resumen[item.group][who] = (resumen[item.group][who] || 0) + 1;
+        try { await postUpdate(item.id, 'ALMACENISTA', who); } catch {}
+      }
+      writeLS('almacen_asignaciones', asig);
+      const parts = Object.entries(resumen).map(([group, rows]) => {
+        const vals = Object.values(rows);
+        const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+        return `${group}: ${avg.toFixed(1)} F8s/persona`;
+      });
+      showToast(`✅ Redistribución completada · ${parts.join(' · ')}`);
+      renderDashboard();
+    }
+
     function autoAssign(items) {
       const asig = readLS('almacen_asignaciones', {});
       const personal = readLS('almacen_personal', {});
@@ -749,6 +917,18 @@
       `;
     }
 
+    function renderPendingBar() {
+      const pendings = readPendings();
+      const count = Object.keys(pendings).length;
+      const bar = document.getElementById('pendingBar');
+      if (!count) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'flex';
+      document.getElementById('pendingBarText').textContent = `⏳ ${count} transiciones pendientes de aprobación`;
+    }
+
     function updateGroupFilterOptions(items) {
       const groups = [...new Set(items.map(i => i.group))].sort();
       const sel = document.getElementById('groupFilter');
@@ -764,7 +944,10 @@
         const byGroup = !filters.group || i.group === filters.group;
         const byType = !filters.tipo || i.tipo === filters.tipo;
         const byToday = !filters.todayOnly || i.deliveryToday;
-        return bySearch && byGroup && byType && byToday;
+        const f8Iso = toIsoDate(i.fechaF8);
+        const byFrom = !filters.fromDate || (f8Iso !== '—' && f8Iso >= filters.fromDate);
+        const byTo = !filters.toDate || (f8Iso !== '—' && f8Iso <= filters.toDate);
+        return bySearch && byGroup && byType && byToday && byFrom && byTo;
       });
       return filteredTracking;
     }
@@ -776,6 +959,7 @@
       const items = applyFilters();
       renderKPIs(items, stateMap);
       renderDeliveryWidget(items);
+      renderPendingBar();
       renderBoard(items, stateMap, asig, personal);
       renderOperationalMetrics(tracking, asig);
       renderStaff(items, asig);
@@ -797,6 +981,8 @@
           const who = asig[item.id] || 'Sin asignar';
           const elapsed = getElapsed(item, stateMap);
           const sla = getSla(item, elapsed);
+          const pending = readPendings()[item.id];
+          const modalidad = getModalidad(item.id);
           const st = personal[who]?.status;
           const warn = st && st !== 'DISPONIBLE' && item.estado !== 'ENTREGADO';
           const pct = item.totalSolic > 0 ? Math.max(0, Math.min(100, (item.totalAsig / item.totalSolic) * 100)) : 0;
@@ -804,9 +990,12 @@
           const card = document.createElement('article');
           card.className = `card ${item.tipo === 'URGENCIA' ? 'urg' : ''} ${(item.deliveryToday && (item.estado === 'ASIGNADA' || item.estado === 'PICKING')) ? 'urgent-delivery' : ''} ${sla.level === 'crit' ? 'critical-sla' : ''}`;
           card.style.borderLeftColor = GROUP_COLORS[item.group] || '#90a4ae';
+          if (pending) card.style.border = '3px solid #f9a825';
           const previousState = getPreviousState(item.estado);
           card.innerHTML = `
+            ${pending ? '<div class="pending-badge">⏳ PEND. APROBACIÓN</div>' : ''}
             ${previousState ? `<button class="card-undo open-pin-revert" data-id="${item.id}" data-prev="${previousState}" title="Deshacer">↩</button>` : ''}
+            <button class="modality-toggle ${modalidad}" data-id="${item.id}" title="Cambiar modalidad">${modalidad === 'ruta' ? '🚚 RUTA' : '🏥 RETIRO'}</button>
             <div class="badges">
               <span class="badge ${item.tipo === 'URGENCIA' ? 'urg' : 'men'}">${item.tipo === 'URGENCIA' ? 'URGENCIA🔴' : 'MENSUAL'}</span>
               <span class="badge" style="background:${GROUP_COLORS[item.group] || '#607d8b'}">${item.group}</span>
@@ -826,7 +1015,10 @@
             ${warn ? `<div class="warn">⚠️ ${who} está ${st}${personal[who]?.destination ? ` · ${personal[who].destination}` : ''}</div>` : ''}
             <div class="card-actions">
               <button class="reassign" data-id="${item.id}">👤 Reasignar</button>
-              ${NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : ''}
+              ${pending ? `
+                <button class="approve-pending" data-id="${item.id}">✅ Aprobar</button>
+                <button class="reject-pending" data-id="${item.id}">↩ Devolver</button>
+              ` : (NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : '')}
             </div>
           `;
           cards.appendChild(card);
@@ -870,6 +1062,7 @@
               <button data-status="DISPONIBLE" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
               <button data-status="EN RUTA" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
               <button data-status="AUSENTE" disabled title="Controlado por pase de lista" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
+              <button class="reset-pin" data-name="${s.name}" title="Resetear PIN">🔑 Resetear PIN</button>
             </div>
             ${st === 'EN RUTA' ? `<input class="destination" value="${dst}" placeholder="Destino (ej: CSS Chitré)" />` : ''}
             ${isAbsentByList ? `<div class="staff-lock">Bloqueado por pase de lista (AUSENTE)</div>` : ''}
@@ -1158,8 +1351,7 @@
       renderDashboard();
     }
 
-    function closeShiftSnapshot() {
-      if (!confirm('¿Cerrar turno de hoy? Esto guardará una foto del estado actual.')) return;
+    function buildShiftSnapshot() {
       const personalMap = readLS('almacen_personal', {});
       const detail = STAFF.map((s) => ({ nombre: s.name, estado: personalMap[s.name]?.status || 'DISPONIBLE' }));
       const disponibles = detail.filter(d => d.estado === 'DISPONIBLE').length;
@@ -1167,7 +1359,7 @@
       const ausentes = detail.filter(d => d.estado === 'AUSENTE').length;
       const byState = STATES.reduce((acc, st) => ({ ...acc, [st]: 0 }), {});
       tracking.forEach((r) => { byState[r.estado] = (byState[r.estado] || 0) + 1; });
-      const snapshot = {
+      return {
         fecha: isoToday(),
         hora_cierre: hhmm(),
         personal: { disponibles, en_ruta, ausentes, detalle: detail },
@@ -1182,10 +1374,177 @@
         },
         log_del_dia: readLS('almacen_log', []).slice(0, 50)
       };
+    }
+
+    function closeShiftSnapshot() {
+      const snapshot = buildShiftSnapshot();
       const hist = readLS(SHIFT_HISTORY_KEY, []);
       hist.unshift(snapshot);
       writeLS(SHIFT_HISTORY_KEY, hist.slice(0, 365));
       showToast('📸 Cierre de turno guardado');
+      return snapshot;
+    }
+
+    function exportCloseShiftPdf(snapshot) {
+      if (!window.jspdf?.jsPDF) {
+        showToast('❌ jsPDF no está disponible');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const logs = readLS('almacen_log', []);
+      const today = isoToday();
+      const top = getRankingRows('today').slice(0, 3);
+      const completasHoy = logs.filter((l) => String(l.msg).includes('aprobada a ENTREGADO') && new Date(l.ts).toISOString().slice(0, 10) === today).length;
+      const despHoy = logs.filter((l) => String(l.msg).includes('aprobada a DESPACHADO') && new Date(l.ts).toISOString().slice(0, 10) === today).length;
+      const actives = snapshot.f8s.picking + snapshot.f8s.facturacion + snapshot.f8s.empacado;
+      const ratio = snapshot.personal.disponibles > 0 ? (actives / snapshot.personal.disponibles) : 0;
+      const ausentes = snapshot.personal.detalle.filter((d) => d.estado === 'AUSENTE').map((d) => d.nombre).join(', ') || 'Ninguno';
+      const lines = [
+        'CEDIS PANAMÁ — REPORTE DE CIERRE DE TURNO',
+        `Fecha: ${new Date().toLocaleDateString('es-PA', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} · Hora: ${snapshot.hora_cierre}`,
+        '',
+        'RESUMEN DE ASISTENCIA',
+        '─────────────────────',
+        `Personal presente:   ${snapshot.personal.disponibles} / ${STAFF.length}`,
+        `Personal ausente:    ${snapshot.personal.ausentes} / ${STAFF.length} (${ausentes})`,
+        `Personal en ruta:    ${snapshot.personal.en_ruta}`,
+        '',
+        'RESUMEN OPERATIVO',
+        '─────────────────',
+        `Total F8s en sistema:     ${snapshot.f8s.total.toLocaleString('es-PA')}`,
+        `F8s completadas hoy:      ${completasHoy}`,
+        `F8s despachadas hoy:      ${despHoy}`,
+        `Alertas SLA activas:      ${document.getElementById('kSla').textContent || '0'}`,
+        '',
+        'RANKING DEL DÍA',
+        '───────────────',
+        ...(top.length ? top.map((r) => `${r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉'} ${r.rank}. ${r.name} ${r.total} F8s`) : ['Sin movimientos']),
+        '',
+        'DISTRIBUCIÓN POR ESTADO',
+        '────────────────────────',
+        `Asignadas:     ${snapshot.f8s.asignadas}`,
+        `Picking:       ${snapshot.f8s.picking}`,
+        `Facturación:   ${snapshot.f8s.facturacion}`,
+        `Empacado:      ${snapshot.f8s.empacado}`,
+        `Despachado:    ${snapshot.f8s.despachado}`,
+        `Entregado:     ${snapshot.f8s.entregado}`,
+        '',
+        `ÍNDICE DE CONGESTIONAMIENTO: ${ratio.toFixed(1)} F8s/persona · ${ratio <= 1 ? 'NORMAL' : 'ATENCIÓN'}`,
+        '',
+        '[Generado automáticamente por Torre de Control V13.0]'
+      ];
+      let y = 12;
+      lines.forEach((line) => {
+        doc.setFontSize(line.includes('─') || !line ? 10 : (line === line.toUpperCase() && line.length < 35 ? 12 : 10));
+        doc.text(String(line), 10, y);
+        y += 6;
+        if (y > 280) {
+          doc.addPage();
+          y = 12;
+        }
+      });
+      const d = new Date();
+      doc.save(`Cierre_Turno_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}_${snapshot.hora_cierre.replace(':', '-')}.pdf`);
+      showToast('📄 PDF exportado');
+    }
+
+    function openCloseShiftModal() {
+      document.getElementById('closeShiftModal').style.display = 'flex';
+    }
+
+    function closeCloseShiftModal() {
+      document.getElementById('closeShiftModal').style.display = 'none';
+    }
+
+    async function approvePending(id) {
+      const pendings = readPendings();
+      const req = pendings[id];
+      if (!req) return;
+      const target = req.estadoSolicitado;
+      try {
+        await postUpdate(id, 'ESTADO', target === 'FACTURACIÓN' ? 'FACTURADO' : target);
+        await postUpdate(id, DATE_FIELD_BY_STATE[target], nowStamp());
+        delete pendings[id];
+        writePendings(pendings);
+        addLog(`${id} aprobada a ${target} · Jefatura`);
+        showToast('✅ Transición aprobada');
+        await loadData(false);
+      } catch (e) {
+        console.error(e);
+        showToast('❌ No se pudo aprobar');
+      }
+    }
+
+    async function approveAllPendings() {
+      const ids = Object.keys(readPendings());
+      if (!ids.length) return;
+      for (const id of ids) {
+        await approvePending(id);
+      }
+      renderDashboard();
+    }
+
+    function openReturnModal(id) {
+      pendingReturnId = id;
+      document.getElementById('returnTitle').textContent = `↩ Devolver F8 — ${id}`;
+      document.getElementById('returnOtherInput').value = '';
+      document.getElementById('returnError').textContent = '';
+      document.querySelectorAll('input[name="returnReason"]').forEach((r) => { r.checked = false; });
+      document.getElementById('returnModal').style.display = 'flex';
+    }
+
+    function closeReturnModal() {
+      pendingReturnId = null;
+      document.getElementById('returnModal').style.display = 'none';
+      document.getElementById('returnError').textContent = '';
+    }
+
+    function confirmReturnPending() {
+      const id = pendingReturnId;
+      if (!id) return;
+      const selected = document.querySelector('input[name="returnReason"]:checked');
+      const other = document.getElementById('returnOtherInput').value.trim();
+      const causal = !selected ? '' : (selected.value === 'OTRO' ? other : selected.value);
+      if (!causal) {
+        document.getElementById('returnError').textContent = 'Seleccione un motivo de devolución';
+        return;
+      }
+      const pendings = readPendings();
+      const req = pendings[id];
+      if (!req) return closeReturnModal();
+      delete pendings[id];
+      writePendings(pendings);
+      const causales = readLS(CAUSALES_KEY, {});
+      causales[id] = { causal, timestamp: Date.now(), devueltoPor: 'Jefatura' };
+      writeLS(CAUSALES_KEY, causales);
+      addLog(`${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })} — ${id} devuelto a ${req.estadoActual} · Motivo: ${causal} · Por: Jefatura`);
+      showToast('↩ Devolución registrada');
+      closeReturnModal();
+      renderDashboard();
+    }
+
+    async function advanceItem(item) {
+      const next = NEXT_STATE[item.estado];
+      if (!next) return;
+      const pendings = readPendings();
+      if (pendings[item.id]) {
+        showToast('⏳ Esta F8 ya está pendiente de aprobación');
+        return;
+      }
+      if (!confirm(`¿Solicitar avance de ${item.id} de ${item.estado} a ${next}?`)) return;
+      const asig = readLS('almacen_asignaciones', {});
+      const who = asig[item.id] || 'Sin asignar';
+      pendings[item.id] = {
+        estadoSolicitado: next,
+        estadoActual: item.estado,
+        solicitadoPor: who,
+        timestamp: Date.now()
+      };
+      writePendings(pendings);
+      addLog(`${item.id} solicita avance a ${next} · ${who}`);
+      showToast('⏳ Pendiente de aprobación');
+      renderDashboard();
     }
 
     function openAssignModal(id, group) {
@@ -1202,26 +1561,6 @@
     function closeAssignModal() {
       pendingAssignId = null;
       document.getElementById('modal').style.display = 'none';
-    }
-
-    async function advanceItem(item) {
-      const next = NEXT_STATE[item.estado];
-      if (!next) return;
-      if (!confirm(`¿Avanzar ${item.id} de ${item.estado} a ${next}?`)) return;
-      const asig = readLS('almacen_asignaciones', {});
-      const who = asig[item.id] || 'Sin asignar';
-      const stateMap = readLS('almacen_state_timestamps', {});
-      const elapsed = getElapsed(item, stateMap);
-      try {
-        await postUpdate(item.id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
-        await postUpdate(item.id, DATE_FIELD_BY_STATE[next], nowStamp());
-        addLog(`${item.id} avanzó a ${next} · ${who}${elapsed ? ` · ${elapsed.label}` : ''}`);
-        showToast('✅ Estado actualizado');
-        await loadData(false);
-      } catch (e) {
-        console.error(e);
-        showToast('❌ No se pudo actualizar');
-      }
     }
 
     async function loadData(showMessage = true) {
@@ -1291,7 +1630,8 @@
         showToast('✅ Backup descargado');
       });
       document.getElementById('attendanceBtn').addEventListener('click', openAttendanceModal);
-      document.getElementById('closeShiftBtn').addEventListener('click', closeShiftSnapshot);
+      document.getElementById('closeShiftBtn').addEventListener('click', openCloseShiftModal);
+      document.getElementById('redistributeBtn').addEventListener('click', runRedistribucion);
       document.getElementById('changePinBtn').addEventListener('click', changePinFlow);
       document.getElementById('exportReportBtn').addEventListener('click', () => {
         if (typeof XLSX === 'undefined') {
@@ -1395,15 +1735,27 @@
         filters.todayOnly = e.target.checked;
         renderDashboard();
       });
+      document.getElementById('fromDateFilter').addEventListener('change', (e) => {
+        filters.fromDate = e.target.value || '';
+        renderDashboard();
+      });
+      document.getElementById('toDateFilter').addEventListener('change', (e) => {
+        filters.toDate = e.target.value || '';
+        renderDashboard();
+      });
       document.getElementById('clearFiltersBtn').addEventListener('click', () => {
         filters.search = '';
         filters.group = '';
         filters.tipo = '';
         filters.todayOnly = false;
+        filters.fromDate = '';
+        filters.toDate = '';
         document.getElementById('searchInput').value = '';
         document.getElementById('groupFilter').value = '';
         document.getElementById('typeFilter').value = '';
         document.getElementById('todayOnlyFilter').checked = false;
+        document.getElementById('fromDateFilter').value = '';
+        document.getElementById('toDateFilter').value = '';
         renderDashboard();
       });
       document.getElementById('kSlaWrap').addEventListener('click', () => {
@@ -1416,11 +1768,21 @@
         if (!id) return;
         const item = tracking.find(t => t.id === id);
         if (!item) return;
+        if (e.target.classList.contains('modality-toggle')) {
+          toggleModalidad(id);
+          return;
+        }
         if (e.target.classList.contains('reassign')) {
           openAssignModal(id, item.group);
         }
         if (e.target.classList.contains('advance')) {
           await advanceItem(item);
+        }
+        if (e.target.classList.contains('approve-pending')) {
+          await approvePending(id);
+        }
+        if (e.target.classList.contains('reject-pending')) {
+          openReturnModal(id);
         }
         if (e.target.classList.contains('open-pin-revert')) {
           openPinModal(item);
@@ -1476,6 +1838,15 @@
           document.getElementById('staffCards').innerHTML = renderRankingHtml('today');
           return;
         }
+        if (e.target.classList.contains('reset-pin')) {
+          const who = e.target.dataset.name;
+          if (!who || !confirm(`¿Resetear PIN de ${who}?`)) return;
+          const pins = readLS(STAFF_PINS_KEY, {});
+          delete pins[who];
+          writeLS(STAFF_PINS_KEY, pins);
+          showToast(`🔑 PIN reseteado: ${who}`);
+          return;
+        }
         const st = e.target.dataset.status;
         if (!st) return;
         const person = e.target.closest('.person')?.dataset.name;
@@ -1512,6 +1883,26 @@
       });
       document.getElementById('modal').addEventListener('click', (e) => {
         if (e.target.id === 'modal') closeAssignModal();
+      });
+      document.getElementById('approveAllPendingBtn').addEventListener('click', approveAllPendings);
+      document.getElementById('returnCancelBtn').addEventListener('click', closeReturnModal);
+      document.getElementById('returnConfirmBtn').addEventListener('click', confirmReturnPending);
+      document.getElementById('returnModal').addEventListener('click', (e) => {
+        if (e.target.id === 'returnModal') closeReturnModal();
+      });
+      document.getElementById('closeShiftCancelBtn').addEventListener('click', closeCloseShiftModal);
+      document.getElementById('closeShiftModal').addEventListener('click', (e) => {
+        if (e.target.id === 'closeShiftModal') closeCloseShiftModal();
+      });
+      document.getElementById('closeShiftExcelBtn').addEventListener('click', () => {
+        closeShiftSnapshot();
+        closeCloseShiftModal();
+        document.getElementById('exportReportBtn').click();
+      });
+      document.getElementById('closeShiftPdfBtn').addEventListener('click', () => {
+        const snap = closeShiftSnapshot();
+        closeCloseShiftModal();
+        exportCloseShiftPdf(snap);
       });
     }
 
