@@ -46,6 +46,14 @@
     .mini-ranking { border:1px solid #dbeafe; border-radius:10px; padding:10px; background:#fff; margin-top:10px; }
     .rank-line { display:flex; justify-content:space-between; gap:8px; margin:4px 0; }
     .hidden { display:none !important; }
+    .pin-wrap { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0; }
+    .pin-digit { min-height:52px; font-size:28px; text-align:center; border:1px solid #cbd5e1; border-radius:10px; }
+    .shake { animation: shake .25s linear 2; }
+    @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+    .search-wrap { margin:8px 0 10px; position:relative; }
+    .search-wrap input { width:100%; border:1px solid #d1d5db; border-radius:10px; padding:10px 36px 10px 10px; font-size:16px; }
+    .search-wrap button { position:absolute; right:6px; top:6px; border:none; background:#e5e7eb; border-radius:8px; width:28px; height:28px; cursor:pointer; }
+    .return-banner { margin-top:8px; border:2px solid #b71c1c; background:#ffebee; border-radius:8px; padding:8px; color:#b71c1c; font-size:13px; font-weight:700; }
 
     #modal-identidad {
       position: fixed !important;
@@ -93,9 +101,36 @@
   <main class="main">
     <section id="modal-identidad">
       <div class="modal-content">
-        <h2 style="margin-top:0">¿Quién eres?</h2>
-        <select id="whoSelect"></select>
-        <button id="loginBtn">✅ Ingresar</button>
+        <div id="identityStep1">
+          <h2 style="margin-top:0">¿Quién eres?</h2>
+          <select id="whoSelect"></select>
+          <button id="nextIdentityBtn">Siguiente →</button>
+        </div>
+        <div id="identityStep2" class="hidden">
+          <h2 id="pinWelcome" style="margin-top:0">Bienvenido</h2>
+          <div id="pinModeLabel" class="small" style="font-size:14px;"></div>
+          <div class="pin-wrap" id="pinDigitsWrap">
+            <input class="pin-digit" inputmode="numeric" maxlength="1" />
+            <input class="pin-digit" inputmode="numeric" maxlength="1" />
+            <input class="pin-digit" inputmode="numeric" maxlength="1" />
+            <input class="pin-digit" inputmode="numeric" maxlength="1" />
+          </div>
+          <div id="pinConfirmWrap" class="hidden">
+            <div class="small" style="font-size:14px;">Confirmar PIN</div>
+            <div class="pin-wrap" id="pinDigitsConfirmWrap">
+              <input class="pin-digit" inputmode="numeric" maxlength="1" />
+              <input class="pin-digit" inputmode="numeric" maxlength="1" />
+              <input class="pin-digit" inputmode="numeric" maxlength="1" />
+              <input class="pin-digit" inputmode="numeric" maxlength="1" />
+            </div>
+          </div>
+          <div id="pinErrorMsg" class="small" style="color:#b71c1c;min-height:18px;"></div>
+          <div class="small" id="forgotPinMsg" style="display:none;">¿Olvidaste tu PIN? Contacta a la Jefa de Almacén para resetear tu PIN</div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button id="backIdentityBtn" style="flex:1;">← Volver</button>
+            <button id="loginBtn" style="flex:1;">✅ Ingresar</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -114,6 +149,15 @@
       <article class="panel" id="ordersPanel">
         <h2>📦 MIS PEDIDOS DE HOY</h2>
         <div id="ordersSubtitle" class="small"></div>
+        <div class="search-wrap">
+          <input id="ordersSearchInput" placeholder="🔍 Buscar por ID o nombre de UE..." />
+          <button id="clearOrdersSearchBtn" title="Limpiar">✕</button>
+        </div>
+        <div id="deliveryWorkPanel" class="hidden">
+          <h3 style="margin:0 0 6px;">🚚 ESTOY HACIENDO UNA ENTREGA</h3>
+          <select id="deliveryUeSelect" style="width:100%;min-height:46px;border:1px solid #d1d5db;border-radius:10px;padding:8px;"></select>
+          <div id="deliveryRouteList" style="display:grid;gap:8px;margin-top:8px;"></div>
+        </div>
         <div id="priorityQueue"></div>
         <div id="queue" class="queue"></div>
       </article>
@@ -168,7 +212,7 @@
       { name: "Erasmo Valencia", group: "URGENCIAS" },
       { name: "Eric Castro", group: "VENCIDOS" },
       { name: "Eric Medina", group: "MÓDULO" },
-      { name: "Fernando Ruíz", group: "GRUPO 4" },
+      { name: "Fernando Ruíz", group: "GRUPO 4-5-11" },
       { name: "Francisco Pachay", group: "GRUPO 1" },
       { name: "Franklin Almanza", group: "VENCIDOS" },
       { name: "Gaspar Salcedo", group: "GRUPO 4-5-11" },
@@ -185,19 +229,30 @@
       { name: "Osvaldo Loaiza", group: "GRUPO 2" },
       { name: "Roman Perez", group: "GRUPO 3" },
       { name: "Sebastian Hidalgo", group: "EMPAQUE" },
-      { name: "Sergio Rangel", group: "URGENCIAS" }
+      { name: "Sergio Rangel", group: "URGENCIAS" },
+      { name: "Facturador 1 Kardex", group: "KARDEX" },
+      { name: "Facturador 2 Kardex", group: "KARDEX" },
+      { name: "Facturador 3 Kardex", group: "KARDEX" }
     ];
     const GROUP_COLORS = {
       "GRUPO 1": "#1565c0", "GRUPO 2": "#2e7d32", "GRUPO 3": "#6a1b9a", "GRUPO 4-5-11": "#e65100", "GRUPO 4": "#bf360c",
-      "FRÍO": "#0277bd", "EMPAQUE": "#4e342e", "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f"
+      "FRÍO": "#0277bd", "EMPAQUE": "#4e342e", "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f", "KARDEX": "#5d4037"
     };
     const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', FACTURACIÓN: 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
-    const DATE_FIELD = { PICKING: 'FECHA_PICKING', FACTURACIÓN: 'FECHA_FACTURACION', EMPACADO: 'FECHA_EMPACADO', DESPACHADO: 'FECHA_DESPACHO', ENTREGADO: 'FECHA_ENTREGA' };
     const IDENTITY_KEY = 'almacen_yo';
+    const STAFF_PINS_KEY = 'staff_pins';
+    const PENDING_KEY = 'almacen_pendientes';
+    const CAUSALES_KEY = 'almacen_causales';
+    const MODALIDAD_KEY = 'f8_modalidad';
 
     let rows = [];
     let pendingAdvanceId = '';
     let lastSuccessfulSync = "";
+    let identityCandidate = '';
+    let identityCreateMode = false;
+    let ordersSearch = '';
+    let selectedDeliveryUe = '';
+
     const readLS = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
     const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
@@ -237,20 +292,19 @@
     function addLog(msg) {
       const log = readLS('almacen_log', []);
       log.unshift({ ts: Date.now(), msg });
-      writeLS('almacen_log', log.slice(0, 50));
+      writeLS('almacen_log', log.slice(0, 200));
     }
 
     function getMe() { return localStorage.getItem(IDENTITY_KEY) || ''; }
+    function getPerson() { return STAFF.find((s) => s.name === getMe()); }
+    function getPendings() { return readLS(PENDING_KEY, {}); }
+    function getModalidad(id) { return readLS(MODALIDAD_KEY, {})[id] === 'ruta' ? 'ruta' : 'retiro'; }
 
     function attendanceStatusForMe() {
       const me = getMe();
       const pase = readLS('pase_lista', {});
       if (!me || pase?.fecha !== isoToday()) return 'presente';
       return pase.personal?.[me] || 'presente';
-    }
-
-    async function postUpdate(id, field, value) {
-      await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'updateStatus', id, field, value }) });
     }
 
     async function loadData() {
@@ -270,6 +324,47 @@
       })).filter((x) => x.id !== '---');
     }
 
+    function bindPinInputs(wrapId) {
+      const inputs = [...document.querySelectorAll(`#${wrapId} .pin-digit`)];
+      inputs.forEach((inp, idx) => {
+        inp.addEventListener('input', () => {
+          inp.value = (inp.value || '').replace(/\D/g, '').slice(0, 1);
+          if (inp.value && inputs[idx + 1]) inputs[idx + 1].focus();
+        });
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !inp.value && inputs[idx - 1]) inputs[idx - 1].focus();
+        });
+      });
+    }
+    bindPinInputs('pinDigitsWrap');
+    bindPinInputs('pinDigitsConfirmWrap');
+
+    function pinValue(wrapId) {
+      return [...document.querySelectorAll(`#${wrapId} .pin-digit`)].map((i) => i.value || '').join('');
+    }
+    function clearPin(wrapId) {
+      [...document.querySelectorAll(`#${wrapId} .pin-digit`)].forEach((i) => { i.value = ''; });
+    }
+    function shakePins(wrapId) {
+      const wrap = document.getElementById(wrapId);
+      wrap.classList.remove('shake');
+      void wrap.offsetWidth;
+      wrap.classList.add('shake');
+    }
+    function focusPin(wrapId) {
+      document.querySelector(`#${wrapId} .pin-digit`)?.focus();
+    }
+
+    function resetIdentitySteps() {
+      document.getElementById('identityStep1').classList.remove('hidden');
+      document.getElementById('identityStep2').classList.add('hidden');
+      document.getElementById('pinConfirmWrap').classList.add('hidden');
+      document.getElementById('forgotPinMsg').style.display = 'none';
+      document.getElementById('pinErrorMsg').textContent = '';
+      clearPin('pinDigitsWrap');
+      clearPin('pinDigitsConfirmWrap');
+    }
+
     function setupIdentity() {
       const sel = document.getElementById('whoSelect');
       sel.innerHTML = '<option value="">Seleccione su nombre...</option>' + STAFF.map((s) => `<option value="${s.name}">${s.name} · ${s.group}</option>`).join('');
@@ -277,14 +372,62 @@
       const valid = me && STAFF.some((s) => s.name === me);
       document.getElementById('modal-identidad').style.display = valid ? 'none' : 'flex';
       document.getElementById('app').classList.toggle('hidden', !valid);
+      if (!valid) resetIdentitySteps();
       renderTopbarActions();
     }
 
+    function startPinStep() {
+      const who = document.getElementById('whoSelect').value;
+      if (!who) return;
+      identityCandidate = who;
+      const pins = readLS(STAFF_PINS_KEY, {});
+      identityCreateMode = !/^\d{4}$/.test(pins[who] || '');
+      document.getElementById('identityStep1').classList.add('hidden');
+      document.getElementById('identityStep2').classList.remove('hidden');
+      document.getElementById('pinWelcome').textContent = `Bienvenido, ${who.toUpperCase()}`;
+      document.getElementById('pinModeLabel').textContent = identityCreateMode ? 'Crea tu PIN de 4 dígitos' : 'Ingresa tu PIN de 4 dígitos';
+      document.getElementById('pinConfirmWrap').classList.toggle('hidden', !identityCreateMode);
+      document.getElementById('forgotPinMsg').style.display = identityCreateMode ? 'none' : 'block';
+      document.getElementById('pinErrorMsg').textContent = '';
+      clearPin('pinDigitsWrap');
+      clearPin('pinDigitsConfirmWrap');
+      focusPin('pinDigitsWrap');
+    }
+
+    function finishIdentityLogin() {
+      if (!identityCandidate) return;
+      const pin = pinValue('pinDigitsWrap');
+      if (!/^\d{4}$/.test(pin)) {
+        document.getElementById('pinErrorMsg').textContent = 'Ingresa 4 dígitos';
+        shakePins('pinDigitsWrap');
+        return;
+      }
+      const pins = readLS(STAFF_PINS_KEY, {});
+      if (identityCreateMode) {
+        const pin2 = pinValue('pinDigitsConfirmWrap');
+        if (pin !== pin2) {
+          document.getElementById('pinErrorMsg').textContent = 'El PIN no coincide';
+          shakePins('pinDigitsWrap');
+          shakePins('pinDigitsConfirmWrap');
+          return;
+        }
+        pins[identityCandidate] = pin;
+        writeLS(STAFF_PINS_KEY, pins);
+      } else if ((pins[identityCandidate] || '') !== pin) {
+        document.getElementById('pinErrorMsg').textContent = 'PIN incorrecto, intenta de nuevo';
+        shakePins('pinDigitsWrap');
+        clearPin('pinDigitsWrap');
+        focusPin('pinDigitsWrap');
+        return;
+      }
+      localStorage.setItem(IDENTITY_KEY, identityCandidate);
+      renderAll();
+    }
+
     function renderTopbarActions() {
-      const me = getMe();
-      const person = STAFF.find((s) => s.name === me);
+      const person = getPerson();
       const wrap = document.getElementById('topbarActions');
-      if (!me || !person) {
+      if (!person) {
         wrap.innerHTML = '';
         return;
       }
@@ -300,26 +443,31 @@
       });
     }
 
-    function stateCopy(state) {
+    function stateCopy(state, isKardex = false) {
       if (state === 'ASIGNADA') return { label: '▶ LISTO PARA PREPARAR', color: '#546e7a', action: '✅ EMPECÉ A PREPARAR ESTE PEDIDO' };
       if (state === 'PICKING') return { label: '🔄 PREPARANDO...', color: '#1565c0', action: '✅ TERMINÉ DE PREPARAR' };
-      if (state === 'FACTURACIÓN') return { label: '🧾 EN FACTURACIÓN', color: '#ef6c00', action: '' };
+      if (state === 'FACTURACIÓN') return { label: '🧾 EN FACTURACIÓN', color: '#ef6c00', action: isKardex ? '✅ YA FACTURÉ ESTE PEDIDO' : '' };
       if (state === 'EMPACADO') return { label: '📦 EMPACANDO...', color: '#6d4c41', action: '✅ TERMINÉ DE EMPACAR' };
       if (state === 'DESPACHADO') return { label: '🚚 LISTO PARA ENTREGAR', color: '#2e7d32', action: '✅ ENTREGUÉ ESTE PEDIDO' };
       return { label: '✅ ENTREGADO', color: '#6b7280', action: '' };
     }
 
     function queueForMe() {
-      const me = getMe();
-      const person = STAFF.find((s) => s.name === me);
+      const person = getPerson();
       if (!person) return [];
       const asig = readLS('almacen_asignaciones', {});
       const stateMap = readLS('almacen_state_timestamps', {});
-      return rows.filter((r) => asig[r.id] === me || (!asig[r.id] && r.group === person.group)).map((r) => {
+      const pendings = getPendings();
+      const causales = readLS(CAUSALES_KEY, {});
+      const list = rows.filter((r) => {
+        if (person.group === 'KARDEX') return r.estado === 'FACTURACIÓN';
+        return asig[r.id] === person.name || (!asig[r.id] && r.group === person.group);
+      }).map((r) => {
         const enteredAt = stateMap[r.id]?.enteredAt;
         const wait = enteredAt ? (Date.now() - enteredAt) / 36e5 : -1;
-        return { ...r, wait };
-      }).sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || b.wait - a.wait);
+        return { ...r, wait, pending: pendings[r.id] || null, causal: causales[r.id] || null, modalidad: getModalidad(r.id) };
+      });
+      return list.sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || b.wait - a.wait);
     }
 
     function fmtWait(hours) {
@@ -329,52 +477,112 @@
     }
 
     function renderMyStatus() {
-      const me = getMe();
-      const person = STAFF.find((s) => s.name === me);
+      const person = getPerson();
       if (!person) return;
       const personal = readLS('almacen_personal', {});
-      const st = personal[me]?.status === 'EN RUTA' ? 'EN RUTA' : 'DISPONIBLE';
+      const st = personal[person.name]?.status === 'EN RUTA' ? 'EN RUTA' : 'DISPONIBLE';
+      const isKardex = person.group === 'KARDEX';
       document.querySelectorAll('.status-btns [data-status]').forEach((b) => b.classList.toggle('active', b.dataset.status === st));
+      document.querySelector('.status-btns').classList.toggle('hidden', isKardex);
       const input = document.getElementById('myDestination');
-      input.classList.toggle('hidden', st !== 'EN RUTA');
-      input.value = personal[me]?.destination || '';
+      input.classList.toggle('hidden', st !== 'EN RUTA' || isKardex);
+      input.value = personal[person.name]?.destination || '';
       const destinos = [...new Set(rows.map((r) => r.ue).filter(Boolean))].slice(0, 100);
       document.getElementById('destinosList').innerHTML = destinos.map((d) => `<option value="${d}"></option>`).join('');
       const now = new Date();
-      document.getElementById('greeting').textContent = `Buenos días, ${person.name.toUpperCase()}`;
+      document.getElementById('greeting').textContent = isKardex ? '👤 VISTA KARDEX — FACTURACIÓN' : `Buenos días, ${person.name.toUpperCase()}`;
       document.getElementById('groupDate').textContent = `${person.group} · ${now.toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long' })}`;
+      renderDeliveryWork();
+    }
+
+    function renderDeliveryWork() {
+      const person = getPerson();
+      if (!person) return;
+      const me = person.name;
+      const personal = readLS('almacen_personal', {});
+      const st = personal[me]?.status || 'DISPONIBLE';
+      const panel = document.getElementById('deliveryWorkPanel');
+      if (person.group === 'KARDEX' || st !== 'EN RUTA') {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      const asig = readLS('almacen_asignaciones', {});
+      const pend = getPendings();
+      const rutas = rows.filter((r) => r.estado === 'DESPACHADO' && getModalidad(r.id) === 'ruta' && asig[r.id] === me);
+      const byUe = [...new Set(rutas.map((r) => r.ue))];
+      const sel = document.getElementById('deliveryUeSelect');
+      if (!byUe.length) {
+        sel.innerHTML = '<option value="">Sin UEs con pedidos de ruta pendientes</option>';
+        document.getElementById('deliveryRouteList').innerHTML = '<div class="small">No hay F8s de modalidad RUTA asignadas para entrega.</div>';
+        return;
+      }
+      if (!selectedDeliveryUe || !byUe.includes(selectedDeliveryUe)) selectedDeliveryUe = byUe[0];
+      sel.innerHTML = byUe.map((ue) => `<option value="${ue}" ${ue === selectedDeliveryUe ? 'selected' : ''}>${ue}</option>`).join('');
+      const list = rutas.filter((r) => r.ue === selectedDeliveryUe);
+      const allDone = list.every((r) => pend[r.id]?.estadoSolicitado === 'ENTREGADO');
+      document.getElementById('deliveryRouteList').innerHTML = allDone
+        ? '<div class="priority-box">¡Entrega completada! Regresa al almacén.</div>'
+        : list.map((r) => `
+          <article class="card" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}">
+            <div style="font-weight:800">${r.id}</div>
+            <div>${r.ue}</div>
+            <div class="small">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades</div>
+            ${pend[r.id] ? '<div class="small" style="color:#f9a825;font-weight:800;">⏳ Pendiente aprobación de entrega</div>' :
+              `<button class="action-btn doDeliver" data-id="${r.id}">✅ YA ENTREGUÉ ESTE PEDIDO</button>`}
+          </article>
+        `).join('');
     }
 
     function renderQueue() {
-      const q = queueForMe();
+      const person = getPerson();
+      if (!person) return;
+      const isKardex = person.group === 'KARDEX';
+      const q = queueForMe().filter((r) => {
+        if (!ordersSearch) return true;
+        const qv = ordersSearch.toUpperCase();
+        return r.id.toUpperCase().includes(qv) || r.ue.toUpperCase().includes(qv);
+      });
       const box = document.getElementById('queue');
       const priority = document.getElementById('priorityQueue');
       const totalToday = q.filter((r) => r.deliveryToday).length;
-      document.getElementById('ordersSubtitle').textContent = `Tienes ${q.length} pedidos pendientes · ${totalToday} con entrega HOY ⚡`;
+      document.getElementById('ordersSubtitle').textContent = isKardex
+        ? `Tienes ${q.length} pedidos en FACTURACIÓN`
+        : `Tienes ${q.length} pedidos pendientes · ${totalToday} con entrega HOY ⚡`;
       if (!q.length) {
         priority.innerHTML = '';
         box.innerHTML = '<div class="small">Sin pedidos asignados en este momento.</div>';
         return;
       }
-      const todayRows = q.filter((r) => r.deliveryToday);
+      const todayRows = q.filter((r) => r.deliveryToday && !isKardex);
       priority.innerHTML = todayRows.length ? `<div class="priority-box"><div class="priority-title">⚡ PARA ENTREGAR HOY</div>${todayRows.map((r) => `<div>${r.id} · ${r.ue}</div>`).join('')}</div>` : '';
       box.innerHTML = q.map((r) => {
-        const copy = stateCopy(r.estado);
+        const copy = stateCopy(r.estado, isKardex);
+        const next = NEXT[r.estado];
         return `
-          <article class="card" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}">
+          <article class="card" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'};${r.pending ? 'border:3px solid #f9a825;' : ''}">
+            ${r.pending ? `<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;">⏳ PEND. APROBACIÓN → ${r.pending.estadoSolicitado}</div>` : ''}
             <div class="badges">
               <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
-              <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+              <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${isKardex ? 'KARDEX' : r.group}</span>
+              <span class="badge" style="background:${r.modalidad === 'ruta' ? '#1565c0' : '#2e7d32'}">${r.modalidad === 'ruta' ? '🚚 RUTA' : '🏥 RETIRO'}</span>
             </div>
             <div style="font-weight:800;font-size:22px;">${r.id}</div>
             <div style="font-size:20px;margin-top:4px;">${r.ue}</div>
-            <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades a preparar</div>
-            <div class="state-chip" style="color:${copy.color};">Estado actual: ${copy.label}</div>
+            <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades a ${isKardex ? 'facturar' : 'preparar'}</div>
+            <div class="state-chip" style="color:${copy.color};">Estado: ${copy.label}</div>
             <div class="wait">Hace: ${fmtWait(r.wait)} 🟡</div>
-            ${copy.action ? `<button class="action-btn doNext" data-id="${r.id}">${copy.action}</button>` : ''}
+            ${r.causal ? `<div class="return-banner">⚠️ PEDIDO DEVUELTO — Revisar antes de continuar<br>Motivo: "${r.causal.causal}"<br>Devuelto por ${r.causal.devueltoPor || 'Jefatura'} a las ${new Date(r.causal.timestamp).toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' })}</div>` : ''}
+            ${copy.action && next && !r.pending ? `<button class="action-btn doNext" data-id="${r.id}">${copy.action}</button>` : ''}
           </article>
         `;
       }).join('');
+    }
+
+    function myLogsToday() {
+      const me = getMe();
+      const today = isoToday();
+      return readLS('almacen_log', []).filter((l) => new Date(l.ts).toISOString().slice(0, 10) === today && String(l.msg).includes(`· ${me}`));
     }
 
     function rankingRows(scope = 'today') {
@@ -389,7 +597,7 @@
       start.setHours(0,0,0,0);
       const counts = {};
       logs.forEach((l) => {
-        if (!String(l.msg).includes('avanzó a')) return;
+        if (!String(l.msg).includes('solicita avance a')) return;
         const ts = new Date(l.ts);
         if (Number.isNaN(ts.getTime()) || ts < start) return;
         const parts = String(l.msg).split('·');
@@ -402,11 +610,50 @@
       return { rows, mine };
     }
 
+    function avgPickingMinutesFor(name) {
+      const logs = readLS('almacen_log', []).filter((l) => String(l.msg).includes(`· ${name}`));
+      const starts = {};
+      const times = [];
+      logs.slice().reverse().forEach((l) => {
+        const msg = String(l.msg);
+        const m = msg.match(/^(.+?) solicita avance a ([^·]+)/);
+        if (!m) return;
+        const id = m[1].trim();
+        const to = m[2].trim();
+        if (to === 'PICKING') starts[id] = l.ts;
+        if (to === 'FACTURACIÓN' && starts[id]) {
+          times.push((l.ts - starts[id]) / 60000);
+          delete starts[id];
+        }
+      });
+      return times.length ? (times.reduce((a,b)=>a+b,0) / times.length) : 0;
+    }
+
+    function streakDays(name) {
+      const logs = readLS('almacen_log', []);
+      const days = new Set(logs.filter((l) => String(l.msg).includes(`· ${name}`) && String(l.msg).includes('solicita avance a')).map((l) => new Date(l.ts).toISOString().slice(0,10)));
+      let streak = 0;
+      const d = new Date();
+      while (true) {
+        const iso = d.toISOString().slice(0,10);
+        if (!days.has(iso)) break;
+        streak++;
+        d.setDate(d.getDate() - 1);
+      }
+      return streak;
+    }
+
     function renderStats() {
       const me = getMe();
       const today = rankingRows('today');
-      const week = rankingRows('week');
       const done = today.mine?.total || 0;
+      const logsToday = myLogsToday();
+      const myAvg = avgPickingMinutesFor(me);
+      const teamAvgs = STAFF.map((s) => avgPickingMinutesFor(s.name)).filter((v) => v > 0);
+      const teamAvg = teamAvgs.length ? (teamAvgs.reduce((a,b)=>a+b,0) / teamAvgs.length) : 0;
+      const times = logsToday.map((l) => l.ts).sort((a,b)=>a-b);
+      const workedHours = times.length > 1 ? Math.max(1, (times[times.length - 1] - times[0]) / 36e5) : 1;
+      const speed = done / workedHours;
       document.getElementById('stDone').textContent = done;
       if (today.mine) {
         const medal = today.mine.rank === 1 ? '🥇' : today.mine.rank === 2 ? '🥈' : today.mine.rank === 3 ? '🥉' : '🏅';
@@ -414,29 +661,13 @@
       } else {
         document.getElementById('stPosition').textContent = 'Mi posición en el ranking: —';
       }
-      const log = readLS('almacen_log', []);
-      const byDay = {};
-      log.forEach((l) => {
-        if (!String(l.msg).includes('avanzó a')) return;
-        const parts = String(l.msg).split('·');
-        const who = parts.length ? parts[parts.length - 1].trim() : '';
-        if (who !== me) return;
-        const day = new Date(l.ts).toISOString().slice(0, 10);
-        byDay[day] = (byDay[day] || 0) + 1;
-      });
-      const bestDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];
-      document.getElementById('stBest').textContent = bestDay ? `Mejor marca personal: 🏆 ${bestDay[1]} (${bestDay[0]})` : 'Mejor marca personal: —';
-      const leader = today.rows[0];
-      document.getElementById('stLeader').textContent = leader ? (leader.name === me ? '👑 ¡Eres el mejor de hoy!' : `🥇 ${leader.name} ${leader.total} ← líder de hoy`) : '';
+      document.getElementById('stBest').textContent = `Tiempo promedio por F8: ${myAvg ? `${myAvg.toFixed(0)} min` : '—'} · Velocidad: ${speed.toFixed(2)} F8/h`;
+      document.getElementById('stLeader').textContent = `Racha actual: ${streakDays(me)} días · Tu promedio: ${myAvg ? myAvg.toFixed(0) : '—'} min/F8 · Promedio equipo: ${teamAvg ? teamAvg.toFixed(0) : '—'} min/F8 ${myAvg && teamAvg && myAvg <= teamAvg ? '✅ Más rápido que el equipo' : ''}`;
       document.getElementById('miniRanking').innerHTML = today.rows.slice(0,3).map((r) => `<div class="rank-line"><span>${r.rank===1?'🥇':r.rank===2?'🥈':'🥉'} ${r.name===me?`Tú (${me})`:r.name}</span><strong>${r.total}</strong></div>`).join('') || '<div class="small">Sin movimientos hoy.</div>';
-      if (week.rows.length && !today.rows.length) {
-        document.getElementById('miniRanking').innerHTML += `<div class="small" style="margin-top:8px;">Semana: ${week.rows[0].name} lidera con ${week.rows[0].total}</div>`;
-      }
     }
 
     function renderGroupToday() {
-      const me = getMe();
-      const person = STAFF.find((s) => s.name === me);
+      const person = getPerson();
       if (!person) return;
       const personal = readLS('almacen_personal', {});
       const peers = STAFF.filter((s) => s.group === person.group);
@@ -491,23 +722,19 @@
       const id = pendingAdvanceId;
       const item = rows.find((r) => r.id === id);
       if (!item || !NEXT[item.estado]) return closeConfirm();
+      const pend = getPendings();
+      if (pend[id]) return closeConfirm();
       const next = NEXT[item.estado];
-      await postUpdate(id, 'ESTADO', next === 'FACTURACIÓN' ? 'FACTURADO' : next);
-      const d = new Date();
-      const stamp = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-      await postUpdate(id, DATE_FIELD[next], stamp);
-      addLog(`${id} avanzó a ${next} · ${getMe()}`);
+      pend[id] = { estadoSolicitado: next, estadoActual: item.estado, solicitadoPor: getMe(), timestamp: Date.now() };
+      writeLS(PENDING_KEY, pend);
+      addLog(`${id} solicita avance a ${next} · ${getMe()}`);
       closeConfirm();
-      await loadData();
       renderAll();
     }
 
-    document.getElementById('loginBtn').addEventListener('click', () => {
-      const who = document.getElementById('whoSelect').value;
-      if (!who) return;
-      localStorage.setItem(IDENTITY_KEY, who);
-      renderAll();
-    });
+    document.getElementById('nextIdentityBtn').addEventListener('click', startPinStep);
+    document.getElementById('backIdentityBtn').addEventListener('click', resetIdentitySteps);
+    document.getElementById('loginBtn').addEventListener('click', finishIdentityLogin);
 
     document.querySelector('.status-btns').addEventListener('click', (e) => {
       const status = e.target.dataset.status;
@@ -519,6 +746,7 @@
       addLog(`${me} marcado como ${status}`);
       renderMyStatus();
       renderGroupToday();
+      renderQueue();
     });
 
     document.getElementById('myDestination').addEventListener('change', (e) => {
@@ -527,10 +755,29 @@
       p[me] = { ...(p[me] || {}), status: 'EN RUTA', destination: e.target.value.trim(), updatedAt: Date.now() };
       writeLS('almacen_personal', p);
       addLog(`${me} reporta ruta: ${e.target.value.trim() || 'Sin destino'}`);
+      renderDeliveryWork();
+    });
+
+    document.getElementById('ordersSearchInput').addEventListener('input', (e) => {
+      ordersSearch = String(e.target.value || '').trim();
+      renderQueue();
+    });
+    document.getElementById('clearOrdersSearchBtn').addEventListener('click', () => {
+      ordersSearch = '';
+      document.getElementById('ordersSearchInput').value = '';
+      renderQueue();
+    });
+    document.getElementById('deliveryUeSelect').addEventListener('change', (e) => {
+      selectedDeliveryUe = e.target.value || '';
+      renderDeliveryWork();
     });
 
     document.getElementById('queue').addEventListener('click', (e) => {
       if (e.target.classList.contains('doNext')) openConfirmFor(e.target.dataset.id);
+    });
+    document.getElementById('deliveryRouteList').addEventListener('click', (e) => {
+      if (!e.target.classList.contains('doDeliver')) return;
+      openConfirmFor(e.target.dataset.id);
     });
     document.getElementById('cancelConfirm').addEventListener('click', closeConfirm);
     document.getElementById('okConfirm').addEventListener('click', doAdvance);
