@@ -246,15 +246,18 @@
     function normalizeGroup(rawGroup) {
       if (!rawGroup) return 'SIN GRUPO';
       let upper = String(rawGroup).toUpperCase().trim();
-      const mojibakeFixes = { 'Ã\x93': 'Ó', 'Ã\x81': 'Á' };
+      const mojibakeFixes = { 'Ã\u0093': 'Ó', 'Ã\u0081': 'Á' };
       Object.entries(mojibakeFixes).forEach(([bad, good]) => {
         upper = upper.split(bad).join(good);
       });
-      for (const [key, val] of Object.entries(GROUP_MAP)) {
-        if (upper === key.toUpperCase()) return val;
+      const groupEntries = Object.entries(GROUP_MAP);
+      for (const [key, val] of groupEntries) {
+        const keyUpper = key.toUpperCase();
+        if (upper === keyUpper) return val;
       }
-      for (const [key, val] of Object.entries(GROUP_MAP)) {
-        if (upper.includes(key.toUpperCase()) || key.toUpperCase().includes(upper)) return val;
+      for (const [key, val] of groupEntries) {
+        const keyUpper = key.toUpperCase();
+        if (upper.includes(keyUpper) || keyUpper.includes(upper)) return val;
       }
       return String(rawGroup).trim();
     }
