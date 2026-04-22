@@ -530,8 +530,11 @@
     };
     function normalizeGroup(rawGroup) {
       if (!rawGroup) return 'SIN GRUPO';
-      const upper = String(rawGroup).toUpperCase().trim()
-        .replace(/Ã\x93/g, 'Ó').replace(/Ã\x81/g, 'Á');
+      let upper = String(rawGroup).toUpperCase().trim();
+      const mojibakeFixes = { 'Ã\x93': 'Ó', 'Ã\x81': 'Á' };
+      Object.entries(mojibakeFixes).forEach(([bad, good]) => {
+        upper = upper.split(bad).join(good);
+      });
       for (const [key, val] of Object.entries(GROUP_MAP)) {
         if (upper === key.toUpperCase()) return val;
       }
@@ -1476,7 +1479,7 @@
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(13);
-      doc.text('CEDIS PANAMA - REPORTE CIERRE DE TURNO', 30, 12);
+      doc.text('CEDIS PANAMÁ - REPORTE CIERRE DE TURNO', 30, 12);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.text(`Fecha: ${snapshot.fecha}  Hora: ${snapshot.hora_cierre}`, 30, 19);
@@ -1523,10 +1526,10 @@
         `Ausentes: ${snapshot.personal.ausentes}`,
         `En ruta: ${snapshot.personal.en_ruta}`
       ]) + 4;
-      y = drawSection(y, 'DISTRIBUCION POR ESTADO', [106, 27, 154], [
+      y = drawSection(y, 'DISTRIBUCIÓN POR ESTADO', [106, 27, 154], [
         `Asignada: ${snapshot.f8s.asignadas}`,
         `Picking: ${snapshot.f8s.picking}`,
-        `Facturacion: ${snapshot.f8s.facturacion}`,
+        `Facturación: ${snapshot.f8s.facturacion}`,
         `Empacado: ${snapshot.f8s.empacado}`,
         `Despachado: ${snapshot.f8s.despachado}`,
         `Entregado: ${snapshot.f8s.entregado}`
@@ -1534,11 +1537,11 @@
       y = drawSection(y, 'RANKING', [239, 108, 0], top.length
         ? top.map((r, idx) => `${idx + 1}. ${r.name} - ${r.total} F8`)
         : ['Sin movimientos en el periodo']) + 4;
-      drawSection(y, 'INDICE CONG.', [0, 188, 212], [
+      drawSection(y, 'ÍNDICE CONG.', [0, 188, 212], [
         `Activas: ${actives}`,
         `Disponibles: ${snapshot.personal.disponibles}`,
         `Indice F8/persona: ${ratio.toFixed(2)}`,
-        `Nivel: ${ratio <= 1 ? 'NORMAL' : 'ATENCION'}`
+        `Nivel: ${ratio <= 1 ? 'NORMAL' : 'ATENCIÓN'}`
       ]);
 
       doc.setFillColor(238, 238, 238);
