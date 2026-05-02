@@ -77,7 +77,7 @@
     .filters {
       margin-top: 12px;
       display: grid;
-      grid-template-columns: minmax(200px, 1fr) repeat(2, minmax(140px, 180px)) auto minmax(150px, 170px) minmax(150px, 170px) auto;
+      grid-template-columns: minmax(200px, 1fr) repeat(3, minmax(140px, 180px)) auto auto minmax(150px, 170px) minmax(150px, 170px) auto;
       gap: 8px;
       align-items: center;
     }
@@ -217,6 +217,12 @@
     }
     .attendance-actions button.active-present { background: #2e7d32; border-color: #2e7d32; color: #fff; }
     .attendance-actions button.active-absent { background: #b71c1c; border-color: #b71c1c; color: #fff; }
+    .attendance-row.en-ruta { background: #e3f2fd; }
+    .attendance-row.en-ruta .attendance-name { color: #1565c0; }
+    .attendance-row.baja-medica { background: #fff8e1; }
+    .attendance-row.baja-medica .attendance-name { color: #e65100; }
+    .attendance-actions button.active-en-ruta { background: #1565c0; border-color: #1565c0; color: #fff; }
+    .attendance-actions button.active-baja-medica { background: #e65100; border-color: #e65100; color: #fff; }
     .btn-badge {
       background: #b71c1c;
       color: #fff;
@@ -371,7 +377,9 @@
       <input id="searchInput" placeholder="🔍 Buscar F8..." />
       <select id="groupFilter"><option value="">Grupo: TODOS</option></select>
       <select id="typeFilter"><option value="">Tipo: TODOS</option><option value="MENSUAL">Tipo: MENSUAL</option><option value="URGENCIA">Tipo: URGENCIA</option></select>
+      <select id="staffNameFilter"><option value="">Almacenista: TODOS</option></select>
       <label><input type="checkbox" id="todayOnlyFilter" /> Solo con entrega hoy</label>
+      <label><input type="checkbox" id="rutaOnlyFilter" /> Solo En Ruta</label>
       <input id="fromDateFilter" type="date" aria-label="Desde" title="Desde" />
       <input id="toDateFilter" type="date" aria-label="Hasta" title="Hasta" />
       <button id="clearFiltersBtn">↺ Limpiar filtros</button>
@@ -439,6 +447,7 @@
       <div id="attendanceList" class="attendance-list"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
         <button id="attendanceCancelBtn">Cancelar</button>
+        <button id="exportAttendanceBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer;font-weight:700;font-size:12px;">📊 Exportar Historial</button>
         <button id="attendanceSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">💾 Guardar Pase de Lista</button>
       </div>
     </div>
@@ -647,7 +656,7 @@
     let pendingRevertItemId = null;
     let attendanceDraft = {};
     let pendingReturnId = null;
-    const filters = { search: "", group: "", tipo: "", todayOnly: false, fromDate: "", toDate: "" };
+    const filters = { search: "", group: "", tipo: "", todayOnly: false, fromDate: "", toDate: "", staffName: "", rutaOnly: false };
     const PIN_KEY = 'jefatura_pin';
     const ATTENDANCE_KEY = 'pase_lista';
     const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
@@ -882,7 +891,7 @@
       const personal = readLS('almacen_personal', {});
       const estadoPersonal = {};
       STAFF.forEach((s) => {
-        const absentByList = attendanceToday[s.nombre] === 'ausente';
+        const absentByList = attendanceToday[s.nombre] === 'ausente' || attendanceToday[s.nombre] === 'baja-medica';
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
@@ -940,7 +949,7 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const estadoPersonal = {};
       STAFF.forEach(s => {
-        const absentByList = attendanceToday[s.nombre] === 'ausente';
+        const absentByList = attendanceToday[s.nombre] === 'ausente' || attendanceToday[s.nombre] === 'baja-medica';
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
@@ -1046,6 +1055,7 @@
     }
 
     function applyFilters() {
+      const asig = readLS('almacen_asignaciones', {});
       filteredTracking = tracking.filter(i => {
         const q = filters.search;
         const bySearch = !q || i.id.toUpperCase().includes(q) || i.unidad.toUpperCase().includes(q);
@@ -1055,7 +1065,9 @@
         const f8Iso = toIsoDate(i.fechaF8);
         const byFrom = !filters.fromDate || (f8Iso !== '—' && f8Iso >= filters.fromDate);
         const byTo = !filters.toDate || (f8Iso !== '—' && f8Iso <= filters.toDate);
-        return bySearch && byGroup && byType && byToday && byFrom && byTo;
+        const byStaff = !filters.staffName || asig[i.id] === filters.staffName;
+        const byRuta = !filters.rutaOnly || getModalidad(i.id) === 'ruta';
+        return bySearch && byGroup && byType && byToday && byFrom && byTo && byStaff && byRuta;
       });
       return filteredTracking;
     }
@@ -1160,7 +1172,7 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const activeBy = activeCountByPerson(items, asig);
       cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
-        const isAbsentByList = attendanceToday[s.nombre] === 'ausente';
+        const isAbsentByList = attendanceToday[s.nombre] === 'ausente' || attendanceToday[s.nombre] === 'baja-medica';
         const st = isAbsentByList ? 'AUSENTE' : (personal[s.nombre]?.status || 'DISPONIBLE');
         const dst = personal[s.nombre]?.destination || '';
         return `
@@ -1346,7 +1358,7 @@
       try {
         await postBatchUpdate(updates);
         const prevStates = readLS(PREV_STATE_KEY, {});
-        prevStates[item.id] = item.estado;
+        prevStates[item.id] = getPreviousState(prevState);
         writeLS(PREV_STATE_KEY, prevStates);
         addLog(`${item.id} ↩ Revertido a ${prevState} por Jefatura${fechaFieldToClean ? ` · Fecha ${fechaFieldToClean} limpiada` : ''}`);
         showToast('↩ Estado revertido y fecha limpiada', 3000);
@@ -1439,10 +1451,12 @@
           ${grouped[group].map((s) => {
             const val = attendanceDraft[s.nombre] || 'presente';
             return `
-              <div class="attendance-row ${val === 'ausente' ? 'absent' : ''}" data-name="${s.nombre}">
+              <div class="attendance-row ${val === 'ausente' ? 'absent' : val === 'en-ruta' ? 'en-ruta' : val === 'baja-medica' ? 'baja-medica' : ''}" data-name="${s.nombre}">
                 <span class="attendance-name">${s.nombre}</span>
                 <div class="attendance-actions">
                   <button class="attendance-set ${val === 'presente' ? 'active-present' : ''}" data-name="${s.nombre}" data-value="presente">✅ Presente</button>
+                  <button class="attendance-set ${val === 'en-ruta' ? 'active-en-ruta' : ''}" data-name="${s.nombre}" data-value="en-ruta">🚚 En Ruta</button>
+                  <button class="attendance-set ${val === 'baja-medica' ? 'active-baja-medica' : ''}" data-name="${s.nombre}" data-value="baja-medica">🏥 Baja Médica</button>
                   <button class="attendance-set ${val === 'ausente' ? 'active-absent' : ''}" data-name="${s.nombre}" data-value="ausente">❌ Ausente</button>
                 </div>
               </div>
@@ -1453,23 +1467,27 @@
     }
 
     function saveAttendance() {
-      const payload = { fecha: isoToday(), personal: { ...attendanceDraft } };
+      const today = isoToday();
+      const payload = { fecha: today, personal: { ...attendanceDraft } };
       writeLS(ATTENDANCE_KEY, payload);
-      const history = readLS(ATTENDANCE_HISTORY_KEY, []);
-      const updated = [payload, ...history.filter(h => h?.fecha !== payload.fecha)].slice(0, 120);
-      writeLS(ATTENDANCE_HISTORY_KEY, updated);
+      const history = readLS(ATTENDANCE_HISTORY_KEY, {});
+      history[today] = { ...attendanceDraft };
+      writeLS(ATTENDANCE_HISTORY_KEY, history);
       const personal = readLS('almacen_personal', {});
       STAFF.forEach((s) => {
-        const isAbsent = payload.personal[s.nombre] === 'ausente';
+        const state = payload.personal[s.nombre] || 'presente';
+        const isBlocked = state === 'ausente' || state === 'baja-medica';
         personal[s.nombre] = {
           ...(personal[s.nombre] || {}),
-          status: isAbsent ? 'AUSENTE' : (personal[s.nombre]?.status === 'AUSENTE' ? 'DISPONIBLE' : (personal[s.nombre]?.status || 'DISPONIBLE'))
+          status: isBlocked ? 'AUSENTE' : (personal[s.nombre]?.status === 'AUSENTE' ? 'DISPONIBLE' : (personal[s.nombre]?.status || 'DISPONIBLE'))
         };
       });
       writeLS('almacen_personal', personal);
       const ausentes = Object.values(payload.personal).filter(v => v === 'ausente').length;
-      const presentes = STAFF.length - ausentes;
-      showToast(`Pase de lista guardado · ${presentes} presentes · ${ausentes} ausentes`);
+      const bajaMedica = Object.values(payload.personal).filter(v => v === 'baja-medica').length;
+      const enRuta = Object.values(payload.personal).filter(v => v === 'en-ruta').length;
+      const presentes = STAFF.length - ausentes - bajaMedica - enRuta;
+      showToast(`Pase de lista guardado · ${presentes} presentes · ${enRuta} en ruta · ${bajaMedica} baja médica · ${ausentes} ausentes`);
       closeAttendanceModal();
       renderAttendanceBadge();
       renderDashboard();
@@ -1936,8 +1954,16 @@
         filters.tipo = e.target.value;
         renderDashboard();
       });
+      document.getElementById('staffNameFilter').addEventListener('change', (e) => {
+        filters.staffName = e.target.value;
+        renderDashboard();
+      });
       document.getElementById('todayOnlyFilter').addEventListener('change', (e) => {
         filters.todayOnly = e.target.checked;
+        renderDashboard();
+      });
+      document.getElementById('rutaOnlyFilter').addEventListener('change', (e) => {
+        filters.rutaOnly = e.target.checked;
         renderDashboard();
       });
       document.getElementById('fromDateFilter').addEventListener('change', (e) => {
@@ -1955,10 +1981,14 @@
         filters.todayOnly = false;
         filters.fromDate = '';
         filters.toDate = '';
+        filters.staffName = '';
+        filters.rutaOnly = false;
         document.getElementById('searchInput').value = '';
         document.getElementById('groupFilter').value = '';
         document.getElementById('typeFilter').value = '';
+        document.getElementById('staffNameFilter').value = '';
         document.getElementById('todayOnlyFilter').checked = false;
+        document.getElementById('rutaOnlyFilter').checked = false;
         document.getElementById('fromDateFilter').value = '';
         document.getElementById('toDateFilter').value = '';
         renderDashboard();
@@ -2075,13 +2105,18 @@
         addLog(`${person} reporta ruta: ${e.target.value.trim() || 'Sin destino'}`);
       });
       document.getElementById('cancelAssign').addEventListener('click', closeAssignModal);
-      document.getElementById('saveAssign').addEventListener('click', () => {
+      document.getElementById('saveAssign').addEventListener('click', async () => {
         if (!pendingAssignId) return;
         const who = document.getElementById('assignSelect').value;
         const asig = readLS('almacen_asignaciones', {});
         asig[pendingAssignId] = who;
         writeLS('almacen_asignaciones', asig);
-        addLog(`${pendingAssignId} reasignada a ${who}`);
+        try {
+          await postUpdate(pendingAssignId, 'ALMACENISTA', who);
+          addLog(`${pendingAssignId} reasignada a ${who} · Jefatura (guardado en servidor)`);
+        } catch(e) {
+          addLog(`${pendingAssignId} reasignada a ${who} · (solo local, error servidor)`);
+        }
         closeAssignModal();
         renderBoard(filteredTracking, readLS('almacen_state_timestamps', {}), asig, readLS('almacen_personal', {}));
         renderStaff(filteredTracking, asig);
@@ -2111,6 +2146,25 @@
       });
     }
 
+    function exportAttendanceReport() {
+      const history = readLS(ATTENDANCE_HISTORY_KEY, {});
+      const rows = [['Fecha', 'Nombre', 'Grupo', 'Estado']];
+      const dates = Object.keys(history).sort().reverse();
+      dates.forEach(date => {
+        const dayData = history[date];
+        STAFF.forEach(s => {
+          const estado = dayData[s.nombre] || 'presente';
+          const estadoLabel = estado === 'presente' ? 'Presente' : estado === 'en-ruta' ? 'En Ruta' : estado === 'baja-medica' ? 'Baja Médica' : 'Ausente';
+          rows.push([date, s.nombre, getStaffDisplayGroup(s), estadoLabel]);
+        });
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Reporte de Asistencia');
+      XLSX.writeFile(wb, `Reporte_Asistencia_${isoToday()}.xlsx`);
+      showToast('📊 Reporte de asistencia exportado');
+    }
+
     function startClock() {
       setInterval(() => { document.getElementById('clock').textContent = humanClock(); }, 1000);
       document.getElementById('clock').textContent = humanClock();
@@ -2120,6 +2174,9 @@
       startClock();
       bindEvents();
       await loadStaff();
+      const staffSel = document.getElementById('staffNameFilter');
+      staffSel.innerHTML = '<option value="">Almacenista: TODOS</option>' + STAFF.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
+      document.getElementById('exportAttendanceBtn').addEventListener('click', exportAttendanceReport);
       await loadData();
       setInterval(() => loadData(false), 5 * 60 * 1000);
       renderAttendanceBadge();
