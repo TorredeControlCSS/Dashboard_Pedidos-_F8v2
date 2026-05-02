@@ -594,18 +594,18 @@
     }
 
     async function loadStaff() {
+      const ERR_MSG = '⚠️ ERROR CRÍTICO: No se pudo cargar el listado de personal desde el servidor. Verifique que la hoja PERSONAL existe en el Google Sheet y el endpoint ?file=staff está activo.';
       try {
         const r = await fetch(`${WEB_APP_URL}?file=staff`);
         const data = await r.json();
         if (!Array.isArray(data) || data.length === 0) {
-          alert('⚠️ ERROR CRÍTICO: No se pudo cargar el listado de personal desde el servidor. Verifique que la hoja PERSONAL existe en el Google Sheet y el endpoint ?file=staff está activo.');
+          alert(ERR_MSG);
           return;
         }
         STAFF = data;
-        currentGroupTab = '';
       } catch (e) {
         console.error(e);
-        alert('⚠️ ERROR CRÍTICO: No se pudo cargar el listado de personal desde el servidor. Verifique que la hoja PERSONAL existe en el Google Sheet y el endpoint ?file=staff está activo.');
+        alert(ERR_MSG);
       }
     }
 
@@ -1690,15 +1690,19 @@
     function openAssignModal(id, group) {
       pendingAssignId = id;
       const sel = document.getElementById('assignSelect');
+      const saveBtn = document.getElementById('saveAssign');
       const personal = readLS('almacen_personal', {});
       const item = tracking.find(t => t.id === id);
-      const candidates = item
-        ? STAFF.filter(s => matchStaff(item, s))
-        : STAFF.filter(s => s.recibe_pedidos !== false && s.activo !== false && (s.grupos || []).some(g => normalizeGroup(g) === normalizeGroup(group)));
-      const sorted = candidates.sort((a, b) => ((personal[a.nombre]?.status === 'DISPONIBLE' ? -1 : 1) - (personal[b.nombre]?.status === 'DISPONIBLE' ? -1 : 1)));
-      sel.innerHTML = sorted.length
-        ? sorted.map(c => `<option value="${c.nombre}">${c.nombre} (${personal[c.nombre]?.status || 'DISPONIBLE'})</option>`).join('')
-        : `<option value="">Sin candidatos disponibles</option>`;
+      const candidates = STAFF
+        .filter(s => item ? matchStaff(item, s) : (s.recibe_pedidos !== false && s.activo !== false && (s.grupos || []).some(g => normalizeGroup(g) === normalizeGroup(group))))
+        .sort((a, b) => ((personal[a.nombre]?.status === 'DISPONIBLE' ? -1 : 1) - (personal[b.nombre]?.status === 'DISPONIBLE' ? -1 : 1)));
+      if (candidates.length) {
+        sel.innerHTML = candidates.map(c => `<option value="${c.nombre}">${c.nombre} (${personal[c.nombre]?.status || 'DISPONIBLE'})</option>`).join('');
+        saveBtn.disabled = false;
+      } else {
+        sel.innerHTML = `<option value="">Sin candidatos disponibles</option>`;
+        saveBtn.disabled = true;
+      }
       document.getElementById('modalTitle').textContent = `${id} · ${group}`;
       document.getElementById('modal').style.display = 'flex';
     }
@@ -1706,6 +1710,7 @@
     function closeAssignModal() {
       pendingAssignId = null;
       document.getElementById('modal').style.display = 'none';
+      document.getElementById('saveAssign').disabled = false;
     }
 
     async function loadData(showMessage = true) {
