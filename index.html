@@ -336,7 +336,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V14.0 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · V14.1 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
@@ -663,10 +663,10 @@
       catch { return fallback; }
     };
     const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-    const showToast = (msg) => {
+    const showToast = (msg, duration = 2500) => {
       const t = document.getElementById('toast');
       t.textContent = msg; t.style.display = 'block';
-      setTimeout(() => t.style.display = 'none', 2500);
+      setTimeout(() => t.style.display = 'none', duration);
     };
     const nowStamp = () => {
       const d = new Date();
@@ -820,6 +820,17 @@
       });
     }
 
+    async function postBatchUpdate(updates) {
+      // updates = array de { id, field, value }
+      if (!updates.length) return;
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'batchUpdate', updates })
+      });
+    }
+
     function addLog(msg) {
       const log = readLS('almacen_log', []);
       log.unshift({ ts: Date.now(), msg });
@@ -864,38 +875,60 @@
 
     async function runRedistribucion() {
       if (!confirm('¿Redistribuir todas las F8s equitativamente entre el personal disponible? Esto no afecta F8s ya en PICKING o estados avanzados.')) return;
+
       const attendance = readLS(ATTENDANCE_KEY, {});
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const personal = readLS('almacen_personal', {});
       const estadoPersonal = {};
-      STAFF.forEach(s => {
+      STAFF.forEach((s) => {
         const absentByList = attendanceToday[s.nombre] === 'ausente';
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
-      const asignables = tracking.filter((t) => t.estado === 'ASIGNADA');
-      const proposed = redistribuirEquitativamente(asignables, estadoPersonal);
-      if (!Object.keys(proposed).length) {
-        showToast('⚠️ No hay F8s ASIGNADAS con personal disponible');
+
+      // CAMBIO CLAVE: solo redistribuir los que NO tienen almacenista asignado aún
+      const asig = readLS('almacen_asignaciones', {});
+      const asignables = tracking.filter((t) => t.estado === 'ASIGNADA' && !asig[t.id]);
+
+      if (!asignables.length) {
+        showToast('✅ Todos los pedidos ASIGNADOS ya tienen almacenista', 4000);
         return;
       }
-      const asig = readLS('almacen_asignaciones', {});
+
+      const proposed = redistribuirEquitativamente(asignables, estadoPersonal);
+      if (!Object.keys(proposed).length) {
+        showToast('⚠️ No hay F8s ASIGNADAS con personal disponible', 4000);
+        return;
+      }
+
+      const batchUpdates = [];
       const resumen = {};
+
       for (const item of asignables) {
         const who = proposed[item.id];
         if (!who) continue;
         asig[item.id] = who;
         resumen[item.group] = resumen[item.group] || {};
         resumen[item.group][who] = (resumen[item.group][who] || 0) + 1;
-        try { await postUpdate(item.id, 'ALMACENISTA', who); } catch {}
+        batchUpdates.push({ id: item.id, field: 'ALMACENISTA', value: who });
       }
+
       writeLS('almacen_asignaciones', asig);
-      const parts = Object.entries(resumen).map(([group, rows]) => {
-        const vals = Object.values(rows);
-        const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
-        return `${group}: ${avg.toFixed(1)} F8s/persona`;
-      });
-      showToast(`✅ Redistribución completada · ${parts.join(' · ')}`);
+
+      // Una sola llamada al backend con todos los cambios
+      showToast('⏳ Enviando asignaciones al servidor...', 4000);
+      try {
+        await postBatchUpdate(batchUpdates);
+        const parts = Object.entries(resumen).map(([group, rows]) => {
+          const vals = Object.values(rows);
+          const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+          return `${group}: ${avg.toFixed(1)} F8s/persona`;
+        });
+        showToast(`✅ ${batchUpdates.length} asignaciones enviadas · ${parts.join(' · ')}`, 4000);
+      } catch(err) {
+        showToast('⚠️ Error al enviar al servidor. Los cambios se guardaron localmente.', 4000);
+      }
+
       renderDashboard();
     }
 
