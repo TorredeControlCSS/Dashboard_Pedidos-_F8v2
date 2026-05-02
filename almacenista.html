@@ -383,10 +383,15 @@
       inputs.forEach((inp, idx) => {
         inp.addEventListener('input', () => {
           inp.value = (inp.value || '').replace(/\D/g, '').slice(0, 1);
-          if (inp.value && inputs[idx + 1]) inputs[idx + 1].focus();
+          if (inp.value && inputs[idx + 1]) {
+            inputs[idx + 1].focus();
+          } else if (inp.value && idx === inputs.length - 1 && wrapId === 'pinDigitsWrap' && !identityCreateMode) {
+            finishIdentityLogin();
+          }
         });
         inp.addEventListener('keydown', (e) => {
           if (e.key === 'Backspace' && !inp.value && inputs[idx - 1]) inputs[idx - 1].focus();
+          if (e.key === 'Enter' && !identityCreateMode) finishIdentityLogin();
         });
       });
     }
@@ -736,7 +741,8 @@
     }
 
     function renderBlockedState() {
-      const blocked = attendanceStatusForMe() === 'ausente';
+      const status = attendanceStatusForMe();
+      const blocked = status === 'ausente' || status === 'baja-medica';
       document.getElementById('blockPanel').classList.toggle('hidden', !blocked);
       document.getElementById('ordersPanel').classList.toggle('hidden', blocked);
       if (blocked) {
