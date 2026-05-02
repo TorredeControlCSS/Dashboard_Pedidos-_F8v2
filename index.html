@@ -336,7 +336,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V14.2 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · V14.3 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
@@ -1333,13 +1333,23 @@
       if (!item) return closePinModal();
       const prevState = getUndoPreviousState(item);
       if (!prevState) return closePinModal();
+
+      const fechaFieldToClean = DATE_FIELD_BY_STATE[item.estado] || null;
+
+      const updates = [
+        { id: item.id, field: 'ESTADO', value: prevState === 'FACTURACIÓN' ? 'FACTURADO' : prevState }
+      ];
+      if (fechaFieldToClean) {
+        updates.push({ id: item.id, field: fechaFieldToClean, value: '' });
+      }
+
       try {
-        await postUpdate(item.id, 'ESTADO', prevState === 'FACTURACIÓN' ? 'FACTURADO' : prevState);
+        await postBatchUpdate(updates);
         const prevStates = readLS(PREV_STATE_KEY, {});
         prevStates[item.id] = item.estado;
         writeLS(PREV_STATE_KEY, prevStates);
-        addLog(`${item.id} ↩ Revertido por Jefatura`);
-        showToast('↩ Estado revertido');
+        addLog(`${item.id} ↩ Revertido a ${prevState} por Jefatura${fechaFieldToClean ? ` · Fecha ${fechaFieldToClean} limpiada` : ''}`);
+        showToast('↩ Estado revertido y fecha limpiada', 3000);
         closePinModal();
         await loadData(false);
       } catch (e) {
@@ -1634,8 +1644,10 @@
       if (!req) return;
       const target = req.estadoSolicitado;
       try {
-        await postUpdate(id, 'ESTADO', target === 'FACTURACIÓN' ? 'FACTURADO' : target);
-        await postUpdate(id, DATE_FIELD_BY_STATE[target], nowStamp());
+        await postBatchUpdate([
+          { id, field: 'ESTADO', value: target === 'FACTURACIÓN' ? 'FACTURADO' : target },
+          { id, field: DATE_FIELD_BY_STATE[target], value: nowStamp() }
+        ]);
         const prevStates = readLS(PREV_STATE_KEY, {});
         prevStates[id] = req.estadoActual;
         writeLS(PREV_STATE_KEY, prevStates);
