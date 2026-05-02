@@ -336,7 +336,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V13.0 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · V14.0 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
@@ -514,6 +514,7 @@
       'GRUPO 3': 'GRUPO 3',
       'G4-CREMAS': 'GRUPO 4-5-11',
       'G5-OVULOS': 'GRUPO 4-5-11',
+      'G5-ÓVULOS': 'GRUPO 4-5-11',
       'G11-ODONTOLOGIA': 'GRUPO 4-5-11',
       'G-11-ODONTOLOGIA': 'GRUPO 4-5-11',
       'GRUPO 4': 'GRUPO 4-5-11',
@@ -546,39 +547,7 @@
       }
       return String(rawGroup).trim();
     }
-    const STAFF = [
-      { name: "Alfonso Mendez", group: "GRUPO 2", cargo: "ALMACENISTA I"  },
-      { name: "Anthony D. Allca", group: "FRÍO", cargo: "ALMACENISTA II" },
-      { name: "Aurelio Rojas", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Bey Mario Reluz", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Boris Lasso", group: "FRÍO", cargo: "ALMACENISTA II" },
-      { name: "Carlos Mendoza", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "David Magallon", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Erasmo Valencia", group: "URGENCIAS", cargo: "ALMACENISTA II" },
-      { name: "Eric Castro", group: "VENCIDOS", cargo: "ALMACENISTA II" },
-      { name: "Eric Medina", group: "MÓDULO", cargo: "ALMACENISTA II" },
-      { name: "Fernando Ruíz", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "Francisco Pachay", group: "GRUPO 1", cargo: "CAMILLERO II" },
-      { name: "Franklin Almanza", group: "VENCIDOS", cargo: "ALMACENISTA II" },
-      { name: "Gaspar Salcedo", group: "GRUPO 4-5-11", cargo: "ALMACENISTA II" },
-      { name: "Jean Carlos Labrador", group: "GRUPO 2", cargo: "ALMACENISTA I" },
-      { name: "Jesus Reyna", group: "GRUPO 2", cargo: "ALMACENISTA I" },
-      { name: "Joel Sanchez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Juan Rodriguez", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Luis M. Visuete", group: "GRUPO 3", cargo: "ALMACENISTA I" },
-      { name: "Luis Miranda", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Luis Urrutia", group: "GRUPO 2", cargo: "ALMACENISTA II" },
-      { name: "Luis Wtges", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Maximino Villarreal", group: "GRUPO 1", cargo: "ALMACENISTA II" },
-      { name: "Miguel A. Rodriguez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Osvaldo Loaiza", group: "GRUPO 2", cargo: "ALMACENISTA II" },
-      { name: "Roman Perez", group: "GRUPO 3", cargo: "ALMACENISTA II" },
-      { name: "Sebastian Hidalgo", group: "EMPAQUE", cargo: "ALMACENISTA II" },
-      { name: "Sergio Rangel", group: "URGENCIAS", cargo: "ALMACENISTA II" },
-      { name: "Facturador 1 Kardex", group: "KARDEX", cargo: "FACTURACIÓN" },
-      { name: "Facturador 2 Kardex", group: "KARDEX", cargo: "FACTURACIÓN" },
-      { name: "Facturador 3 Kardex", group: "KARDEX", cargo: "FACTURACIÓN" }
-    ];
+    let STAFF = [];
     const GROUP_COLORS = {
       "GRUPO 1": "#1565c0",
       "GRUPO 2": "#2e7d32",
@@ -592,6 +561,54 @@
       "VENCIDOS": "#558b2f",
       "KARDEX": "#5d4037"
     };
+
+    function normalizeForMatch(str) {
+      return String(str || '').toUpperCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/G-(\d+)/g, 'G$1')
+        .trim();
+    }
+
+    function getStaffDisplayGroup(s) {
+      if (s.grupos && s.grupos.length > 0) return normalizeGroup(s.grupos[0]);
+      return s.rol || 'SIN ROL';
+    }
+
+    function matchStaff(item, staffMember) {
+      if (!staffMember.recibe_pedidos) return false;
+      if (!staffMember.activo) return false;
+      const itemTipo = String(item.tipo || '').toUpperCase();
+      const isUrgent = itemTipo.includes('URGENCIA') || itemTipo.includes('EXTRA');
+      if (isUrgent) return staffMember.rol === 'URGENCIAS';
+      if (staffMember.rol === 'URGENCIAS') return false;
+      const itemNorm = normalizeForMatch(item.rawGroup || item.group || '');
+      return (staffMember.grupos || []).some(g => normalizeForMatch(g) === itemNorm);
+    }
+
+    function getAssignableStaff(item, estadoPersonal, activeCounts) {
+      const candidates = STAFF.filter(s =>
+        matchStaff(item, s) && estadoPersonal[s.nombre] !== 'ausente'
+      );
+      candidates.sort((a, b) => (activeCounts[a.nombre] || 0) - (activeCounts[b.nombre] || 0));
+      return candidates[0] || null;
+    }
+
+    async function loadStaff() {
+      try {
+        const r = await fetch(`${WEB_APP_URL}?file=staff`);
+        const data = await r.json();
+        if (!Array.isArray(data) || data.length === 0) {
+          alert('⚠️ ERROR CRÍTICO: No se pudo cargar el listado de personal desde el servidor. Verifique que la hoja PERSONAL existe en el Google Sheet y el endpoint ?file=staff está activo.');
+          return;
+        }
+        STAFF = data;
+        currentGroupTab = '';
+      } catch (e) {
+        console.error(e);
+        alert('⚠️ ERROR CRÍTICO: No se pudo cargar el listado de personal desde el servidor. Verifique que la hoja PERSONAL existe en el Google Sheet y el endpoint ?file=staff está activo.');
+      }
+    }
+
     const STATES = ["ASIGNADA", "PICKING", "FACTURACIÓN", "EMPACADO", "DESPACHADO", "ENTREGADO"];
     const NEXT_STATE = {
       "ASIGNADA": "PICKING",
@@ -832,20 +849,15 @@
     }
 
     function redistribuirEquitativamente(datos, estadoPersonal) {
-      const grupos = {};
-      datos.forEach((f8) => {
-        const grupo = normalizeGroup(f8.group || f8.grupo || f8.Grupo || f8.GRUPO || f8.rawGroup || '');
-        if (!grupo) return;
-        if (!grupos[grupo]) grupos[grupo] = [];
-        grupos[grupo].push(f8);
-      });
       const asignaciones = {};
-      Object.entries(grupos).forEach(([grupo, f8s]) => {
-        const miembros = STAFF.filter((s) => normalizeGroup(s.group) === grupo && estadoPersonal[s.name] !== 'ausente');
-        if (!miembros.length) return;
-        f8s.forEach((f8, i) => {
-          asignaciones[f8.id] = miembros[i % miembros.length].name;
-        });
+      const activeCounts = {};
+      STAFF.forEach(s => { activeCounts[s.nombre] = 0; });
+      datos.forEach(f8 => {
+        const candidate = getAssignableStaff(f8, estadoPersonal, activeCounts);
+        if (candidate) {
+          asignaciones[f8.id] = candidate.nombre;
+          activeCounts[candidate.nombre] = (activeCounts[candidate.nombre] || 0) + 1;
+        }
       });
       return asignaciones;
     }
@@ -856,10 +868,10 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const personal = readLS('almacen_personal', {});
       const estadoPersonal = {};
-      STAFF.forEach((s) => {
-        const absentByList = attendanceToday[s.name] === 'ausente';
-        const status = personal[s.name]?.status || 'DISPONIBLE';
-        estadoPersonal[s.name] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
+      STAFF.forEach(s => {
+        const absentByList = attendanceToday[s.nombre] === 'ausente';
+        const status = personal[s.nombre]?.status || 'DISPONIBLE';
+        estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
       const asignables = tracking.filter((t) => t.estado === 'ASIGNADA');
       const proposed = redistribuirEquitativamente(asignables, estadoPersonal);
@@ -890,12 +902,27 @@
     function autoAssign(items) {
       const asig = readLS('almacen_asignaciones', {});
       const personal = readLS('almacen_personal', {});
+      const attendance = readLS(ATTENDANCE_KEY, {});
+      const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
+      const estadoPersonal = {};
+      STAFF.forEach(s => {
+        const absentByList = attendanceToday[s.nombre] === 'ausente';
+        const status = personal[s.nombre]?.status || 'DISPONIBLE';
+        estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
+      });
+      const activeCounts = {};
+      items.filter(i => i.estado !== 'ENTREGADO' && asig[i.id]).forEach(i => {
+        const p = asig[i.id];
+        activeCounts[p] = (activeCounts[p] || 0) + 1;
+      });
       let changed = false;
       items.forEach(item => {
         if (asig[item.id]) return;
-        const candidate = STAFF.find(p => normalizeGroup(p.group) === normalizeGroup(item.group) && (!personal[p.name] || personal[p.name].status === 'DISPONIBLE'));
+        if (item.estado === 'ENTREGADO') return;
+        const candidate = getAssignableStaff(item, estadoPersonal, activeCounts);
         if (candidate) {
-          asig[item.id] = candidate.name;
+          asig[item.id] = candidate.nombre;
+          activeCounts[candidate.nombre] = (activeCounts[candidate.nombre] || 0) + 1;
           changed = true;
         }
       });
@@ -1091,27 +1118,27 @@
         return;
       }
       cardsWrap.className = 'people';
-      const groups = [...new Set(STAFF.map(s => s.group))];
+      const groups = [...new Set(STAFF.map(s => getStaffDisplayGroup(s)))];
       if (!currentGroupTab) currentGroupTab = groups[0];
       tabsWrap.innerHTML = groups.map(g => `<button class="tab ${g === currentGroupTab ? 'active' : ''}" data-group="${g}">${g}</button>`).join('');
       const personal = readLS('almacen_personal', {});
       const attendance = readLS(ATTENDANCE_KEY, {});
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const activeBy = activeCountByPerson(items, asig);
-      cardsWrap.innerHTML = STAFF.filter(s => s.group === currentGroupTab).map(s => {
-        const isAbsentByList = attendanceToday[s.name] === 'ausente';
-        const st = isAbsentByList ? 'AUSENTE' : (personal[s.name]?.status || 'DISPONIBLE');
-        const dst = personal[s.name]?.destination || '';
+      cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
+        const isAbsentByList = attendanceToday[s.nombre] === 'ausente';
+        const st = isAbsentByList ? 'AUSENTE' : (personal[s.nombre]?.status || 'DISPONIBLE');
+        const dst = personal[s.nombre]?.destination || '';
         return `
-          <article class="person" data-name="${s.name}">
-            <strong>${s.name}</strong>
-            <span class="small">${s.cargo}</span>
-            <div class="small" style="margin-top:4px">${activeBy[s.name] || 0} F8s activas</div>
+          <article class="person" data-name="${s.nombre}">
+            <strong>${s.nombre}</strong>
+            <span class="small">${s.rol}</span>
+            <div class="small" style="margin-top:4px">${activeBy[s.nombre] || 0} F8s activas</div>
             <div class="st-buttons">
               <button data-status="DISPONIBLE" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
               <button data-status="EN RUTA" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
               <button data-status="AUSENTE" disabled title="Controlado por pase de lista" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
-              <button class="reset-pin" data-name="${s.name}" title="Resetear PIN">🔑 Resetear PIN</button>
+              <button class="reset-pin" data-name="${s.nombre}" title="Resetear PIN">🔑 Resetear PIN</button>
             </div>
             ${st === 'EN RUTA' ? `<input class="destination" value="${dst}" placeholder="Destino (ej: CSS Chitré)" />` : ''}
             ${isAbsentByList ? `<div class="staff-lock">Bloqueado por pase de lista (AUSENTE)</div>` : ''}
@@ -1168,17 +1195,17 @@
     function renderOperationalMetrics(items, asig) {
       const personal = readLS('almacen_personal', {});
       const total = STAFF.length;
-      const available = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
-      const enRuta = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'EN RUTA').length;
-      const ausentes = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'AUSENTE').length;
+      const available = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+      const enRuta = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'EN RUTA').length;
+      const ausentes = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'AUSENTE').length;
       const byState = { ASIGNADA: 0, PICKING: 0, 'FACTURACIÓN': 0, EMPACADO: 0 };
       items.forEach(i => { if (byState[i.estado] !== undefined) byState[i.estado]++; });
       const actives = byState.PICKING + byState['FACTURACIÓN'] + byState.EMPACADO;
       const ratio = available > 0 ? (actives / available) : 0;
       const level = ratio < 10 ? { icon: '🟢', text: 'NORMAL', color: '#2e7d32' } : ratio <= 20 ? { icon: '🟡', text: 'ATENCIÓN', color: '#f57f17' } : { icon: '🔴', text: 'ALTO', color: '#b71c1c' };
-      const groups = [...new Set(STAFF.map(s => s.group))];
+      const groups = [...new Set(STAFF.map(s => getStaffDisplayGroup(s)))];
       const groupRows = groups.map(group => {
-        const people = STAFF.filter(s => s.group === group && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+        const people = STAFF.filter(s => getStaffDisplayGroup(s) === group && (personal[s.nombre]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
         const assigned = items.filter(i => normalizeGroup(i.group) === normalizeGroup(group) && i.estado === 'ASIGNADA').length;
         const groupRatio = people > 0 ? (assigned / people) : 0;
         const groupLevel = groupRatio < 10 ? { icon: '🟢', color: '#2e7d32' } : groupRatio <= 20 ? { icon: '🟡', color: '#f57f17' } : { icon: '🔴', color: '#b71c1c' };
@@ -1345,7 +1372,7 @@
       document.getElementById('attendanceTitle').textContent = `📋 PASE DE LISTA — ${today.toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
       const saved = readLS(ATTENDANCE_KEY, {});
       const base = (saved?.fecha === isoToday() && saved.personal) ? saved.personal : {};
-      attendanceDraft = STAFF.reduce((acc, s) => ({ ...acc, [s.name]: base[s.name] || 'presente' }), {});
+      attendanceDraft = STAFF.reduce((acc, s) => ({ ...acc, [s.nombre]: base[s.nombre] || 'presente' }), {});
       renderAttendanceList();
       document.getElementById('attendanceModal').style.display = 'flex';
     }
@@ -1356,8 +1383,9 @@
 
     function renderAttendanceList() {
       const grouped = STAFF.reduce((acc, s) => {
-        acc[s.group] = acc[s.group] || [];
-        acc[s.group].push(s);
+        const g = getStaffDisplayGroup(s);
+        acc[g] = acc[g] || [];
+        acc[g].push(s);
         return acc;
       }, {});
       const container = document.getElementById('attendanceList');
@@ -1365,13 +1393,13 @@
         <div>
           <div class="attendance-header">${group}</div>
           ${grouped[group].map((s) => {
-            const val = attendanceDraft[s.name] || 'presente';
+            const val = attendanceDraft[s.nombre] || 'presente';
             return `
-              <div class="attendance-row ${val === 'ausente' ? 'absent' : ''}" data-name="${s.name}">
-                <span class="attendance-name">${s.name}</span>
+              <div class="attendance-row ${val === 'ausente' ? 'absent' : ''}" data-name="${s.nombre}">
+                <span class="attendance-name">${s.nombre}</span>
                 <div class="attendance-actions">
-                  <button class="attendance-set ${val === 'presente' ? 'active-present' : ''}" data-name="${s.name}" data-value="presente">✅ Presente</button>
-                  <button class="attendance-set ${val === 'ausente' ? 'active-absent' : ''}" data-name="${s.name}" data-value="ausente">❌ Ausente</button>
+                  <button class="attendance-set ${val === 'presente' ? 'active-present' : ''}" data-name="${s.nombre}" data-value="presente">✅ Presente</button>
+                  <button class="attendance-set ${val === 'ausente' ? 'active-absent' : ''}" data-name="${s.nombre}" data-value="ausente">❌ Ausente</button>
                 </div>
               </div>
             `;
@@ -1388,10 +1416,10 @@
       writeLS(ATTENDANCE_HISTORY_KEY, updated);
       const personal = readLS('almacen_personal', {});
       STAFF.forEach((s) => {
-        const isAbsent = payload.personal[s.name] === 'ausente';
-        personal[s.name] = {
-          ...(personal[s.name] || {}),
-          status: isAbsent ? 'AUSENTE' : (personal[s.name]?.status === 'AUSENTE' ? 'DISPONIBLE' : (personal[s.name]?.status || 'DISPONIBLE'))
+        const isAbsent = payload.personal[s.nombre] === 'ausente';
+        personal[s.nombre] = {
+          ...(personal[s.nombre] || {}),
+          status: isAbsent ? 'AUSENTE' : (personal[s.nombre]?.status === 'AUSENTE' ? 'DISPONIBLE' : (personal[s.nombre]?.status || 'DISPONIBLE'))
         };
       });
       writeLS('almacen_personal', personal);
@@ -1405,7 +1433,7 @@
 
     function buildShiftSnapshot() {
       const personalMap = readLS('almacen_personal', {});
-      const detail = STAFF.map((s) => ({ nombre: s.name, estado: personalMap[s.name]?.status || 'DISPONIBLE' }));
+      const detail = STAFF.map((s) => ({ nombre: s.nombre, estado: personalMap[s.nombre]?.status || 'DISPONIBLE' }));
       const disponibles = detail.filter(d => d.estado === 'DISPONIBLE').length;
       const en_ruta = detail.filter(d => d.estado === 'EN RUTA').length;
       const ausentes = detail.filter(d => d.estado === 'AUSENTE').length;
@@ -1663,9 +1691,14 @@
       pendingAssignId = id;
       const sel = document.getElementById('assignSelect');
       const personal = readLS('almacen_personal', {});
-      const candidates = STAFF.filter(s => s.group === group)
-        .sort((a,b) => ((personal[a.name]?.status === 'DISPONIBLE' ? -1 : 1) - (personal[b.name]?.status === 'DISPONIBLE' ? -1 : 1)));
-      sel.innerHTML = candidates.map(c => `<option value="${c.name}">${c.name} (${personal[c.name]?.status || 'DISPONIBLE'})</option>`).join('');
+      const item = tracking.find(t => t.id === id);
+      const candidates = item
+        ? STAFF.filter(s => matchStaff(item, s))
+        : STAFF.filter(s => s.recibe_pedidos !== false && s.activo !== false && (s.grupos || []).some(g => normalizeGroup(g) === normalizeGroup(group)));
+      const sorted = candidates.sort((a, b) => ((personal[a.nombre]?.status === 'DISPONIBLE' ? -1 : 1) - (personal[b.nombre]?.status === 'DISPONIBLE' ? -1 : 1)));
+      sel.innerHTML = sorted.length
+        ? sorted.map(c => `<option value="${c.nombre}">${c.nombre} (${personal[c.nombre]?.status || 'DISPONIBLE'})</option>`).join('')
+        : `<option value="">Sin candidatos disponibles</option>`;
       document.getElementById('modalTitle').textContent = `${id} · ${group}`;
       document.getElementById('modal').style.display = 'flex';
     }
@@ -1759,10 +1792,10 @@
 
         const byState = STATES.reduce((acc, st) => ({ ...acc, [st]: 0 }), {});
         tracking.forEach(r => { byState[r.estado] = (byState[r.estado] || 0) + 1; });
-        const available = STAFF.filter(s => (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+        const available = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
         const activeOps = (byState.PICKING || 0) + (byState['FACTURACIÓN'] || 0) + (byState.EMPACADO || 0);
         const generalRatio = available > 0 ? (activeOps / available) : 0;
-        const groups = [...new Set(STAFF.map(s => s.group))];
+        const groups = [...new Set(STAFF.map(s => getStaffDisplayGroup(s)))];
         const resumen = [
           ['Fecha generación', new Date().toLocaleString('es-PA')],
           [],
@@ -1772,16 +1805,16 @@
           ['Personal por grupo', 'Disponible', 'En Ruta', 'Ausente'],
           ...groups.map(g => [
             g,
-            STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length,
-            STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'EN RUTA').length,
-            STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'AUSENTE').length
+            STAFF.filter(s => getStaffDisplayGroup(s) === g && (personal[s.nombre]?.status || 'DISPONIBLE') === 'DISPONIBLE').length,
+            STAFF.filter(s => getStaffDisplayGroup(s) === g && (personal[s.nombre]?.status || 'DISPONIBLE') === 'EN RUTA').length,
+            STAFF.filter(s => getStaffDisplayGroup(s) === g && (personal[s.nombre]?.status || 'DISPONIBLE') === 'AUSENTE').length
           ]),
           [],
           ['Índice de congestionamiento general', Number(generalRatio.toFixed(2))],
           ['Índice por grupo', 'F8s Asignadas', 'Disponibles', 'F8s/persona'],
           ...groups.map(g => {
             const assigned = tracking.filter(t => normalizeGroup(t.group) === normalizeGroup(g) && t.estado === 'ASIGNADA').length;
-            const people = STAFF.filter(s => normalizeGroup(s.group) === normalizeGroup(g) && (personal[s.name]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
+            const people = STAFF.filter(s => getStaffDisplayGroup(s) === g && (personal[s.nombre]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
             return [g, assigned, people, Number((people > 0 ? assigned / people : 0).toFixed(2))];
           })
         ];
@@ -2025,11 +2058,16 @@
       document.getElementById('clock').textContent = humanClock();
     }
 
-    startClock();
-    bindEvents();
-    loadData();
-    setInterval(() => loadData(false), 5 * 60 * 1000);
-    renderAttendanceBadge();
+    async function init() {
+      startClock();
+      bindEvents();
+      await loadStaff();
+      await loadData();
+      setInterval(() => loadData(false), 5 * 60 * 1000);
+      renderAttendanceBadge();
+    }
+
+    init();
   </script>
 </body>
 </html>
