@@ -336,12 +336,12 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V14.1 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · V14.2 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
       <button class="btn" id="redistributeBtn">⚖️ Redistribuir</button>
-      <button class="btn" id="saveBtn">💾 Guardar</button>
+      <button class="btn" id="saveBtn" title="Sincronizar asignaciones con el servidor">💾 Guardar</button>
       <button class="btn" id="attendanceBtn">📋 Pase de Lista <span id="attendanceBadge" class="btn-badge" aria-label="Pase de lista pendiente" title="Pase de lista pendiente">!</span></button>
       <button class="btn" id="closeShiftBtn">📸 Cerrar Turno</button>
       <button class="btn" id="changePinBtn">🔐 Cambiar PIN</button>
@@ -666,7 +666,8 @@
     const showToast = (msg, duration = 2500) => {
       const t = document.getElementById('toast');
       t.textContent = msg; t.style.display = 'block';
-      setTimeout(() => t.style.display = 'none', duration);
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.style.display = 'none', duration);
     };
     const nowStamp = () => {
       const d = new Date();
@@ -1799,20 +1800,27 @@
 
     function bindEvents() {
       document.getElementById('refreshBtn').addEventListener('click', () => loadData(true));
-      document.getElementById('saveBtn').addEventListener('click', () => {
-        const payload = {
-          almacen_asignaciones: readLS('almacen_asignaciones', {}),
-          almacen_personal: readLS('almacen_personal', {})
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const today = new Date().toISOString().slice(0, 10);
-        a.href = url;
-        a.download = `backup_jefatura_${today}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('✅ Backup descargado');
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        const asig = readLS('almacen_asignaciones', {});
+        const entries = Object.entries(asig).filter(([id, who]) => id && who && id.trim() && who.trim());
+
+        if (!entries.length) {
+          showToast('⚠️ No hay asignaciones para sincronizar');
+          return;
+        }
+
+        const updates = entries.map(([id, who]) => ({ id, field: 'ALMACENISTA', value: who }));
+
+        showToast(`⏳ Sincronizando ${updates.length} asignaciones...`, 3000);
+
+        try {
+          await postBatchUpdate(updates);
+          showToast(`✅ ${updates.length} asignaciones sincronizadas con el servidor`, 4000);
+          addLog(`Sincronización manual: ${updates.length} asignaciones enviadas al servidor`);
+        } catch (err) {
+          console.error('Error en sincronización manual:', err);
+          showToast('⚠️ Error al sincronizar. Intente de nuevo.', 4000);
+        }
       });
       document.getElementById('attendanceBtn').addEventListener('click', openAttendanceModal);
       document.getElementById('closeShiftBtn').addEventListener('click', openCloseShiftModal);
