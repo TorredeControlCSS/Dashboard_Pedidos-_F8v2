@@ -1358,6 +1358,7 @@
       try {
         await postBatchUpdate(updates);
         const prevStates = readLS(PREV_STATE_KEY, {});
+        // Store the state prior to prevState so successive reversions walk backwards correctly
         prevStates[item.id] = getPreviousState(prevState);
         writeLS(PREV_STATE_KEY, prevStates);
         addLog(`${item.id} ↩ Revertido a ${prevState} por Jefatura${fechaFieldToClean ? ` · Fecha ${fechaFieldToClean} limpiada` : ''}`);
@@ -1470,7 +1471,13 @@
       const today = isoToday();
       const payload = { fecha: today, personal: { ...attendanceDraft } };
       writeLS(ATTENDANCE_KEY, payload);
-      const history = readLS(ATTENDANCE_HISTORY_KEY, {});
+      // Migrate old array format to object format if needed
+      let history = readLS(ATTENDANCE_HISTORY_KEY, {});
+      if (Array.isArray(history)) {
+        const migrated = {};
+        history.forEach(entry => { if (entry?.fecha) migrated[entry.fecha] = { ...(entry.personal || {}) }; });
+        history = migrated;
+      }
       history[today] = { ...attendanceDraft };
       writeLS(ATTENDANCE_HISTORY_KEY, history);
       const personal = readLS('almacen_personal', {});
@@ -2115,7 +2122,9 @@
           await postUpdate(pendingAssignId, 'ALMACENISTA', who);
           addLog(`${pendingAssignId} reasignada a ${who} · Jefatura (guardado en servidor)`);
         } catch(e) {
+          console.error(e);
           addLog(`${pendingAssignId} reasignada a ${who} · (solo local, error servidor)`);
+          showToast('⚠️ Reasignación guardada localmente — sin conexión al servidor');
         }
         closeAssignModal();
         renderBoard(filteredTracking, readLS('almacen_state_timestamps', {}), asig, readLS('almacen_personal', {}));
@@ -2147,22 +2156,27 @@
     }
 
     function exportAttendanceReport() {
-      const history = readLS(ATTENDANCE_HISTORY_KEY, {});
-      const rows = [['Fecha', 'Nombre', 'Grupo', 'Estado']];
-      const dates = Object.keys(history).sort().reverse();
-      dates.forEach(date => {
-        const dayData = history[date];
-        STAFF.forEach(s => {
-          const estado = dayData[s.nombre] || 'presente';
-          const estadoLabel = estado === 'presente' ? 'Presente' : estado === 'en-ruta' ? 'En Ruta' : estado === 'baja-medica' ? 'Baja Médica' : 'Ausente';
-          rows.push([date, s.nombre, getStaffDisplayGroup(s), estadoLabel]);
+      try {
+        const history = readLS(ATTENDANCE_HISTORY_KEY, {});
+        const rows = [['Fecha', 'Nombre', 'Grupo', 'Estado']];
+        const dates = Object.keys(history).sort().reverse();
+        dates.forEach(date => {
+          const dayData = history[date];
+          STAFF.forEach(s => {
+            const estado = dayData[s.nombre] || 'presente';
+            const estadoLabel = estado === 'presente' ? 'Presente' : estado === 'en-ruta' ? 'En Ruta' : estado === 'baja-medica' ? 'Baja Médica' : 'Ausente';
+            rows.push([date, s.nombre, getStaffDisplayGroup(s), estadoLabel]);
+          });
         });
-      });
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Reporte de Asistencia');
-      XLSX.writeFile(wb, `Reporte_Asistencia_${isoToday()}.xlsx`);
-      showToast('📊 Reporte de asistencia exportado');
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Reporte de Asistencia');
+        XLSX.writeFile(wb, `Reporte_Asistencia_${isoToday()}.xlsx`);
+        showToast('📊 Reporte de asistencia exportado');
+      } catch (e) {
+        console.error(e);
+        showToast('❌ Error al exportar el reporte de asistencia');
+      }
     }
 
     function startClock() {

@@ -391,7 +391,7 @@
         });
         inp.addEventListener('keydown', (e) => {
           if (e.key === 'Backspace' && !inp.value && inputs[idx - 1]) inputs[idx - 1].focus();
-          if (e.key === 'Enter') finishIdentityLogin();
+          if (e.key === 'Enter' && !identityCreateMode) finishIdentityLogin();
         });
       });
     }
