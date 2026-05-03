@@ -328,6 +328,22 @@
       position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: #111827; color: #fff;
       border-radius: 999px; padding: 8px 14px; font-size: 13px; display: none; z-index: 40;
     }
+    #loadingOverlay {
+      position: fixed; inset: 0; background: #0b1f3a; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; z-index: 9999; color: #fff; gap: 20px;
+    }
+    #loadingOverlay img { width: 80px; height: 80px; object-fit: contain; }
+    #loadingOverlay .lo-spinner {
+      width: 48px; height: 48px; border: 5px solid rgba(255,255,255,.25);
+      border-top-color: #fff; border-radius: 50%; animation: spin .9s linear infinite;
+    }
+    #loadingOverlay .lo-text { font-size: 15px; color: #cbd5e1; text-align: center; }
+    #loadingOverlay .lo-retry {
+      margin-top: 8px; padding: 10px 20px; border: none; border-radius: 8px;
+      background: #fff; color: #0b1f3a; font-weight: 700; cursor: pointer; font-size: 14px;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 980px) {
       .kpis { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
       .title h1 { font-size: 14px; }
@@ -342,11 +358,19 @@
   </style>
 </head>
 <body>
+  <!-- Initial loading overlay -->
+  <div id="loadingOverlay">
+    <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
+    <div class="lo-spinner"></div>
+    <div class="lo-text" id="loText">Cargando datos del CEDIS... por favor espera</div>
+    <button class="lo-retry" id="loRetryBtn">🔄 Reintentar</button>
+  </div>
+
   <header class="topbar">
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V14.3 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · V14.3 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
@@ -2363,9 +2387,27 @@
       const staffSel = document.getElementById('staffNameFilter');
       staffSel.innerHTML = '<option value="">Almacenista: TODOS</option>' + STAFF.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
       document.getElementById('exportAttendanceBtn').addEventListener('click', exportAttendanceReport);
-      await loadData();
-      setInterval(() => loadData(false), 5 * 60 * 1000);
-      renderAttendanceBadge();
+      const overlay = document.getElementById('loadingOverlay');
+      const loText = document.getElementById('loText');
+      const loRetry = document.getElementById('loRetryBtn');
+
+      async function doLoad() {
+        loText.textContent = 'Cargando datos del CEDIS... por favor espera';
+        loRetry.style.display = 'none';
+        overlay.style.display = 'flex';
+        try {
+          await loadData();
+          overlay.style.display = 'none';
+          setInterval(() => loadData(false), 5 * 60 * 1000);
+          renderAttendanceBadge();
+        } catch(e) {
+          loText.textContent = '❌ Error al cargar los datos. Por favor verifica tu conexión.';
+          loRetry.style.display = 'block';
+        }
+      }
+
+      loRetry.addEventListener('click', doLoad);
+      await doLoad();
     }
 
     init();
