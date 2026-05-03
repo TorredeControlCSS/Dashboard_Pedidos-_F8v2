@@ -506,7 +506,7 @@
             <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
             ${r.pending
               ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>'
-              : `<button class="action-btn distribucion-advance" data-id="${r.id}" style="background:#7b1fa2;color:#fff;">✅ YA DESPACHADO ESTE PEDIDO</button>`}
+              : `<button class="action-btn distribucion-advance" data-id="${r.id}" style="background:#7b1fa2;color:#fff;">✅ YA DISTRIBUÍ ESTE PEDIDO</button>`}
           </article>
         `;
       }).join('');
@@ -582,7 +582,7 @@
             <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
             ${r.pending
               ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>'
-              : `<button class="action-btn empaque-advance" data-id="${r.id}" style="background:#6d4c41;color:#fff;">✅ YA EMPAQUÉ ESTE PEDIDO</button>`}
+              : `<button class="action-btn empaque-advance" data-id="${r.id}" style="background:#6d4c41;color:#fff;">✅ YA TERMINÉ DE EMPACAR</button>`}
           </article>
         `;
       }).join('');
@@ -857,7 +857,7 @@
               <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
               ${r.pending
                 ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO CONFIRMACIÓN DEL JEFE</div>'
-                : `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0;">✅ ENTREGUÉ ESTE PEDIDO</button>`}
+                : `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0;">✅ YA ENTREGUÉ ESTE PEDIDO</button>`}
             </article>
           `;
         }).join('');
