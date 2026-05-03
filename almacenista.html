@@ -80,26 +80,21 @@
     .return-banner { margin-top:8px; border:2px solid #b71c1c; background:#ffebee; border-radius:8px; padding:8px; color:#b71c1c; font-size:13px; font-weight:700; }
 
     #modal-identidad {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      display: none;
-      align-items: center !important;
-      justify-content: center !important;
-      z-index: 999999 !important;
-      background: rgba(11,31,58,0.85) !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      display: flex;
+      min-height: calc(100vh - 64px);
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0b1f3a 0%, #133a74 100%);
+      padding: 24px 16px;
     }
+    #modal-identidad.hidden { display: none !important; }
 
     #modal-identidad .modal-content {
       background: white;
       border-radius: 16px;
       padding: 40px 32px;
       width: min(90vw, 420px);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
       text-align: center;
       position: relative;
     }
@@ -446,9 +441,19 @@
       const pendings = getPendings();
       const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
       const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
-      const routeForToday = savedRoutes?.fecha === isoToday() ? (savedRoutes.porPedido || {}) : {};
+      // Support both new format (asignaciones) and old format (porPedido with fecha)
+      const myRouteIds = new Set();
+      if (Array.isArray(savedRoutes?.asignaciones) && savedRoutes.asignaciones.length > 0) {
+        savedRoutes.asignaciones.forEach(a => {
+          if (a.almacenista && normalizeText(a.almacenista) === normalizeText(me)) myRouteIds.add(a.pedidoId);
+        });
+      } else if (savedRoutes?.fecha === isoToday() && savedRoutes?.porPedido) {
+        Object.entries(savedRoutes.porPedido).forEach(([id, name]) => {
+          if (normalizeText(name) === normalizeText(me)) myRouteIds.add(id);
+        });
+      }
       const allDistrib = rows.filter(r => r.estado === 'DISTRIBUCIÓN');
-      const myDistrib = allDistrib.filter(r => routeForToday[r.id] === me);
+      const myDistrib = allDistrib.filter(r => myRouteIds.has(r.id));
       const toShow = myDistrib.length > 0 ? myDistrib : allDistrib;
       const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {})).sort((a, b) => b.wait - a.wait);
       document.getElementById('distribucionSubtitle').textContent = `${enriched.length} pedido${enriched.length !== 1 ? 's' : ''} para distribución`;
@@ -667,7 +672,7 @@
         }).join('');
       const me = getMe();
       const valid = me && STAFF.some(s => s.nombre === me);
-      document.getElementById('modal-identidad').style.display = valid ? 'none' : 'flex';
+      document.getElementById('modal-identidad').classList.toggle('hidden', valid);
       document.getElementById('app').classList.toggle('hidden', !valid);
       if (!valid) resetIdentitySteps();
       renderTopbarActions();
@@ -755,27 +760,42 @@
 
     function queueForMe() {
       const person = getPerson();
-      if (!person) return { almacen: [], ruta: [], routeAssignedToday: false };
+      if (!person) return { almacen: [], ruta: [], hasRouteAssignments: false };
       const asig = readLS('almacen_asignaciones', {});
       const stateMap = readLS('almacen_state_timestamps', {});
       const pendings = getPendings();
       const causales = readLS(CAUSALES_KEY, {});
       const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
       const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
-      const routeForToday = savedRoutes?.fecha === isoToday() ? (savedRoutes.porPedido || {}) : {};
-      const routeAssignedToday = savedRoutes?.fecha === isoToday();
-      const hasRouteAssignments = Object.values(routeForToday).some(name => name === person.nombre);
 
-      const myOrders = rows.filter(r => asig[r.id] === person.nombre);
+      // Build set of order IDs assigned to me via route assignments
+      // Support both new format (asignaciones array) and old format (porPedido map)
+      const myRouteOrderIds = new Set();
+      if (Array.isArray(savedRoutes?.asignaciones) && savedRoutes.asignaciones.length > 0) {
+        savedRoutes.asignaciones.forEach(a => {
+          if (a.almacenista && normalizeText(a.almacenista) === normalizeText(person.nombre)) {
+            myRouteOrderIds.add(a.pedidoId);
+          }
+        });
+      } else if (savedRoutes?.fecha === isoToday() && savedRoutes?.porPedido) {
+        // Old format fallback
+        Object.entries(savedRoutes.porPedido).forEach(([id, name]) => {
+          if (normalizeText(name) === normalizeText(person.nombre)) myRouteOrderIds.add(id);
+        });
+      }
+      const hasRouteAssignments = myRouteOrderIds.size > 0;
+
+      // Use case-insensitive comparison for picking assignments
+      const myOrders = rows.filter(r => normalizeText(asig[r.id] || '') === normalizeText(person.nombre));
 
       const almacen = myOrders
         .filter(r => ['ASIGNADA', 'PICKING'].includes(r.estado))
         .map(r => enrichOrder(r, stateMap, pendings, causales));
 
       let ruta;
-      if (routeAssignedToday) {
+      if (hasRouteAssignments) {
         ruta = rows
-          .filter(r => r.estado === 'DESPACHADO' && routeForToday[r.id] === person.nombre)
+          .filter(r => myRouteOrderIds.has(r.id) && r.estado !== 'ENTREGADO')
           .map(r => enrichOrder(r, stateMap, pendings, causales));
       } else {
         ruta = myOrders
@@ -783,7 +803,7 @@
           .map(r => enrichOrder(r, stateMap, pendings, causales));
       }
 
-      return { almacen, ruta, routeAssignedToday };
+      return { almacen, ruta, hasRouteAssignments };
     }
 
     function fmtWait(hours) {
@@ -816,33 +836,40 @@
     function renderQueue() {
       const person = getPerson();
       if (!person) return;
-      const { almacen, ruta, routeAssignedToday } = queueForMe();
+      const { almacen, ruta, hasRouteAssignments } = queueForMe();
       const box = document.getElementById('queue');
       const priority = document.getElementById('priorityQueue');
 
       if (currentView === 'ruta') {
         priority.innerHTML = '';
         document.getElementById('ordersSubtitle').textContent = `Tienes ${ruta.length} pedidos de entrega asignados`;
-        if (!routeAssignedToday) {
-          box.innerHTML = '<div class="small" style="padding:12px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">⏳ El Jefe aún no ha asignado pedidos de ruta para hoy. Aquí aparecerán tus pedidos cuando sean asignados.</div>';
+        if (!hasRouteAssignments) {
+          box.innerHTML = '<div class="small" style="padding:12px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">⏳ El Jefe aún no ha asignado pedidos de ruta. Aquí aparecerán tus pedidos cuando sean asignados.</div>';
           return;
         }
         if (!ruta.length) {
-          box.innerHTML = '<div class="small">No tienes pedidos de ruta asignados para hoy. 🏪</div>';
+          box.innerHTML = '<div class="small">No tienes pedidos de ruta asignados. 🏪</div>';
           return;
         }
         box.innerHTML = ruta.map(r => {
           const ageText = r.wait >= 0 ? fmtWait(r.wait) : '—';
           const waitColor = getWaitColor(r.wait);
+          const canDeliver = r.estado === 'DESPACHADO';
+          const stateLbl = canDeliver ? '🚚 LISTO PARA ENTREGAR' : `⏳ En proceso (${r.estado})`;
           return `
             <article class="card" style="border-left-color:${GROUP_COLORS[r.group] || '#64748b'}${r.pending ? ';border:3px solid #f9a825;' : ''}">
+              <div class="badges">
+                <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
+                <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+              </div>
               <div style="font-weight:800;font-size:22px;">${r.id}</div>
               <div style="font-size:20px;margin-top:4px;">${r.ue}</div>
               <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades</div>
+              <div class="state-chip" style="color:${canDeliver ? '#2e7d32' : '#64748b'};">${stateLbl}</div>
               <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
               ${r.pending
                 ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO CONFIRMACIÓN DEL JEFE</div>'
-                : `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0;">✅ YA ENTREGUÉ ESTE PEDIDO</button>`}
+                : canDeliver ? `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0;">✅ YA ENTREGUÉ ESTE PEDIDO</button>` : ''}
             </article>
           `;
         }).join('');
