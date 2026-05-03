@@ -39,25 +39,23 @@
     .action-btn { margin-top:10px; min-height:60px; border:none; border-radius:12px; font-weight:800; font-size:18px; cursor:pointer; width:100%; background:#0b1f3a; color:#fff; }
     .group-list{ display:grid; gap:7px; }
     .row{ display:flex; justify-content:space-between; gap:8px; align-items:center; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
-    .stat-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:6px 0; }
-    .stat-card { background:#fff; border-radius:8px; padding:7px 6px; text-align:center; border:1px solid #e5e7eb; }
-    .stat-card-green { border-bottom:3px solid #2e7d32; }
-    .stat-card-amber { border-bottom:3px solid #f59e0b; }
-    .stat-card-blue  { border-bottom:3px solid #1565c0; }
-    .stat-label { font-size:10px; color:#6b7280; font-weight:700; text-transform:uppercase; margin-bottom:2px; }
-    .stat-value { font-size:1.5rem; font-weight:900; color:#111827; line-height:1.1; }
-    .team-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
-    .team-card { border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff; text-align:center; }
-    .team-card.me { border:2px solid #2e7d32; background:#f0fdf4; }
-    .team-card .tc-name { font-weight:800; font-size:14px; margin-bottom:6px; }
-    .team-card .tc-attend { font-size:13px; margin-bottom:4px; }
-    .team-card .tc-status { font-size:12px; color:#6b7280; }
     .small { color:#6b7280; font-size:14px; }
     .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
-    .achievements { background:linear-gradient(180deg,#e3f2fd,#fff); }
-    .big-number { font-size:3rem; color:#1565c0; font-weight:900; }
-    .mini-ranking { border:1px solid #dbeafe; border-radius:10px; padding:10px; background:#fff; margin-top:10px; }
-    .rank-line { display:flex; justify-content:space-between; gap:8px; margin:4px 0; }
+    .achievements-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:linear-gradient(90deg,#e3f2fd,#fff); border:1px solid #dbeafe; border-radius:10px; padding:7px 12px; margin-bottom:12px; }
+    .achievements-label { font-size:12px; font-weight:800; color:#1565c0; white-space:nowrap; }
+    .achievements-chip { display:inline-flex; align-items:center; gap:3px; border-radius:8px; padding:3px 9px; font-size:12px; font-weight:700; border:1px solid #dbeafe; background:#fff; white-space:nowrap; }
+    .achievements-chip.chip-green { border-color:#86efac; background:#f0fdf4; color:#166534; }
+    .achievements-chip.chip-amber { border-color:#fde68a; background:#fefce8; color:#92400e; }
+    .achievements-chip.chip-blue  { border-color:#93c5fd; background:#eff6ff; color:#1e40af; }
+    .team-chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .team-chip { display:inline-flex; align-items:center; border-radius:10px; padding:4px 10px; font-size:12px; font-weight:700; border:2px solid; }
+    .team-chip.tc-presente  { background:#dcfce7; border-color:#22c55e; color:#166534; }
+    .team-chip.tc-en-ruta   { background:#dbeafe; border-color:#3b82f6; color:#1e40af; }
+    .team-chip.tc-baja      { background:#ffedd5; border-color:#f97316; color:#9a3412; }
+    .team-chip.tc-capacit   { background:#f3e8ff; border-color:#a855f7; color:#6b21a8; }
+    .team-chip.tc-ausente   { background:#fee2e2; border-color:#ef4444; color:#991b1b; }
+    .team-chip.tc-default   { background:#f1f5f9; border-color:#94a3b8; color:#475569; }
+    .team-chip.tc-me        { font-weight:900; box-shadow:0 0 0 1px rgba(0,0,0,.1) inset; }
     .hidden { display:none !important; }
     .pin-inputs {
       display: flex;
@@ -180,31 +178,19 @@
         </div>
       </article>
 
-      <article class="panel achievements">
-        <h2>⭐ MIS LOGROS DE HOY</h2>
-        <div class="stat-cards">
-          <div class="stat-card stat-card-green">
-            <div class="stat-label">✅ Completados Hoy</div>
-            <div class="stat-value" id="stDone">0</div>
-          </div>
-          <div class="stat-card stat-card-amber">
-            <div class="stat-label">🏅 Mi Posición</div>
-            <div class="stat-value" id="stRankDisplay">—</div>
-          </div>
-          <div class="stat-card stat-card-blue">
-            <div class="stat-label">⚡ F8/hora</div>
-            <div class="stat-value" id="stSpeedDisplay">0.0</div>
-          </div>
-        </div>
+      <div class="achievements-bar">
+        <span class="achievements-label">⭐ MIS LOGROS DE HOY</span>
+        <span class="achievements-chip chip-green">✅ <span id="stDone">0</span> completados</span>
+        <span class="achievements-chip chip-amber"><span id="stRankDisplay">—</span> posición</span>
+        <span class="achievements-chip chip-blue">⚡ <span id="stSpeedDisplay">0.0</span> F8/h</span>
         <span id="stPosition" class="hidden"></span>
         <span id="stBest" class="hidden"></span>
         <span id="stLeader" class="hidden"></span>
-        <div class="mini-ranking" id="miniRanking" style="margin-top:10px;"></div>
-      </article>
+      </div>
 
       <article class="panel">
         <h2>👥 MI EQUIPO HOY</h2>
-        <div id="groupList" class="team-grid"></div>
+        <div id="groupList" class="team-chips"></div>
       </article>
 
       <article class="panel" id="ordersPanel">
@@ -674,9 +660,7 @@
       sel.innerHTML = '<option value="">Seleccione su nombre...</option>' +
         STAFF.filter(s => {
           const a = s.activo;
-          if (a === false) return false;
-          if (typeof a === 'string' && a.trim().toUpperCase() === 'NO') return false;
-          return true;
+          return String(a == null ? '' : a).trim().toUpperCase() !== 'NO';
         }).map(s => {
           const grupo = s.grupos?.[0] || s.rol || '';
           return `<option value="${s.nombre}">${s.nombre} · ${grupo}</option>`;
@@ -771,7 +755,7 @@
 
     function queueForMe() {
       const person = getPerson();
-      if (!person) return { almacen: [], ruta: [] };
+      if (!person) return { almacen: [], ruta: [], routeAssignedToday: false };
       const asig = readLS('almacen_asignaciones', {});
       const stateMap = readLS('almacen_state_timestamps', {});
       const pendings = getPendings();
@@ -779,6 +763,7 @@
       const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
       const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
       const routeForToday = savedRoutes?.fecha === isoToday() ? (savedRoutes.porPedido || {}) : {};
+      const routeAssignedToday = savedRoutes?.fecha === isoToday();
       const hasRouteAssignments = Object.values(routeForToday).some(name => name === person.nombre);
 
       const myOrders = rows.filter(r => asig[r.id] === person.nombre);
@@ -788,7 +773,7 @@
         .map(r => enrichOrder(r, stateMap, pendings, causales));
 
       let ruta;
-      if (hasRouteAssignments) {
+      if (routeAssignedToday) {
         ruta = rows
           .filter(r => r.estado === 'DESPACHADO' && routeForToday[r.id] === person.nombre)
           .map(r => enrichOrder(r, stateMap, pendings, causales));
@@ -798,7 +783,7 @@
           .map(r => enrichOrder(r, stateMap, pendings, causales));
       }
 
-      return { almacen, ruta };
+      return { almacen, ruta, routeAssignedToday };
     }
 
     function fmtWait(hours) {
@@ -831,15 +816,19 @@
     function renderQueue() {
       const person = getPerson();
       if (!person) return;
-      const { almacen, ruta } = queueForMe();
+      const { almacen, ruta, routeAssignedToday } = queueForMe();
       const box = document.getElementById('queue');
       const priority = document.getElementById('priorityQueue');
 
       if (currentView === 'ruta') {
         priority.innerHTML = '';
         document.getElementById('ordersSubtitle').textContent = `Tienes ${ruta.length} pedidos de entrega asignados`;
+        if (!routeAssignedToday) {
+          box.innerHTML = '<div class="small" style="padding:12px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">⏳ El Jefe aún no ha asignado pedidos de ruta para hoy. Aquí aparecerán tus pedidos cuando sean asignados.</div>';
+          return;
+        }
         if (!ruta.length) {
-          box.innerHTML = '<div class="small">No tienes pedidos de entrega asignados en este momento. 🏪</div>';
+          box.innerHTML = '<div class="small">No tienes pedidos de ruta asignados para hoy. 🏪</div>';
           return;
         }
         box.innerHTML = ruta.map(r => {
@@ -985,7 +974,6 @@
       document.getElementById('stSpeedDisplay').textContent = speed.toFixed(1);
       document.getElementById('stBest').textContent = `Tiempo promedio por F8: ${myAvg ? `${myAvg.toFixed(0)} min` : '—'} · Velocidad: ${speed.toFixed(2)} F8/h`;
       document.getElementById('stLeader').textContent = `Racha actual: ${streakDays(me)} días · Tu promedio: ${myAvg ? myAvg.toFixed(0) : '—'} min/F8 · Promedio equipo: ${teamAvg ? teamAvg.toFixed(0) : '—'} min/F8 ${myAvg && teamAvg && myAvg <= teamAvg ? '✅ Más rápido que el equipo' : ''}`;
-      document.getElementById('miniRanking').innerHTML = today.rows.slice(0,3).map((r) => `<div class="rank-line"><span>${r.rank===1?'🥇':r.rank===2?'🥈':'🥉'} ${r.name===me?`Tú (${me})`:r.name}</span><strong>${r.total}</strong></div>`).join('') || '<div class="small">Sin movimientos hoy.</div>';
     }
 
     function renderGroupToday() {
@@ -1001,16 +989,14 @@
         const pName = p.nombre || p.name;
         const isMe = pName === me;
         const attend = attendanceToday[pName] || 'presente';
-        const st = personal[pName]?.status || 'DISPONIBLE';
-        const dotColor = attend === 'presente' ? '#2e7d32'
-          : attend === 'en-ruta' ? '#1565c0'
-          : attend === 'baja-medica' ? '#ef6c00'
-          : attend === 'capacitacion' ? '#7b1fa2'
-          : '#b71c1c';
-        return `<div style="display:inline-flex;align-items:center;gap:5px;background:${isMe ? '#e3f2fd' : '#f8fafc'};border:1px solid ${isMe ? '#90caf9' : '#e2e8f0'};border-radius:999px;padding:3px 10px;font-size:13px;font-weight:${isMe ? '800' : '500'};margin:2px;">
-          <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0;"></span>
-          ${isMe ? `<strong>Tú (${me})</strong>` : pName}
-        </div>`;
+        const cls = attend === 'presente' ? 'tc-presente'
+          : attend === 'en-ruta' ? 'tc-en-ruta'
+          : attend === 'baja-medica' ? 'tc-baja'
+          : attend === 'capacitacion' ? 'tc-capacit'
+          : attend === 'ausente' ? 'tc-ausente'
+          : 'tc-default';
+        const label = isMe ? `Tú (${me})` : pName;
+        return `<span class="team-chip ${cls}${isMe ? ' tc-me' : ''}">${label}</span>`;
       }).join('');
     }
 
