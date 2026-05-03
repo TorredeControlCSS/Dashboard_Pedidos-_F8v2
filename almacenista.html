@@ -569,8 +569,8 @@
     }
 
     async function loadStaff() {
-      // Try ?file=personal first (returns ALL active roles: ALMACENISTA, KARDEX, EMPAQUE, DISTRIBUCION, etc.)
-      // This is needed so DISTRIBUCION staff appear in the login selector
+      // Try ?file=personal first (returns ALL active roles: ALMACENISTA, KARDEX, EMPAQUE, DISTRIBUCIÓN, etc.)
+      // This is needed so DISTRIBUCIÓN staff appear in the login selector
       try {
         const r = await fetch(`${WEB_APP_URL}?file=personal`);
         const data = await r.json();
