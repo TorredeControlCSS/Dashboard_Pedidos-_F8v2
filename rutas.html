@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asignación de Rutas · CEDIS PANAMA</title>
+  <link rel="icon" href="./favicon.ico?v=1" />
+  <style>
+    :root {
+      --navy: #0b1f3a;
+      --panel: #ffffff;
+      --muted: #f5f5f5;
+      --text: #1f2937;
+      --warn: #f59e0b;
+      --danger: #b71c1c;
+      --ok: #2e7d32;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #eef2f7; color: var(--text); }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      background: linear-gradient(90deg, #0b1f3a, #133a74);
+      color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    }
+    .topbar img { width: 44px; height: 44px; object-fit: contain; }
+    .title { flex: 1; min-width: 0; }
+    .title h1 { margin: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .title p { margin: 2px 0 0; font-size: 12px; color: #cbd5e1; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); color: #fff;
+      border-radius: 8px; padding: 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: rgba(255,255,255,.2); }
+    .wrap { padding: 12px; max-width: 1200px; margin: 0 auto; }
+    .loading-banner {
+      background: #e3f2fd; border-left: 4px solid #1565c0;
+      padding: 10px 14px; font-size: 13px; color: #0d47a1;
+      display: flex; align-items: center; gap: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 3px solid #93c5fd; border-top-color: #1565c0;
+      border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    .error-banner {
+      background: #ffebee; border-left: 4px solid #b71c1c;
+      padding: 10px 14px; font-size: 13px; color: #b71c1c; display: none;
+    }
+    .box {
+      background: #fff; border-radius: 10px; padding: 14px;
+      border: 1px solid #e5e7eb; margin-bottom: 12px;
+    }
+    .filters-bar {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      padding: 10px 12px; background: #fff;
+      border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 10px;
+    }
+    .filters-bar input, .filters-bar select {
+      border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px;
+      font-size: 13px; background: #fff; flex: 1; min-width: 130px;
+    }
+    .filters-bar input[type="text"] { min-width: 180px; }
+    .filters-bar button {
+      border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 12px;
+      background: #f1f5f9; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .tabs-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .tab-btn {
+      border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px 16px;
+      background: #fff; font-weight: 700; cursor: pointer; font-size: 13px; transition: all .15s;
+    }
+    .tab-btn.active { background: #0b1f3a; color: #fff; border-color: #0b1f3a; }
+    .save-row {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 8px 0;
+    }
+    .btn-cancel {
+      border: 1px solid #d1d5db; background: #fff; border-radius: 8px;
+      padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 13px; color: #374151;
+    }
+    .btn-save {
+      background: #0b1f3a; color: #fff; border: none; border-radius: 8px;
+      padding: 8px 16px; font-weight: 700; cursor: pointer; font-size: 13px;
+    }
+    .btn-save:hover { background: #133a74; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { background: #f1f5f9; }
+    th { padding: 8px 6px; font-size: 11px; text-transform: uppercase; color: #6b7280; text-align: left; white-space: nowrap; }
+    td { padding: 6px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:hover td { background: #f8fafc; }
+    .badge {
+      display: inline-block; color: #fff; border-radius: 999px;
+      padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap;
+    }
+    .pagination {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 0; font-size: 13px;
+    }
+    .pagination button {
+      border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 12px;
+      background: #fff; cursor: pointer; font-weight: 700;
+    }
+    .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .pagination .page-info { color: #6b7280; }
+    .person-block {
+      border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; margin-bottom: 8px;
+    }
+    .person-block-title { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+    .person-block-row {
+      display: flex; gap: 8px; align-items: center; padding: 5px 0;
+      border-bottom: 1px dashed #e5e7eb; font-size: 12px;
+    }
+    .person-block-row:last-child { border-bottom: none; }
+    select.route-staff-select, input.route-date-input {
+      border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 7px;
+      font-size: 12px; width: 100%;
+    }
+    #toast {
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px;
+      background: #111827; color: #fff; border-radius: 999px;
+      padding: 8px 14px; font-size: 13px; display: none; z-index: 40;
+    }
+    .small { color: #6b7280; font-size: 12px; }
+    @media (max-width: 640px) {
+      .topbar { align-items: flex-start; }
+      .actions { width: 100%; }
+      .filters-bar { flex-direction: column; }
+      .filters-bar input, .filters-bar select { min-width: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
+    <div class="title">
+      <h1>🗺️ ASIGNACIÓN DE RUTAS · CEDIS PANAMA</h1>
+      <p id="pageSubtitle">Cargando datos...</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="index.html">← Volver a Jefatura</a>
+    </div>
+  </header>
+
+  <div id="loadingBanner" class="loading-banner">
+    <span class="spinner"></span>
+    <span id="loadingMsg">Cargando pedidos y personal...</span>
+  </div>
+  <div id="errorBanner" class="error-banner"></div>
+
+  <div class="wrap" id="mainContent" style="display:none;">
+
+    <!-- Filter bar -->
+    <div class="filters-bar">
+      <input id="filterSearch" type="text" placeholder="🔍 Buscar por ID o Unidad Ejecutora..." />
+      <select id="filterGroup">
+        <option value="">Grupo: TODOS</option>
+      </select>
+      <select id="filterState">
+        <option value="">Estado: TODOS</option>
+        <option value="ASIGNADA">ASIGNADA</option>
+        <option value="PICKING">PICKING</option>
+        <option value="FACTURACIÓN">FACTURACIÓN</option>
+        <option value="EMPACADO">EMPACADO</option>
+        <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option>
+        <option value="DESPACHADO">DESPACHADO</option>
+      </select>
+      <select id="filterPerson">
+        <option value="">Almacenista: TODOS</option>
+      </select>
+      <button id="clearFiltersBtn">↺ Limpiar</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-row">
+      <button class="tab-btn active" id="tabABtn">📋 Por Pedido</button>
+      <button class="tab-btn" id="tabBBtn">👤 Por Almacenista</button>
+    </div>
+
+    <!-- Save buttons (top) -->
+    <div class="save-row" id="saveRowTop">
+      <button class="btn-cancel" id="cancelBtnTop">↩ Volver sin guardar</button>
+      <button class="btn-save" id="saveBtnTop">💾 Guardar Asignación de Rutas</button>
+    </div>
+
+    <!-- Tab A content -->
+    <div id="tabAContent">
+      <div class="box" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table id="routeTable">
+            <thead>
+              <tr>
+                <th style="padding:8px 6px;">ID</th>
+                <th style="padding:8px 6px;">Unidad Ejecutora</th>
+                <th style="padding:8px 6px;">Grupo</th>
+                <th style="padding:8px 6px;">Estado</th>
+                <th style="padding:8px 6px; min-width:120px;">📅 Fecha de salida</th>
+                <th style="padding:8px 6px; min-width:240px;">👤 Almacenista</th>
+              </tr>
+            </thead>
+            <tbody id="routeTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="paginationWrap" style="padding:10px 12px;">
+          <button id="prevPageBtn">← Anterior</button>
+          <span class="page-info" id="pageInfo">Página 1</span>
+          <button id="nextPageBtn">Siguiente →</button>
+          <span class="small" id="totalInfo"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab B content -->
+    <div id="tabBContent" style="display:none;">
+      <div class="box">
+        <div id="tabBBody"></div>
+      </div>
+    </div>
+
+    <!-- Save buttons (bottom) -->
+    <div class="save-row" id="saveRowBottom">
+      <button class="btn-cancel" id="cancelBtnBottom">↩ Volver sin guardar</button>
+      <button class="btn-save" id="saveBtnBottom">💾 Guardar Asignación de Rutas</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // ─── CONFIG ─────────────────────────────────────────────────────────────────
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+    const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
+    const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
+    const PAGE_SIZE = 50;
+
+    // ─── STATE ───────────────────────────────────────────────────────────────────
+    let tracking = [];   // rows from ?file=tracking
+    let STAFF = [];      // rows from ?file=personal
+    let _routeAssignments = []; // [{pedidoId, almacenista, fechaSalida, fechaAsignacion}]
+    let _currentTab = 'A';
+    let _currentPage = 1;
+    let _filterSearch = '';
+    let _filterGroup = '';
+    let _filterState = '';
+    let _filterPerson = '';
+
+    // ─── UTILS ──────────────────────────────────────────────────────────────────
+    const readLS = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
+    const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+    const GROUP_MAP = {
+      'G1-TABLETAS': 'GRUPO 1', 'GRUPO 1': 'GRUPO 1',
+      'G2-SOLUCION': 'GRUPO 2', 'GRUPO 2': 'GRUPO 2',
+      'G3-JARABE': 'GRUPO 3', 'GRUPO 3': 'GRUPO 3',
+      'G4-CREMAS': 'GRUPO 4-5-11', 'G5-OVULOS': 'GRUPO 4-5-11', 'G5-ÓVULOS': 'GRUPO 4-5-11',
+      'G11-ODONTOLOGIA': 'GRUPO 4-5-11', 'G-11-ODONTOLOGIA': 'GRUPO 4-5-11',
+      'GRUPO 4': 'GRUPO 4-5-11', 'GRUPO 4-5-11': 'GRUPO 4-5-11',
+      'G9-MQ': 'MÓDULO', 'MODULO': 'MÓDULO', 'MÓDULO': 'MÓDULO',
+      'FRÍO': 'FRÍO', 'FRIO': 'FRÍO',
+      'EMPAQUE': 'EMPAQUE', 'URGENCIAS': 'URGENCIAS', 'VENCIDOS': 'VENCIDOS', 'KARDEX': 'KARDEX'
+    };
+    function normalizeGroup(rawGroup) {
+      if (!rawGroup) return 'SIN GRUPO';
+      let upper = String(rawGroup).toUpperCase().trim();
+      const fixes = { 'Ã\u0093': 'Ó', 'Ã\u0081': 'Á' };
+      Object.entries(fixes).forEach(([b, g]) => { upper = upper.split(b).join(g); });
+      const entries = Object.entries(GROUP_MAP);
+      for (const [k, v] of entries) if (upper === k.toUpperCase()) return v;
+      for (const [k, v] of entries) { const ku = k.toUpperCase(); if (upper.includes(ku) || ku.includes(upper)) return v; }
+      return String(rawGroup).trim();
+    }
+    const normalizeState = (s = '') => {
+      const up = String(s).trim().toUpperCase();
+      if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
+      if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
+      if (up === 'EMPACANDO') return 'EMPACADO';
+      if (up === 'DISTRIBUCION' || up === 'DISTRIBUCIÓN') return 'DISTRIBUCIÓN';
+      return up || 'ASIGNADA';
+    };
+    const STATE_COLORS = {
+      'ASIGNADA': '#546e7a', 'PICKING': '#f9a825', 'FACTURACIÓN': '#ef6c00',
+      'EMPACADO': '#6d4c41', 'DISTRIBUCIÓN': '#7b1fa2', 'DESPACHADO': '#2e7d32',
+      'ENTREGADO': '#1b5e20'
+    };
+    const GROUP_COLORS = {
+      'GRUPO 1': '#1565c0', 'GRUPO 2': '#2e7d32', 'GRUPO 3': '#6a1b9a',
+      'GRUPO 4-5-11': '#e65100', 'GRUPO 4': '#bf360c', 'FRÍO': '#0277bd',
+      'EMPAQUE': '#4e342e', 'URGENCIAS': '#b71c1c', 'MÓDULO': '#37474f',
+      'VENCIDOS': '#558b2f', 'KARDEX': '#5d4037'
+    };
+
+    function showToast(msg, duration = 2800) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.display = 'block';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.style.display = 'none', duration);
+    }
+
+    // ─── DATA LOADING ────────────────────────────────────────────────────────────
+    async function loadTracking() {
+      const r = await fetch(`${WEB_APP_URL}?file=tracking`);
+      const raw = await r.json();
+      tracking = (Array.isArray(raw) ? raw : []).map(row => {
+        const rawGroup = row.GRUPO || row.grupo || row.Grupo || '';
+        const group = normalizeGroup(rawGroup);
+        return {
+          id: row.ID_PEDIDO || '---',
+          unidad: row.UNIDAD_EJECUTORA || 'Sin UE',
+          group,
+          rawGroup: String(rawGroup || '').trim(),
+          tipo: String(row.TIPO || group).toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
+          estado: normalizeState(row.ESTADO || 'ASIGNADA'),
+        };
+      }).filter(i => i.id && i.id !== '---');
+    }
+
+    async function loadStaff() {
+      // Try ?file=personal first (returns all roles including DISTRIBUCIÓN)
+      try {
+        const r = await fetch(`${WEB_APP_URL}?file=personal`);
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) { STAFF = data; return; }
+      } catch (e) { /* fall through */ }
+      // Fallback to ?file=staff
+      const r = await fetch(`${WEB_APP_URL}?file=staff`);
+      const data = await r.json();
+      if (Array.isArray(data) && data.length > 0) STAFF = data;
+    }
+
+    async function loadRouteAssignments() {
+      // Try backend first, fall back to localStorage
+      try {
+        const r = await fetch(`${WEB_APP_URL}?file=asignacion_rutas`);
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) {
+          // Backend returns [{PEDIDO_ID, ALMACENISTA, FECHA_SALIDA, FECHA_ASIGNACION}]
+          _routeAssignments = data.map(row => ({
+            pedidoId: row.PEDIDO_ID || row.pedidoId || '',
+            almacenista: row.ALMACENISTA || row.almacenista || '',
+            fechaSalida: row.FECHA_SALIDA || row.fechaSalida || '',
+            fechaAsignacion: row.FECHA_ASIGNACION || row.fechaAsignacion || ''
+          })).filter(a => a.pedidoId && a.almacenista);
+          return;
+        }
+      } catch (e) { /* fall through to localStorage */ }
+      // localStorage fallback
+      const saved = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+      if (Array.isArray(saved?.asignaciones)) {
+        _routeAssignments = saved.asignaciones.map(a => ({ ...a }));
+      } else if (saved?.porPersona) {
+        // migrate old format
+        _routeAssignments = [];
+        Object.entries(saved.porPersona).forEach(([person, ids]) => {
+          ids.forEach(id => {
+            if (!_routeAssignments.find(a => a.pedidoId === id)) {
+              _routeAssignments.push({ pedidoId: id, almacenista: person, fechaSalida: saved.fecha || null });
+            }
+          });
+        });
+      } else {
+        _routeAssignments = [];
+      }
+    }
+
+    // ─── STAFF HELPERS ────────────────────────────────────────────────────────────
+    function getActiveStaff() {
+      return STAFF.filter(s => String(s.activo ?? '').trim().toUpperCase() !== 'NO');
+    }
+    function getStaffDisplayGroup(s) {
+      if (s.grupos && s.grupos.length > 0) return normalizeGroup(s.grupos[0]);
+      return s.rol || 'SIN ROL';
+    }
+    function getAbsencesThisMonth(nombre) {
+      const history = readLS(ATTENDANCE_HISTORY_KEY, {});
+      const now = new Date();
+      const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      let count = 0;
+      Object.entries(history).forEach(([date, dayData]) => {
+        if (!date.startsWith(ym)) return;
+        const st = dayData[nombre];
+        if (st === 'ausente' || st === 'baja-medica') count++;
+      });
+      return count;
+    }
+    function buildStaffLabel(s) {
+      const abs = getAbsencesThisMonth(s.nombre);
+      const grupo = getStaffDisplayGroup(s) || 'SIN GRUPO';
+      const asignados = _routeAssignments.filter(a => a.almacenista === s.nombre).length;
+      const asigTxt = asignados > 0 ? ` · ${asignados} asignado${asignados > 1 ? 's' : ''}` : '';
+      return `${s.nombre} — ${grupo} · ${abs} ausencia${abs !== 1 ? 's' : ''}${asigTxt}`;
+    }
+    function buildStaffSelectHtml(pedidoId, currentAlmacenista) {
+      const active = getActiveStaff();
+      const options = active.map(s => {
+        const selected = currentAlmacenista && normalizeText(currentAlmacenista) === normalizeText(s.nombre) ? 'selected' : '';
+        return `<option value="${esc(s.nombre)}" ${selected}>${esc(buildStaffLabel(s))}</option>`;
+      }).join('');
+      return `<option value="">— Sin asignar —</option>${options}`;
+    }
+
+    // ─── FILTER & PAGINATION ─────────────────────────────────────────────────────
+    function getFilteredRows() {
+      let rows = tracking.filter(t => t.estado !== 'ENTREGADO');
+      if (_filterSearch.trim()) {
+        const q = normalizeText(_filterSearch.trim());
+        rows = rows.filter(t => normalizeText(t.id).includes(q) || normalizeText(t.unidad).includes(q));
+      }
+      if (_filterGroup) {
+        rows = rows.filter(t => normalizeText(t.group) === normalizeText(_filterGroup));
+      }
+      if (_filterState) {
+        rows = rows.filter(t => normalizeText(t.estado) === normalizeText(_filterState));
+      }
+      if (_filterPerson) {
+        rows = rows.filter(t => {
+          const entry = _routeAssignments.find(a => a.pedidoId === t.id);
+          return entry && normalizeText(entry.almacenista) === normalizeText(_filterPerson);
+        });
+      }
+      return rows;
+    }
+
+    // ─── COLLECT CURRENT PAGE STATE ──────────────────────────────────────────────
+    function collectCurrentPageState() {
+      document.querySelectorAll('.route-staff-select').forEach(sel => {
+        const id = sel.dataset.id;
+        const almacenista = sel.value;
+        const dateInput = document.querySelector(`.route-date-input[data-id="${id}"]`);
+        const fechaSalida = dateInput?.value || null;
+        const idx = _routeAssignments.findIndex(a => a.pedidoId === id);
+        if (!almacenista) {
+          if (idx >= 0) _routeAssignments.splice(idx, 1);
+        } else {
+          const fechaAsignacion = isoToday();
+          if (idx >= 0) {
+            _routeAssignments[idx].almacenista = almacenista;
+            _routeAssignments[idx].fechaSalida = fechaSalida || null;
+            _routeAssignments[idx].fechaAsignacion = _routeAssignments[idx].fechaAsignacion || fechaAsignacion;
+          } else {
+            _routeAssignments.push({ pedidoId: id, almacenista, fechaSalida: fechaSalida || null, fechaAsignacion });
+          }
+        }
+      });
+    }
+
+    // ─── RENDER TAB A ────────────────────────────────────────────────────────────
+    function renderTabA() {
+      const filtered = getFilteredRows();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (_currentPage > totalPages) _currentPage = totalPages;
+      const start = (_currentPage - 1) * PAGE_SIZE;
+      const pageRows = filtered.slice(start, start + PAGE_SIZE);
+
+      const tbody = document.getElementById('routeTableBody');
+      if (!pageRows.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">
+          ${filtered.length === 0 ? 'No hay pedidos disponibles o todos están entregados.' : 'No coinciden con el filtro aplicado.'}
+        </td></tr>`;
+      } else {
+        tbody.innerHTML = pageRows.map(t => {
+          const entry = _routeAssignments.find(a => a.pedidoId === t.id);
+          const asigName = entry?.almacenista || '';
+          const fechaSalida = entry?.fechaSalida || '';
+          const groupColor = GROUP_COLORS[t.group] || '#607d8b';
+          const stateColor = STATE_COLORS[t.estado] || '#607d8b';
+          return `<tr>
+            <td style="font-weight:700;white-space:nowrap;">${esc(t.id)}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(t.unidad)}">${esc(t.unidad)}</td>
+            <td><span class="badge" style="background:${groupColor}">${esc(t.group)}</span></td>
+            <td><span class="badge" style="background:${stateColor}">${esc(t.estado)}</span></td>
+            <td style="min-width:120px;"><input type="date" class="route-date-input" data-id="${esc(t.id)}" value="${esc(fechaSalida)}" /></td>
+            <td style="min-width:240px;"><select class="route-staff-select" data-id="${esc(t.id)}">${buildStaffSelectHtml(t.id, asigName)}</select></td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Pagination
+      document.getElementById('prevPageBtn').disabled = _currentPage <= 1;
+      document.getElementById('nextPageBtn').disabled = _currentPage >= totalPages;
+      document.getElementById('pageInfo').textContent = `Página ${_currentPage} de ${totalPages}`;
+      document.getElementById('totalInfo').textContent = `${filtered.length} pedido${filtered.length !== 1 ? 's' : ''}`;
+    }
+
+    // ─── RENDER TAB B ────────────────────────────────────────────────────────────
+    function renderTabB() {
+      const body = document.getElementById('tabBBody');
+      const active = getActiveStaff();
+      if (!_routeAssignments.length) {
+        body.innerHTML = '<div style="padding:14px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">ℹ️ No hay asignaciones de ruta aún. Ve a la pestaña "Por Pedido" para asignar.</div>';
+        return;
+      }
+      const byPerson = {};
+      active.forEach(s => { byPerson[s.nombre] = []; });
+      _routeAssignments.forEach(a => {
+        if (!byPerson[a.almacenista]) byPerson[a.almacenista] = [];
+        byPerson[a.almacenista].push(a);
+      });
+      const html = Object.entries(byPerson)
+        .filter(([, list]) => list.length > 0)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([nombre, list]) => {
+          const person = STAFF.find(s => normalizeText(s.nombre) === normalizeText(nombre));
+          const grupo = person ? getStaffDisplayGroup(person) : '';
+          const rows = list.map(a => {
+            const order = tracking.find(t => t.id === a.pedidoId);
+            const groupColor = order ? (GROUP_COLORS[order.group] || '#607d8b') : '#607d8b';
+            const stateColor = order ? (STATE_COLORS[order.estado] || '#607d8b') : '#607d8b';
+            return `<div class="person-block-row">
+              <span style="font-weight:700;white-space:nowrap;min-width:80px;">${esc(a.pedidoId)}</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4b5563;">${esc(order?.unidad || '—')}</span>
+              <span class="badge" style="background:${groupColor}">${esc(order?.group || '—')}</span>
+              <span class="badge" style="background:${stateColor}">${esc(order?.estado || '—')}</span>
+              <span style="color:#1565c0;white-space:nowrap;font-size:11px;">${a.fechaSalida ? `📅 ${a.fechaSalida}` : 'Sin fecha'}</span>
+            </div>`;
+          }).join('');
+          return `<div class="person-block">
+            <div class="person-block-title">🚚 ${esc(nombre)} ${grupo ? `<span style="font-size:12px;font-weight:400;color:#6b7280;">· ${esc(grupo)}</span>` : ''}
+              <span style="font-size:12px;font-weight:400;color:#6b7280;">(${list.length} pedido${list.length > 1 ? 's' : ''})</span>
+            </div>
+            ${rows}
+          </div>`;
+        }).join('');
+      body.innerHTML = html || '<div style="padding:12px;color:#6b7280;">No hay almacenistas con pedidos asignados.</div>';
+    }
+
+    // ─── POPULATE FILTER OPTIONS ─────────────────────────────────────────────────
+    function populateFilters() {
+      const groups = [...new Set(tracking.map(t => t.group).filter(Boolean))].sort();
+      const groupSel = document.getElementById('filterGroup');
+      groupSel.innerHTML = '<option value="">Grupo: TODOS</option>' +
+        groups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+
+      const personSel = document.getElementById('filterPerson');
+      personSel.innerHTML = '<option value="">Almacenista: TODOS</option>' +
+        getActiveStaff().map(s => `<option value="${esc(s.nombre)}">${esc(s.nombre)}</option>`).join('');
+    }
+
+    // ─── SAVE ASSIGNMENTS ────────────────────────────────────────────────────────
+    async function saveAssignments() {
+      if (_currentTab === 'A') collectCurrentPageState();
+
+      const valid = _routeAssignments.filter(a => a.pedidoId && a.almacenista);
+
+      // Build legacy maps for backwards compatibility
+      const porPersona = {};
+      const porPedido = {};
+      valid.forEach(a => {
+        if (!porPersona[a.almacenista]) porPersona[a.almacenista] = [];
+        if (!porPersona[a.almacenista].includes(a.pedidoId)) porPersona[a.almacenista].push(a.pedidoId);
+        porPedido[a.pedidoId] = a.almacenista;
+      });
+
+      // 1) Always save to localStorage (immediate, cross-page within same device)
+      writeLS(ROUTE_ASSIGNMENTS_KEY, { asignaciones: valid, porPersona, porPedido });
+
+      // 2) Persist to backend so other devices (e.g. almacenista tablets) can read it
+      //    Apps Script handler needed: action='saveRouteAssignments'
+      //    Sheet: ASIGNACION_RUTAS
+      //    Columns: PEDIDO_ID | ALMACENISTA | FECHA_SALIDA | FECHA_ASIGNACION | TIMESTAMP_REGISTRO
+      showToast('⏳ Guardando en el servidor...', 3000);
+      try {
+        await fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'saveRouteAssignments',
+            asignaciones: valid.map(a => ({
+              pedidoId: a.pedidoId,
+              almacenista: a.almacenista,
+              fechaSalida: a.fechaSalida || '',
+              fechaAsignacion: a.fechaAsignacion || isoToday()
+            }))
+          })
+        });
+        showToast(`✅ Asignación guardada · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} en ruta`);
+      } catch (e) {
+        // no-cors responses always resolve even on success; network errors come here
+        showToast(`✅ Guardado localmente · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} (servidor no disponible)`);
+      }
+
+      // Rebuild staff labels so counters update
+      if (_currentTab === 'A') renderTabA();
+      if (_currentTab === 'B') renderTabB();
+    }
+
+    // ─── INIT & EVENTS ───────────────────────────────────────────────────────────
+    async function init() {
+      try {
+        document.getElementById('loadingMsg').textContent = 'Cargando pedidos...';
+        await loadTracking();
+        document.getElementById('loadingMsg').textContent = 'Cargando personal...';
+        await loadStaff();
+        document.getElementById('loadingMsg').textContent = 'Cargando asignaciones previas...';
+        await loadRouteAssignments();
+
+        document.getElementById('loadingBanner').style.display = 'none';
+        document.getElementById('mainContent').style.display = '';
+
+        const today = new Date().toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        document.getElementById('pageSubtitle').textContent = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos`;
+
+        populateFilters();
+        renderTabA();
+      } catch (e) {
+        console.error(e);
+        document.getElementById('loadingBanner').style.display = 'none';
+        const err = document.getElementById('errorBanner');
+        err.textContent = '⚠️ Error al cargar los datos. Verifique la conexión e intente de nuevo.';
+        err.style.display = 'block';
+        // Still try to show page with cached data
+        const saved = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+        if (Array.isArray(saved?.asignaciones)) _routeAssignments = saved.asignaciones;
+        if (tracking.length || STAFF.length) {
+          document.getElementById('mainContent').style.display = '';
+          populateFilters();
+          renderTabA();
+        }
+      }
+
+      // ── Tab buttons ──
+      document.getElementById('tabABtn').addEventListener('click', () => {
+        if (_currentTab === 'A') return;
+        _currentTab = 'A';
+        document.getElementById('tabABtn').classList.add('active');
+        document.getElementById('tabBBtn').classList.remove('active');
+        document.getElementById('tabAContent').style.display = '';
+        document.getElementById('tabBContent').style.display = 'none';
+        document.getElementById('saveRowTop').style.display = '';
+        document.getElementById('saveRowBottom').style.display = '';
+        _currentPage = 1;
+        renderTabA();
+      });
+
+      document.getElementById('tabBBtn').addEventListener('click', () => {
+        if (_currentTab === 'B') return;
+        if (_currentTab === 'A') collectCurrentPageState();
+        _currentTab = 'B';
+        document.getElementById('tabBBtn').classList.add('active');
+        document.getElementById('tabABtn').classList.remove('active');
+        document.getElementById('tabBContent').style.display = '';
+        document.getElementById('tabAContent').style.display = 'none';
+        document.getElementById('saveRowTop').style.display = 'none';
+        document.getElementById('saveRowBottom').style.display = '';
+        renderTabB();
+      });
+
+      // ── Pagination ──
+      document.getElementById('prevPageBtn').addEventListener('click', () => {
+        if (_currentPage <= 1) return;
+        collectCurrentPageState();
+        _currentPage--;
+        renderTabA();
+      });
+      document.getElementById('nextPageBtn').addEventListener('click', () => {
+        const filtered = getFilteredRows();
+        const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+        if (_currentPage >= totalPages) return;
+        collectCurrentPageState();
+        _currentPage++;
+        renderTabA();
+      });
+
+      // ── Filters ──
+      document.getElementById('filterSearch').addEventListener('input', e => {
+        collectCurrentPageState();
+        _filterSearch = e.target.value || '';
+        _currentPage = 1;
+        renderTabA();
+      });
+      document.getElementById('filterGroup').addEventListener('change', e => {
+        collectCurrentPageState();
+        _filterGroup = e.target.value || '';
+        _currentPage = 1;
+        renderTabA();
+      });
+      document.getElementById('filterState').addEventListener('change', e => {
+        collectCurrentPageState();
+        _filterState = e.target.value || '';
+        _currentPage = 1;
+        renderTabA();
+      });
+      document.getElementById('filterPerson').addEventListener('change', e => {
+        collectCurrentPageState();
+        _filterPerson = e.target.value || '';
+        _currentPage = 1;
+        renderTabA();
+      });
+      document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+        collectCurrentPageState();
+        _filterSearch = ''; _filterGroup = ''; _filterState = ''; _filterPerson = '';
+        document.getElementById('filterSearch').value = '';
+        document.getElementById('filterGroup').value = '';
+        document.getElementById('filterState').value = '';
+        document.getElementById('filterPerson').value = '';
+        _currentPage = 1;
+        if (_currentTab === 'A') renderTabA();
+        else renderTabB();
+      });
+
+      // ── Save / Cancel ──
+      ['saveBtnTop', 'saveBtnBottom'].forEach(id => {
+        document.getElementById(id).addEventListener('click', saveAssignments);
+      });
+      ['cancelBtnTop', 'cancelBtnBottom'].forEach(id => {
+        document.getElementById(id).addEventListener('click', () => { window.location.href = 'index.html'; });
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

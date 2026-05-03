@@ -446,19 +446,12 @@
       const me = getMe();
       const stateMap = readLS('almacen_state_timestamps', {});
       const pendings = getPendings();
-      const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
-      const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
-      // Support both new format (asignaciones) and old format (porPedido with fecha)
+      // Use backend assignments when available, fall back to localStorage
+      const allAssignments = getEffectiveRouteAssignments();
       const myRouteIds = new Set();
-      if (Array.isArray(savedRoutes?.asignaciones) && savedRoutes.asignaciones.length > 0) {
-        savedRoutes.asignaciones.forEach(a => {
-          if (a.almacenista && normalizeText(a.almacenista) === normalizeText(me)) myRouteIds.add(a.pedidoId);
-        });
-      } else if (savedRoutes?.fecha === isoToday() && savedRoutes?.porPedido) {
-        Object.entries(savedRoutes.porPedido).forEach(([id, name]) => {
-          if (normalizeText(name) === normalizeText(me)) myRouteIds.add(id);
-        });
-      }
+      allAssignments.forEach(a => {
+        if (a.almacenista && normalizeText(a.almacenista) === normalizeText(me)) myRouteIds.add(a.pedidoId);
+      });
       const allDistrib = rows.filter(r => r.estado === 'DISTRIBUCIÓN');
       const myDistrib = allDistrib.filter(r => myRouteIds.has(r.id));
       const toShow = myDistrib.length > 0 ? myDistrib : allDistrib;
@@ -619,6 +612,45 @@
       const pase = readLS('pase_lista', {});
       if (!me || pase?.fecha !== isoToday()) return 'presente';
       return pase.personal?.[me] || 'presente';
+    }
+
+    // Route assignments loaded from backend; null means not loaded yet (fall back to localStorage)
+    let _backendRouteAssignments = null;
+
+    async function loadRouteAssignmentsFromBackend() {
+      try {
+        const r = await fetch(`${WEB_APP_URL}?file=asignacion_rutas`);
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) {
+          _backendRouteAssignments = data.map(row => ({
+            pedidoId: row.PEDIDO_ID || row.pedidoId || '',
+            almacenista: row.ALMACENISTA || row.almacenista || '',
+            fechaSalida: row.FECHA_SALIDA || row.fechaSalida || '',
+            fechaAsignacion: row.FECHA_ASIGNACION || row.fechaAsignacion || ''
+          })).filter(a => a.pedidoId && a.almacenista);
+          return;
+        }
+      } catch (e) { /* fall through to localStorage */ }
+      _backendRouteAssignments = null; // signal: use localStorage
+    }
+
+    function getEffectiveRouteAssignments() {
+      if (_backendRouteAssignments !== null) return _backendRouteAssignments;
+      const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
+      const saved = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+      if (Array.isArray(saved?.asignaciones)) return saved.asignaciones;
+      if (saved?.porPersona) {
+        const result = [];
+        Object.entries(saved.porPersona).forEach(([person, ids]) => {
+          ids.forEach(id => {
+            if (!result.find(a => a.pedidoId === id)) {
+              result.push({ pedidoId: id, almacenista: person, fechaSalida: saved.fecha || null });
+            }
+          });
+        });
+        return result;
+      }
+      return [];
     }
 
     async function loadData() {
@@ -789,24 +821,15 @@
       const stateMap = readLS('almacen_state_timestamps', {});
       const pendings = getPendings();
       const causales = readLS(CAUSALES_KEY, {});
-      const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
-      const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
 
-      // Build set of order IDs assigned to me via route assignments
-      // Support both new format (asignaciones array) and old format (porPedido map)
+      // Use backend assignments when available, fall back to localStorage
+      const allAssignments = getEffectiveRouteAssignments();
       const myRouteOrderIds = new Set();
-      if (Array.isArray(savedRoutes?.asignaciones) && savedRoutes.asignaciones.length > 0) {
-        savedRoutes.asignaciones.forEach(a => {
-          if (a.almacenista && normalizeText(a.almacenista) === normalizeText(person.nombre)) {
-            myRouteOrderIds.add(a.pedidoId);
-          }
-        });
-      } else if (savedRoutes?.fecha === isoToday() && savedRoutes?.porPedido) {
-        // Old format fallback
-        Object.entries(savedRoutes.porPedido).forEach(([id, name]) => {
-          if (normalizeText(name) === normalizeText(person.nombre)) myRouteOrderIds.add(id);
-        });
-      }
+      allAssignments.forEach(a => {
+        if (a.almacenista && normalizeText(a.almacenista) === normalizeText(person.nombre)) {
+          myRouteOrderIds.add(a.pedidoId);
+        }
+      });
       const hasRouteAssignments = myRouteOrderIds.size > 0;
 
       // Use case-insensitive comparison for picking assignments
@@ -1192,6 +1215,8 @@
       try {
         await loadStaff();
         await loadData();
+        // Load route assignments from backend in background (falls back to localStorage on error)
+        await loadRouteAssignmentsFromBackend();
         lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
         setConnectionStatus(true);
       } catch {
