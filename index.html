@@ -1144,6 +1144,8 @@
               ${pending ? `
                 <button class="approve-pending" data-id="${item.id}">✅ Aprobar</button>
                 <button class="reject-pending" data-id="${item.id}">↩ Devolver</button>
+              ` : item.estado === 'DESPACHADO' && getModalidad(item.id) === 'retiro' ? `
+                <button class="retiro-deliver" data-id="${item.id}" style="background:#1b5e20;color:#fff;border:none;border-radius:8px;padding:7px 10px;font-weight:700;cursor:pointer;font-size:12px;">🏪 Marcar Entregado</button>
               ` : (NEXT_STATE[item.estado] ? `<button class="advance" data-id="${item.id}">▶ Avanzar →</button>` : '')}
             </div>
           `;
@@ -1332,10 +1334,24 @@
       setTimeout(() => document.getElementById('pinInput').focus(), 10);
     }
 
+    function openPinModalForRetiroDeliver(item) {
+      if (!ensurePinConfigured()) return;
+      pendingRevertItemId = item.id;
+      document.getElementById('pinModalTitle').textContent = '🔐 Confirmar Entrega (Retiro)';
+      document.getElementById('pinModalF8').textContent = item.id;
+      document.getElementById('pinModalFlow').textContent = `DESPACHADO → ENTREGADO (Retiro)`;
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinError').textContent = '';
+      document.getElementById('pinModal').dataset.mode = 'retiro-deliver';
+      document.getElementById('pinModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('pinInput').focus(), 10);
+    }
+
     function closePinModal() {
       pendingRevertItemId = null;
       document.getElementById('pinModal').style.display = 'none';
       document.getElementById('pinError').textContent = '';
+      document.getElementById('pinModal').dataset.mode = '';
     }
 
     async function confirmRevertWithPin() {
@@ -1343,6 +1359,28 @@
       const expected = localStorage.getItem(PIN_KEY) || '';
       if (pin !== expected) {
         document.getElementById('pinError').textContent = 'PIN incorrecto';
+        return;
+      }
+      const mode = document.getElementById('pinModal').dataset.mode;
+      if (mode === 'retiro-deliver') {
+        const item = tracking.find(t => t.id === pendingRevertItemId);
+        if (!item) return closePinModal();
+        try {
+          await postBatchUpdate([
+            { id: item.id, field: 'ESTADO', value: 'ENTREGADO' },
+            { id: item.id, field: 'FECHA_ENTREGA', value: nowStamp() }
+          ]);
+          const prevStates = readLS(PREV_STATE_KEY, {});
+          prevStates[item.id] = 'DESPACHADO';
+          writeLS(PREV_STATE_KEY, prevStates);
+          addLog(`${item.id} → ENTREGADO (retiro) · Jefatura`);
+          showToast('✅ Pedido marcado como entregado');
+          closePinModal();
+          await loadData(false);
+        } catch(e) {
+          console.error(e);
+          showToast('❌ No se pudo actualizar');
+        }
         return;
       }
       const item = tracking.find(t => t.id === pendingRevertItemId);
@@ -2032,6 +2070,9 @@
         }
         if (e.target.classList.contains('open-pin-revert')) {
           openPinModal(item);
+        }
+        if (e.target.classList.contains('retiro-deliver')) {
+          openPinModalForRetiroDeliver(item);
         }
       });
       document.getElementById('pinCancelBtn').addEventListener('click', closePinModal);
