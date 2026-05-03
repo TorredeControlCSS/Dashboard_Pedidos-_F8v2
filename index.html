@@ -1090,7 +1090,11 @@
       board.innerHTML = '';
       STATES.forEach(state => {
         const colItems = items
-          .filter(i => i.estado === state)
+          .filter(i => {
+            const pending = readPendings()[i.id];
+            if (pending) return pending.estadoSolicitado === state;
+            return i.estado === state;
+          })
           // Prioridad: entrega hoy primero, luego fecha F8 más antigua, y finalmente ID alfabético.
           .sort((a, b) => Number(b.deliveryToday) - Number(a.deliveryToday) || sortableF8Date(a) - sortableF8Date(b) || String(a.id).localeCompare(String(b.id)));
         const col = document.createElement('section');

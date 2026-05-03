@@ -39,6 +39,19 @@
     .action-btn { margin-top:10px; min-height:60px; border:none; border-radius:12px; font-weight:800; font-size:18px; cursor:pointer; width:100%; background:#0b1f3a; color:#fff; }
     .group-list{ display:grid; gap:7px; }
     .row{ display:flex; justify-content:space-between; gap:8px; align-items:center; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
+    .stat-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:8px 0; }
+    .stat-card { background:#fff; border-radius:10px; padding:12px; text-align:center; border:1px solid #e5e7eb; }
+    .stat-card-green { border-bottom:4px solid #2e7d32; }
+    .stat-card-amber { border-bottom:4px solid #f59e0b; }
+    .stat-card-blue  { border-bottom:4px solid #1565c0; }
+    .stat-label { font-size:11px; color:#6b7280; font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+    .stat-value { font-size:2rem; font-weight:900; color:#111827; }
+    .team-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+    .team-card { border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff; text-align:center; }
+    .team-card.me { border:2px solid #2e7d32; background:#f0fdf4; }
+    .team-card .tc-name { font-weight:800; font-size:14px; margin-bottom:6px; }
+    .team-card .tc-attend { font-size:13px; margin-bottom:4px; }
+    .team-card .tc-status { font-size:12px; color:#6b7280; }
     .small { color:#6b7280; font-size:14px; }
     .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
     .achievements { background:linear-gradient(180deg,#e3f2fd,#fff); }
@@ -181,6 +194,33 @@
         </div>
       </article>
 
+      <article class="panel achievements">
+        <h2>⭐ MIS LOGROS DE HOY</h2>
+        <div class="stat-cards">
+          <div class="stat-card stat-card-green">
+            <div class="stat-label">✅ Completados Hoy</div>
+            <div class="stat-value" id="stDone">0</div>
+          </div>
+          <div class="stat-card stat-card-amber">
+            <div class="stat-label">🏅 Mi Posición</div>
+            <div class="stat-value" id="stRankDisplay">—</div>
+          </div>
+          <div class="stat-card stat-card-blue">
+            <div class="stat-label">⚡ F8/hora</div>
+            <div class="stat-value" id="stSpeedDisplay">0.0</div>
+          </div>
+        </div>
+        <span id="stPosition" class="hidden"></span>
+        <span id="stBest" class="hidden"></span>
+        <span id="stLeader" class="hidden"></span>
+        <div class="mini-ranking" id="miniRanking" style="margin-top:10px;"></div>
+      </article>
+
+      <article class="panel">
+        <h2>👥 MI EQUIPO HOY</h2>
+        <div id="groupList" class="team-grid"></div>
+      </article>
+
       <article class="panel" id="ordersPanel">
         <h2>📦 MIS PEDIDOS DE HOY</h2>
         <div id="ordersSubtitle" class="small"></div>
@@ -196,21 +236,6 @@
         <div id="priorityQueue"></div>
         <div id="queue" class="queue"></div>
       </article>
-
-      <article class="panel achievements">
-        <h2>⭐ MIS LOGROS DE HOY</h2>
-        <div>Pedidos completados hoy:</div>
-        <div class="big-number" id="stDone">0</div>
-        <div id="stPosition">Mi posición en el ranking: —</div>
-        <div id="stBest">Mejor marca personal: —</div>
-        <div id="stLeader" style="margin-top:6px;font-weight:800;"></div>
-        <div class="mini-ranking" id="miniRanking"></div>
-      </article>
-
-      <article class="panel">
-        <h2>👥 MI EQUIPO HOY</h2>
-        <div id="groupList" class="group-list"></div>
-      </article>
     </section>
 
     <section id="blockPanel" class="hidden">
@@ -224,12 +249,13 @@
 
   <div id="confirmModal">
     <div class="box">
-      <h3 style="margin-top:0">¿Terminaste con este pedido?</h3>
+      <h3 style="margin-top:0">✅ ¿Confirmás que ya terminaste con este pedido?</h3>
+      <p style="margin:4px 0 10px;color:#475569;font-size:14px;">Al confirmar, el Jefe de Almacén recibirá la notificación para aprobarlo.</p>
       <div id="confirmOrderName"></div>
       <div id="confirmOrderUnits" class="small" style="margin-top:4px;"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
         <button id="cancelConfirm">❌ No, cancelar</button>
-        <button id="okConfirm" style="background:#2e7d32;color:#fff;border:none;padding:8px 10px;border-radius:8px;">✅ SÍ</button>
+        <button id="okConfirm" style="background:#2e7d32;color:#fff;border:none;padding:8px 10px;border-radius:8px;">✅ SÍ, YA TERMINÉ</button>
       </div>
     </div>
   </div>
@@ -504,11 +530,11 @@
     }
 
     function stateCopy(state) {
-      if (state === 'ASIGNADA') return { label: '▶ LISTO PARA PREPARAR', color: '#546e7a', action: '✅ EMPECÉ A PREPARAR ESTE PEDIDO', btnBg: '#0b1f3a' };
-      if (state === 'PICKING') return { label: '🔄 PREPARANDO...', color: '#1565c0', action: '✅ TERMINÉ DE PREPARAR ESTE PEDIDO', btnBg: '#2e7d32' };
+      if (state === 'ASIGNADA') return { label: '▶ LISTO PARA PREPARAR', color: '#546e7a', action: '✅ YA TERMINÉ CON ESTE PEDIDO', btnBg: '#0b1f3a' };
+      if (state === 'PICKING') return { label: '🔄 PREPARANDO...', color: '#1565c0', action: '✅ YA TERMINÉ CON ESTE PEDIDO', btnBg: '#2e7d32' };
       if (state === 'FACTURACIÓN') return { label: '🧾 EN FACTURACIÓN', color: '#ef6c00', action: '', btnBg: '#0b1f3a' };
-      if (state === 'EMPACADO') return { label: '📦 EMPACANDO...', color: '#6d4c41', action: '✅ TERMINÉ DE EMPACAR', btnBg: '#0b1f3a' };
-      if (state === 'DESPACHADO') return { label: '🚚 LISTO PARA ENTREGAR', color: '#2e7d32', action: '✅ ENTREGUÉ ESTE PEDIDO', btnBg: '#1565c0' };
+      if (state === 'EMPACADO') return { label: '📦 EMPACANDO...', color: '#6d4c41', action: '✅ YA TERMINÉ DE EMPACAR', btnBg: '#0b1f3a' };
+      if (state === 'DESPACHADO') return { label: '🚚 LISTO PARA ENTREGAR', color: '#2e7d32', action: '✅ YA ENTREGUÉ ESTE PEDIDO', btnBg: '#1565c0' };
       return { label: '✅ ENTREGADO', color: '#6b7280', action: '', btnBg: '#0b1f3a' };
     }
 
@@ -724,9 +750,12 @@
       if (today.mine) {
         const medal = today.mine.rank === 1 ? '🥇' : today.mine.rank === 2 ? '🥈' : today.mine.rank === 3 ? '🥉' : '🏅';
         document.getElementById('stPosition').textContent = `Mi posición en el ranking: ${medal} #${today.mine.rank} del equipo`;
+        document.getElementById('stRankDisplay').textContent = today.mine.rank <= 3 ? medal : `#${today.mine.rank}`;
       } else {
         document.getElementById('stPosition').textContent = 'Mi posición en el ranking: —';
+        document.getElementById('stRankDisplay').textContent = '—';
       }
+      document.getElementById('stSpeedDisplay').textContent = speed.toFixed(1);
       document.getElementById('stBest').textContent = `Tiempo promedio por F8: ${myAvg ? `${myAvg.toFixed(0)} min` : '—'} · Velocidad: ${speed.toFixed(2)} F8/h`;
       document.getElementById('stLeader').textContent = `Racha actual: ${streakDays(me)} días · Tu promedio: ${myAvg ? myAvg.toFixed(0) : '—'} min/F8 · Promedio equipo: ${teamAvg ? teamAvg.toFixed(0) : '—'} min/F8 ${myAvg && teamAvg && myAvg <= teamAvg ? '✅ Más rápido que el equipo' : ''}`;
       document.getElementById('miniRanking').innerHTML = today.rows.slice(0,3).map((r) => `<div class="rank-line"><span>${r.rank===1?'🥇':r.rank===2?'🥈':'🥉'} ${r.name===me?`Tú (${me})`:r.name}</span><strong>${r.total}</strong></div>`).join('') || '<div class="small">Sin movimientos hoy.</div>';
@@ -735,12 +764,30 @@
     function renderGroupToday() {
       const person = getPerson();
       if (!person) return;
+      const me = getMe();
       const personal = readLS('almacen_personal', {});
+      const pase = readLS('pase_lista', {});
+      const attendanceToday = (pase?.fecha === isoToday()) ? (pase.personal || {}) : {};
       const myGroup = person.grupos?.[0] || person.rol || '';
       const peers = STAFF.filter(s => (s.grupos?.[0] || s.rol || '') === myGroup);
       document.getElementById('groupList').innerHTML = peers.map((p) => {
-        const st = personal[p.nombre]?.status || 'DISPONIBLE';
-        return `<div class="row"><strong>${p.nombre}</strong><span>${st}</span></div>`;
+        const pName = p.nombre || p.name;
+        const isMe = pName === me;
+        const attend = attendanceToday[pName] || 'presente';
+        const attendLabel = attend === 'presente' ? '✅ Presente'
+          : attend === 'en-ruta' ? '🚚 En Ruta'
+          : attend === 'baja-medica' ? '🏥 Baja Médica'
+          : '❌ Ausente';
+        const attendColor = attend === 'presente' ? '#2e7d32'
+          : attend === 'en-ruta' ? '#1565c0'
+          : attend === 'baja-medica' ? '#ef6c00'
+          : '#b71c1c';
+        const st = personal[pName]?.status || 'DISPONIBLE';
+        return `<div class="team-card${isMe ? ' me' : ''}">
+          <div class="tc-name">${isMe ? '👤 YO' : pName}</div>
+          <div class="tc-attend" style="color:${attendColor};">${attendLabel}</div>
+          <div class="tc-status">${st}</div>
+        </div>`;
       }).join('');
     }
 
