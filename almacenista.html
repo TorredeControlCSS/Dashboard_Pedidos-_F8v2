@@ -236,6 +236,18 @@
         <div id="priorityQueue"></div>
         <div id="queue" class="queue"></div>
       </article>
+
+      <article class="panel hidden" id="kardexPanel">
+        <h2>🧾 PEDIDOS PARA FACTURAR</h2>
+        <div id="kardexSubtitle" class="small"></div>
+        <div id="kardexQueue" class="queue"></div>
+      </article>
+
+      <article class="panel hidden" id="empaquePanel">
+        <h2>📦 PEDIDOS PARA EMPACAR</h2>
+        <div id="empaqueSubtitle" class="small"></div>
+        <div id="empaqueQueue" class="queue"></div>
+      </article>
     </section>
 
     <section id="blockPanel" class="hidden">
@@ -322,6 +334,7 @@
     let identityCreateMode = false;
     let ordersSearch = '';
     let currentView = 'almacen';
+    let myRol = '';
 
     const readLS = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
     const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
@@ -357,6 +370,150 @@
       const log = readLS('almacen_log', []);
       log.unshift({ ts: Date.now(), msg });
       writeLS('almacen_log', log.slice(0, 200));
+    }
+
+    const nowStamp = () => {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    };
+
+    async function postBatchUpdate(updates) {
+      if (!updates.length) return;
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'batchUpdate', updates })
+      });
+    }
+
+    function showToast(msg) {
+      let t = document.getElementById('alm-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'alm-toast';
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:10px;z-index:9999;font-size:16px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.3);';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    function detectMyRol() {
+      const person = getPerson();
+      if (!person) return;
+      myRol = (person.rol || '').toUpperCase();
+    }
+
+    function applyRoleLayout() {
+      const isKardex = myRol === 'KARDEX';
+      const isEmpaque = myRol === 'EMPAQUE';
+      const isSpecial = isKardex || isEmpaque;
+      document.querySelector('.status-btns').classList.toggle('hidden', isSpecial);
+      document.getElementById('kpiEnRuta').classList.toggle('hidden', isSpecial);
+      if (isSpecial) {
+        document.getElementById('myKpis').style.gridTemplateColumns = 'repeat(2,1fr)';
+      } else {
+        document.getElementById('myKpis').style.gridTemplateColumns = 'repeat(3,1fr)';
+      }
+      document.getElementById('ordersPanel').classList.toggle('hidden', isSpecial);
+      document.getElementById('kardexPanel').classList.toggle('hidden', !isKardex);
+      document.getElementById('empaquePanel').classList.toggle('hidden', !isEmpaque);
+    }
+
+    async function doAdvanceKardex(id) {
+      const item = rows.find(r => r.id === id);
+      if (!item || item.estado !== 'FACTURACIÓN') {
+        showToast('⚠️ Pedido no encontrado o no está en FACTURACIÓN');
+        return;
+      }
+      try {
+        await postBatchUpdate([
+          { id: item.id, field: 'ESTADO', value: 'EMPACADO' },
+          { id: item.id, field: 'FECHA_EMPACADO', value: nowStamp() }
+        ]);
+        addLog(`${item.id} facturado → EMPACADO · ${getMe()}`);
+        showToast('✅ Pedido pasado a EMPACADO');
+        await loadData();
+        renderAll();
+      } catch(e) {
+        console.error(e);
+        showToast('❌ Error al actualizar el pedido');
+      }
+    }
+
+    function renderKardexQueue() {
+      const asig = readLS('almacen_asignaciones', {});
+      const stateMap = readLS('almacen_state_timestamps', {});
+      const pendings = getPendings();
+      const facturacion = rows
+        .filter(r => r.estado === 'FACTURACIÓN')
+        .map(r => enrichOrder(r, stateMap, pendings, {}));
+      document.getElementById('kardexSubtitle').textContent = `${facturacion.length} pedido${facturacion.length !== 1 ? 's' : ''} en espera de facturación`;
+      if (!facturacion.length) {
+        document.getElementById('kardexQueue').innerHTML = '<div class="small">No hay pedidos en facturación en este momento. ✅</div>';
+        return;
+      }
+      document.getElementById('kardexQueue').innerHTML = facturacion.map(r => {
+        const ageText = r.wait >= 0 ? fmtWait(r.wait) : '—';
+        const waitColor = getWaitColor(r.wait);
+        const asigNombre = asig[r.id] || 'Sin asignar';
+        return `
+          <article class="card" style="border-left-color:#ef6c00">
+            <div class="badges">
+              <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
+              <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+            </div>
+            <div style="font-weight:800;font-size:22px;">${r.id}</div>
+            <div style="font-size:20px;margin-top:4px;">${r.ue}</div>
+            <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades</div>
+            <div class="small" style="margin-top:4px;">👤 Almacenista: ${asigNombre}</div>
+            <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
+            <button class="action-btn kardex-advance" data-id="${r.id}" style="background:#2e7d32;">✅ YA FACTURÉ ESTE PEDIDO</button>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderEmpaqueQueue() {
+      const person = getPerson();
+      if (!person) return;
+      const asig = readLS('almacen_asignaciones', {});
+      const stateMap = readLS('almacen_state_timestamps', {});
+      const pendings = getPendings();
+      const allEmpacado = rows.filter(r => r.estado === 'EMPACADO');
+      const myEmpacado = allEmpacado.filter(r => asig[r.id] === person.nombre);
+      const toShow = myEmpacado.length > 0 ? myEmpacado : allEmpacado;
+      const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {}));
+      document.getElementById('empaqueSubtitle').textContent = `${enriched.length} pedido${enriched.length !== 1 ? 's' : ''} para empacar`;
+      if (!enriched.length) {
+        document.getElementById('empaqueQueue').innerHTML = '<div class="small">No hay pedidos para empacar en este momento. ✅</div>';
+        return;
+      }
+      document.getElementById('empaqueQueue').innerHTML = enriched.map(r => {
+        const ageText = r.wait >= 0 ? fmtWait(r.wait) : '—';
+        const waitColor = getWaitColor(r.wait);
+        const asigNombre = asig[r.id] || 'Sin asignar';
+        return `
+          <article class="card" style="border-left-color:#6d4c41${r.pending ? ';border:3px solid #f9a825;' : ''}">
+            ${r.pending ? `<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;">⏳ PEND. APROBACIÓN → ${r.pending.estadoSolicitado}</div>` : ''}
+            <div class="badges">
+              <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
+              <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+            </div>
+            <div style="font-weight:800;font-size:22px;">${r.id}</div>
+            <div style="font-size:20px;margin-top:4px;">${r.ue}</div>
+            <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades</div>
+            <div class="small" style="margin-top:4px;">👤 Almacenista: ${asigNombre}</div>
+            <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
+            ${r.pending
+              ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>'
+              : `<button class="action-btn empaque-advance" data-id="${r.id}" style="background:#6d4c41;color:#fff;">✅ YA TERMINÉ DE EMPACAR ESTE PEDIDO</button>`}
+          </article>
+        `;
+      }).join('');
     }
 
     async function loadStaff() {
@@ -665,9 +822,31 @@
     function renderMyKpis() {
       const person = getPerson();
       if (!person) return;
-      const { almacen, ruta } = queueForMe();
       const logs = readLS('almacen_log', []);
       const today = isoToday();
+      if (myRol === 'KARDEX') {
+        const facturacion = rows.filter(r => r.estado === 'FACTURACIÓN');
+        const completadosHoy = logs.filter(l =>
+          new Date(l.ts).toISOString().slice(0, 10) === today &&
+          String(l.msg).includes(`· ${person.nombre}`) &&
+          String(l.msg).includes('facturado')
+        ).length;
+        document.getElementById('kpiPendientesVal').textContent = facturacion.length;
+        document.getElementById('kpiCompletadosVal').textContent = completadosHoy;
+        return;
+      }
+      if (myRol === 'EMPAQUE') {
+        const empacado = rows.filter(r => r.estado === 'EMPACADO');
+        const completadosHoy = logs.filter(l =>
+          new Date(l.ts).toISOString().slice(0, 10) === today &&
+          String(l.msg).includes(`· ${person.nombre}`) &&
+          String(l.msg).includes('solicita avance a')
+        ).length;
+        document.getElementById('kpiPendientesVal').textContent = empacado.length;
+        document.getElementById('kpiCompletadosVal').textContent = completadosHoy;
+        return;
+      }
+      const { almacen, ruta } = queueForMe();
       const completadosHoy = logs.filter(l =>
         new Date(l.ts).toISOString().slice(0, 10) === today &&
         String(l.msg).includes(`· ${person.nombre}`)
@@ -824,8 +1003,16 @@
         renderTopbarActions();
         return;
       }
+      detectMyRol();
+      applyRoleLayout();
       renderMyStatus();
-      renderQueue();
+      if (myRol === 'KARDEX') {
+        renderKardexQueue();
+      } else if (myRol === 'EMPAQUE') {
+        renderEmpaqueQueue();
+      } else {
+        renderQueue();
+      }
       renderMyKpis();
       renderStats();
       renderGroupToday();
@@ -893,6 +1080,13 @@
     document.getElementById('cancelConfirm').addEventListener('click', closeConfirm);
     document.getElementById('okConfirm').addEventListener('click', doAdvance);
     document.getElementById('confirmModal').addEventListener('click', (e) => { if (e.target.id === 'confirmModal') closeConfirm(); });
+
+    document.getElementById('kardexQueue').addEventListener('click', (e) => {
+      if (e.target.classList.contains('kardex-advance')) doAdvanceKardex(e.target.dataset.id);
+    });
+    document.getElementById('empaqueQueue').addEventListener('click', (e) => {
+      if (e.target.classList.contains('empaque-advance')) openConfirmFor(e.target.dataset.id);
+    });
 
     setInterval(() => {
       document.getElementById('clock').textContent = new Date().toLocaleString('es-PA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
