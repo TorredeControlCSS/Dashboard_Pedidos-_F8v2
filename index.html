@@ -37,7 +37,7 @@
     }
     .btn:hover { background: rgba(255,255,255,.2); }
     .wrap { padding: 12px; }
-    .kpis { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; }
+    .kpis { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; }
     .kpi { background: var(--panel); border-radius: 10px; padding: 10px; border-left: 6px solid #9ca3af; min-width: 150px; }
     .kpi .label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 700; }
     .kpi .value { font-size: 26px; font-weight: 800; margin-top: 4px; }
@@ -100,7 +100,7 @@
       font-size: 12px;
     }
 
-    .board { margin-top: 12px; display: grid; grid-template-columns: repeat(6, minmax(270px, 1fr)); gap: 10px; overflow-x: auto; }
+    .board { margin-top: 12px; display: grid; grid-template-columns: repeat(7, minmax(270px, 1fr)); gap: 10px; overflow-x: auto; }
     .col { background: #f5f5f5; border-radius: 10px; min-height: 360px; max-height: 70vh; display: flex; flex-direction: column; border: 1px solid #e5e7eb; }
     .col-head { padding: 10px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; }
     .count { background: #0b1f3a; color: #fff; min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
@@ -197,6 +197,7 @@
       border-radius: 10px;
       padding: 8px;
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
@@ -223,6 +224,9 @@
     .attendance-row.baja-medica .attendance-name { color: #e65100; }
     .attendance-actions button.active-en-ruta { background: #1565c0; border-color: #1565c0; color: #fff; }
     .attendance-actions button.active-baja-medica { background: #e65100; border-color: #e65100; color: #fff; }
+    .attendance-row.capacitacion { background: #f3e5f5; }
+    .attendance-row.capacitacion .attendance-name { color: #7b1fa2; }
+    .attendance-actions button.active-capacitacion { background: #7b1fa2; border-color: #7b1fa2; color: #fff; }
     .btn-badge {
       background: #b71c1c;
       color: #fff;
@@ -348,7 +352,7 @@
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
       <button class="btn" id="redistributeBtn">⚖️ Redistribuir</button>
       <button class="btn" id="saveBtn" title="Sincronizar asignaciones con el servidor">💾 Guardar</button>
-      <button class="btn" id="attendanceBtn">📋 Pase de Lista <span id="attendanceBadge" class="btn-badge" aria-label="Pase de lista pendiente" title="Pase de lista pendiente">!</span></button>
+      <button class="btn" id="attendanceBtn">📋 Asistencia <span id="attendanceBadge" class="btn-badge" aria-label="Pase de lista pendiente" title="Pase de lista pendiente">!</span></button>
       <button class="btn" id="closeShiftBtn">📸 Cerrar Turno</button>
       <button class="btn" id="changePinBtn">🔐 Cambiar PIN</button>
       <a class="btn" href="almacenista.html">👤 Almacenista</a>
@@ -363,6 +367,7 @@
       <article class="kpi kpi-picking"><div class="label">En Picking</div><div id="kPicking" class="value">0</div></article>
       <article class="kpi kpi-fact"><div class="label">En Facturación</div><div id="kFact" class="value">0</div></article>
       <article class="kpi kpi-pack"><div class="label">En Empaque</div><div id="kPack" class="value">0</div></article>
+      <article class="kpi" style="border-left-color:#7b1fa2;"><div class="label">En Distribución</div><div id="kDistrib" class="value">0</div></article>
       <article class="kpi kpi-desp"><div class="label">Despachadas Hoy</div><div id="kDespHoy" class="value">0</div><div id="kDespSub" class="small">0 de 0 con entrega hoy</div></article>
       <article class="kpi kpi-sla" id="kSlaWrap"><div class="label">⚠️ Alertas SLA</div><div id="kSla" class="value">0</div></article>
     </section>
@@ -442,13 +447,13 @@
 
   <div id="attendanceModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
     <div class="box" style="background:#fff;border-radius:10px;width:min(900px,95vw);padding:14px;">
-      <h3 id="attendanceTitle" style="margin:0 0 4px;">📋 PASE DE LISTA</h3>
+      <h3 id="attendanceTitle" style="margin:0 0 4px;">📋 ASISTENCIA</h3>
       <div class="small">Marque la asistencia del personal de hoy</div>
       <div id="attendanceList" class="attendance-list"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
         <button id="attendanceCancelBtn">Cancelar</button>
         <button id="exportAttendanceBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer;font-weight:700;font-size:12px;">📊 Exportar Historial</button>
-        <button id="attendanceSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">💾 Guardar Pase de Lista</button>
+        <button id="attendanceSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">💾 Guardar Asistencia</button>
       </div>
     </div>
   </div>
@@ -596,7 +601,7 @@
 
     function getAssignableStaff(item, estadoPersonal, activeCounts) {
       const candidates = STAFF.filter(s =>
-        matchStaff(item, s) && estadoPersonal[s.nombre] !== 'ausente'
+        matchStaff(item, s) && !['ausente','baja-medica','capacitacion'].includes(estadoPersonal[s.nombre])
       );
       candidates.sort((a, b) => (activeCounts[a.nombre] || 0) - (activeCounts[b.nombre] || 0));
       return candidates[0] || null;
@@ -618,18 +623,19 @@
       }
     }
 
-    const STATES = ["ASIGNADA", "PICKING", "FACTURACIÓN", "EMPACADO", "DESPACHADO", "ENTREGADO"];
+    const STATES = ["ASIGNADA", "PICKING", "FACTURACIÓN", "EMPACADO", "DISTRIBUCIÓN", "DESPACHADO", "ENTREGADO"];
     const NEXT_STATE = {
       "ASIGNADA": "PICKING",
       "PICKING": "FACTURACIÓN",
       "FACTURACIÓN": "EMPACADO",
-      "EMPACADO": "DESPACHADO",
+      "DISTRIBUCIÓN": "DESPACHADO",
       "DESPACHADO": "ENTREGADO"
     };
     const DATE_FIELD_BY_STATE = {
       "PICKING": "FECHA_PICKING",
       "FACTURACIÓN": "FECHA_FACTURACION",
       "EMPACADO": "FECHA_EMPACADO",
+      "DISTRIBUCIÓN": "FECHA_DISTRIBUCION",
       "DESPACHADO": "FECHA_DESPACHO",
       "ENTREGADO": "FECHA_ENTREGA"
     };
@@ -637,7 +643,8 @@
       "PICKING": "ASIGNADA",
       "FACTURACIÓN": "PICKING",
       "EMPACADO": "FACTURACIÓN",
-      "DESPACHADO": "EMPACADO",
+      "DISTRIBUCIÓN": "EMPACADO",
+      "DESPACHADO": "DISTRIBUCIÓN",
       "ENTREGADO": "DESPACHADO"
     };
     const SLA = {
@@ -655,6 +662,7 @@
     let lastSuccessfulSync = "";
     let pendingRevertItemId = null;
     let attendanceDraft = {};
+    let routeDraftAssignments = {};
     let pendingReturnId = null;
     const filters = { search: "", group: "", tipo: "", todayOnly: false, fromDate: "", toDate: "", staffName: "", rutaOnly: false };
     const PIN_KEY = 'jefatura_pin';
@@ -666,6 +674,7 @@
     const MODALIDAD_KEY = 'f8_modalidad';
     const STAFF_PINS_KEY = 'staff_pins';
     const PREV_STATE_KEY = 'almacen_prev_states';
+    const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -697,6 +706,7 @@
       if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
       if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
       if (up === 'EMPACANDO') return 'EMPACADO';
+      if (up === 'DISTRIBUCION' || up === 'DISTRIBUCIÓN') return 'DISTRIBUCIÓN';
       return STATES.includes(up) ? up : 'ASIGNADA';
     };
     const DAY_MAP = {
@@ -724,6 +734,7 @@
       if (state === 'PICKING') return '#f9a825';
       if (state === 'FACTURACIÓN') return '#ef6c00';
       if (state === 'EMPACADO') return '#6d4c41';
+      if (state === 'DISTRIBUCIÓN') return '#7b1fa2';
       if (state === 'DESPACHADO') return '#2e7d32';
       if (state === 'ENTREGADO') return '#1b5e20';
       return '#607d8b';
@@ -891,7 +902,7 @@
       const personal = readLS('almacen_personal', {});
       const estadoPersonal = {};
       STAFF.forEach((s) => {
-        const absentByList = attendanceToday[s.nombre] === 'ausente' || attendanceToday[s.nombre] === 'baja-medica';
+        const absentByList = ['ausente','baja-medica','capacitacion'].includes(attendanceToday[s.nombre]);
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
@@ -949,7 +960,7 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const estadoPersonal = {};
       STAFF.forEach(s => {
-        const absentByList = attendanceToday[s.nombre] === 'ausente' || attendanceToday[s.nombre] === 'baja-medica';
+        const absentByList = ['ausente','baja-medica','capacitacion'].includes(attendanceToday[s.nombre]);
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
@@ -983,7 +994,7 @@
     }
 
     function renderKPIs(items, stateMap) {
-      const c = { PICKING: 0, FACTURACIÓN: 0, EMPACADO: 0, DESPACHADO: 0 };
+      const c = { PICKING: 0, FACTURACIÓN: 0, EMPACADO: 0, 'DISTRIBUCIÓN': 0, DESPACHADO: 0 };
       let despHoy = 0;
       let slaAlerts = 0;
       let conEntregaHoy = 0;
@@ -1003,6 +1014,7 @@
       document.getElementById('kPicking').textContent = c.PICKING;
       document.getElementById('kFact').textContent = c['FACTURACIÓN'];
       document.getElementById('kPack').textContent = c.EMPACADO;
+      document.getElementById('kDistrib').textContent = c['DISTRIBUCIÓN'];
       document.getElementById('kDespHoy').textContent = despHoy;
       document.getElementById('kDespSub').textContent = `${despachadasEntregaHoy} de ${conEntregaHoy} con entrega hoy`;
       document.getElementById('kSla').textContent = slaAlerts;
@@ -1040,10 +1052,31 @@
       const bar = document.getElementById('pendingBar');
       if (!count) {
         bar.style.display = 'none';
+        window._pendingFilterActive = false;
         return;
       }
       bar.style.display = 'flex';
-      document.getElementById('pendingBarText').textContent = `⏳ ${count} transiciones pendientes de aprobación`;
+      const requesterCounts = {};
+      Object.values(pendings).forEach(p => {
+        const who = p.solicitadoPor || 'Desconocido';
+        requesterCounts[who] = (requesterCounts[who] || 0) + 1;
+      });
+      const requesterText = Object.entries(requesterCounts).map(([name, cnt]) => `${name} (${cnt})`).join(', ');
+      document.getElementById('pendingBarText').innerHTML = `⏳ ${count} pendiente${count !== 1 ? 's' : ''}: ${requesterText}`;
+      let toggleBtn = document.getElementById('pendingFilterToggleBtn');
+      if (!toggleBtn) {
+        toggleBtn = document.createElement('button');
+        toggleBtn.id = 'pendingFilterToggleBtn';
+        toggleBtn.style.cssText = 'border:1px solid #cbd5e1;border-radius:8px;padding:6px 8px;background:#fff;cursor:pointer;font-weight:700;font-size:12px;';
+        toggleBtn.textContent = '🔎 Ver solo pendientes';
+        bar.insertBefore(toggleBtn, document.getElementById('approveAllPendingBtn'));
+        toggleBtn.addEventListener('click', () => {
+          window._pendingFilterActive = !window._pendingFilterActive;
+          toggleBtn.style.background = window._pendingFilterActive ? '#0b1f3a' : '#fff';
+          toggleBtn.style.color = window._pendingFilterActive ? '#fff' : '';
+          renderBoard(filteredTracking.length ? filteredTracking : applyFilters(), readLS('almacen_state_timestamps', {}), readLS('almacen_asignaciones', {}), readLS('almacen_personal', {}));
+        });
+      }
     }
 
     function updateGroupFilterOptions(items) {
@@ -1088,9 +1121,11 @@
     function renderBoard(items, stateMap, asig, personal) {
       const board = document.getElementById('board');
       board.innerHTML = '';
+      const pendingIds = window._pendingFilterActive ? new Set(Object.keys(readPendings())) : null;
       STATES.forEach(state => {
         const colItems = items
           .filter(i => {
+            if (pendingIds && !pendingIds.has(i.id)) return false;
             const pending = readPendings()[i.id];
             if (pending) return pending.estadoSolicitado === state;
             return i.estado === state;
@@ -1178,7 +1213,7 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const activeBy = activeCountByPerson(items, asig);
       cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
-        const isAbsentByList = attendanceToday[s.nombre] === 'ausente' || attendanceToday[s.nombre] === 'baja-medica';
+        const isAbsentByList = ['ausente','baja-medica','capacitacion'].includes(attendanceToday[s.nombre]);
         const st = isAbsentByList ? 'AUSENTE' : (personal[s.nombre]?.status || 'DISPONIBLE');
         const dst = personal[s.nombre]?.destination || '';
         return `
@@ -1347,6 +1382,19 @@
       setTimeout(() => document.getElementById('pinInput').focus(), 10);
     }
 
+    function openPinModalForDistribucion(item) {
+      if (!ensurePinConfigured()) return;
+      pendingRevertItemId = item.id;
+      document.getElementById('pinModalTitle').textContent = '🔐 Confirmar Paso a Distribución';
+      document.getElementById('pinModalF8').textContent = item.id;
+      document.getElementById('pinModalFlow').textContent = `EMPACADO → DISTRIBUCIÓN`;
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinError').textContent = '';
+      document.getElementById('pinModal').dataset.mode = 'empacado-distribucion';
+      document.getElementById('pinModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('pinInput').focus(), 10);
+    }
+
     function closePinModal() {
       pendingRevertItemId = null;
       document.getElementById('pinModal').style.display = 'none';
@@ -1362,6 +1410,27 @@
         return;
       }
       const mode = document.getElementById('pinModal').dataset.mode;
+      if (mode === 'empacado-distribucion') {
+        const item = tracking.find(t => t.id === pendingRevertItemId);
+        if (!item) return closePinModal();
+        try {
+          await postBatchUpdate([
+            { id: item.id, field: 'ESTADO', value: 'DISTRIBUCIÓN' },
+            { id: item.id, field: 'FECHA_DISTRIBUCION', value: nowStamp() }
+          ]);
+          const prevStates = readLS(PREV_STATE_KEY, {});
+          prevStates[item.id] = 'EMPACADO';
+          writeLS(PREV_STATE_KEY, prevStates);
+          addLog(`${item.id} → DISTRIBUCIÓN · Jefatura`);
+          showToast('✅ Pedido en Distribución');
+          closePinModal();
+          await loadData(false);
+        } catch(e) {
+          console.error(e);
+          showToast('❌ No se pudo actualizar');
+        }
+        return;
+      }
       if (mode === 'retiro-deliver') {
         const item = tracking.find(t => t.id === pendingRevertItemId);
         if (!item) return closePinModal();
@@ -1468,10 +1537,12 @@
 
     function openAttendanceModal() {
       const today = new Date();
-      document.getElementById('attendanceTitle').textContent = `📋 PASE DE LISTA — ${today.toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+      document.getElementById('attendanceTitle').textContent = `📋 ASISTENCIA — ${today.toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
       const saved = readLS(ATTENDANCE_KEY, {});
       const base = (saved?.fecha === isoToday() && saved.personal) ? saved.personal : {};
       attendanceDraft = STAFF.reduce((acc, s) => ({ ...acc, [s.nombre]: base[s.nombre] || 'presente' }), {});
+      const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+      routeDraftAssignments = savedRoutes?.fecha === isoToday() ? { ...(savedRoutes.porPersona || {}) } : {};
       renderAttendanceList();
       document.getElementById('attendanceModal').style.display = 'flex';
     }
@@ -1493,15 +1564,26 @@
           <div class="attendance-header">${group}</div>
           ${grouped[group].map((s) => {
             const val = attendanceDraft[s.nombre] || 'presente';
+            const routeSubpanel = val === 'en-ruta' ? (() => {
+              const eligibleOrders = tracking.filter(t => t.estado === 'DESPACHADO' && getModalidad(t.id) === 'ruta');
+              if (!eligibleOrders.length) return '<div style="flex:1 1 100%;margin-top:8px;padding:8px;background:#e3f2fd;border-radius:8px;font-size:12px;"><div style="font-weight:800;margin-bottom:6px;">📦 Pedidos para ruta:</div><div style="color:#64748b;">Sin pedidos de ruta disponibles</div></div>';
+              const items = eligibleOrders.map(t => {
+                const checked = (routeDraftAssignments[s.nombre] || []).includes(t.id);
+                return '<label style="display:flex;gap:6px;align-items:center;margin-bottom:4px;"><input type="checkbox" class="route-assign-cb" data-person="' + s.nombre + '" data-id="' + t.id + '" ' + (checked ? 'checked' : '') + ' />' + t.id + ' — ' + t.unidad + '</label>';
+              }).join('');
+              return '<div style="flex:1 1 100%;margin-top:8px;padding:8px;background:#e3f2fd;border-radius:8px;font-size:12px;"><div style="font-weight:800;margin-bottom:6px;">📦 Pedidos para ruta:</div>' + items + '</div>';
+            })() : '';
             return `
-              <div class="attendance-row ${val === 'ausente' ? 'absent' : val === 'en-ruta' ? 'en-ruta' : val === 'baja-medica' ? 'baja-medica' : ''}" data-name="${s.nombre}">
+              <div class="attendance-row ${val === 'ausente' ? 'absent' : val === 'en-ruta' ? 'en-ruta' : val === 'baja-medica' ? 'baja-medica' : val === 'capacitacion' ? 'capacitacion' : ''}" data-name="${s.nombre}">
                 <span class="attendance-name">${s.nombre}</span>
                 <div class="attendance-actions">
                   <button class="attendance-set ${val === 'presente' ? 'active-present' : ''}" data-name="${s.nombre}" data-value="presente">✅ Presente</button>
                   <button class="attendance-set ${val === 'en-ruta' ? 'active-en-ruta' : ''}" data-name="${s.nombre}" data-value="en-ruta">🚚 En Ruta</button>
                   <button class="attendance-set ${val === 'baja-medica' ? 'active-baja-medica' : ''}" data-name="${s.nombre}" data-value="baja-medica">🏥 Baja Médica</button>
+                  <button class="attendance-set ${val === 'capacitacion' ? 'active-capacitacion' : ''}" data-name="${s.nombre}" data-value="capacitacion">📚 Capacitación</button>
                   <button class="attendance-set ${val === 'ausente' ? 'active-absent' : ''}" data-name="${s.nombre}" data-value="ausente">❌ Ausente</button>
                 </div>
+                ${routeSubpanel}
               </div>
             `;
           }).join('')}
@@ -1523,20 +1605,32 @@
       history[today] = { ...attendanceDraft };
       writeLS(ATTENDANCE_HISTORY_KEY, history);
       const personal = readLS('almacen_personal', {});
+      const statusMap = {
+        'presente': 'DISPONIBLE',
+        'en-ruta': 'EN RUTA',
+        'baja-medica': 'BAJA MÉDICA',
+        'capacitacion': 'CAPACITACIÓN',
+        'ausente': 'AUSENTE'
+      };
       STAFF.forEach((s) => {
         const state = payload.personal[s.nombre] || 'presente';
-        const isBlocked = state === 'ausente' || state === 'baja-medica';
         personal[s.nombre] = {
           ...(personal[s.nombre] || {}),
-          status: isBlocked ? 'AUSENTE' : (personal[s.nombre]?.status === 'AUSENTE' ? 'DISPONIBLE' : (personal[s.nombre]?.status || 'DISPONIBLE'))
+          status: statusMap[state] || 'DISPONIBLE'
         };
       });
       writeLS('almacen_personal', personal);
       const ausentes = Object.values(payload.personal).filter(v => v === 'ausente').length;
       const bajaMedica = Object.values(payload.personal).filter(v => v === 'baja-medica').length;
       const enRuta = Object.values(payload.personal).filter(v => v === 'en-ruta').length;
-      const presentes = STAFF.length - ausentes - bajaMedica - enRuta;
-      showToast(`Pase de lista guardado · ${presentes} presentes · ${enRuta} en ruta · ${bajaMedica} baja médica · ${ausentes} ausentes`);
+      const capacitacion = Object.values(payload.personal).filter(v => v === 'capacitacion').length;
+      const presentes = STAFF.length - ausentes - bajaMedica - enRuta - capacitacion;
+      showToast(`Asistencia guardada · ${presentes} presentes · ${enRuta} en ruta · ${bajaMedica} baja médica · ${capacitacion} capacitación · ${ausentes} ausentes`);
+      const porPedido = {};
+      Object.entries(routeDraftAssignments).forEach(([person, ids]) => {
+        ids.forEach(id => { porPedido[id] = person; });
+      });
+      writeLS(ROUTE_ASSIGNMENTS_KEY, { fecha: isoToday(), porPersona: routeDraftAssignments, porPedido });
       closeAttendanceModal();
       renderAttendanceBadge();
       renderDashboard();
@@ -1560,6 +1654,7 @@
           picking: byState.PICKING || 0,
           facturacion: byState['FACTURACIÓN'] || 0,
           empacado: byState.EMPACADO || 0,
+          distribucion: byState['DISTRIBUCIÓN'] || 0,
           despachado: byState.DESPACHADO || 0,
           entregado: byState.ENTREGADO || 0
         },
@@ -1778,6 +1873,10 @@
     }
 
     async function advanceItem(item) {
+      if (item.estado === 'EMPACADO') {
+        openPinModalForDistribucion(item);
+        return;
+      }
       const next = NEXT_STATE[item.estado];
       if (!next) return;
       const pendings = readPendings();
@@ -1853,6 +1952,7 @@
             FECHA_PICKING: row.FECHA_PICKING || '',
             FECHA_FACTURACION: row.FECHA_FACTURACION || '',
             FECHA_EMPACADO: row.FECHA_EMPACADO || '',
+            FECHA_DISTRIBUCION: row.FECHA_DISTRIBUCION || '',
             FECHA_DESPACHO: row.FECHA_DESPACHO || '',
             FECHA_ENTREGA: row.FECHA_ENTREGA || '',
             fechaDespacho: row.FECHA_DESPACHO || ''
@@ -2102,6 +2202,18 @@
         if (!name || !value) return;
         attendanceDraft[name] = value;
         renderAttendanceList();
+      });
+      document.getElementById('attendanceList').addEventListener('change', (e) => {
+        const cb = e.target.closest('.route-assign-cb');
+        if (!cb) return;
+        const person = cb.dataset.person;
+        const id = cb.dataset.id;
+        if (!routeDraftAssignments[person]) routeDraftAssignments[person] = [];
+        if (cb.checked) {
+          if (!routeDraftAssignments[person].includes(id)) routeDraftAssignments[person].push(id);
+        } else {
+          routeDraftAssignments[person] = routeDraftAssignments[person].filter(x => x !== id);
+        }
       });
       document.getElementById('attendanceModal').addEventListener('click', (e) => {
         if (e.target.id === 'attendanceModal') closeAttendanceModal();
