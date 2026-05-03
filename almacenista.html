@@ -484,7 +484,7 @@
       const allDistrib = rows.filter(r => r.estado === 'DISTRIBUCIÓN');
       const myDistrib = allDistrib.filter(r => routeForToday[r.id] === me);
       const toShow = myDistrib.length > 0 ? myDistrib : allDistrib;
-      const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {}));
+      const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {})).sort((a, b) => b.wait - a.wait);
       document.getElementById('distribucionSubtitle').textContent = `${enriched.length} pedido${enriched.length !== 1 ? 's' : ''} para distribución`;
       if (!enriched.length) {
         document.getElementById('distribucionQueue').innerHTML = '<div class="small">No hay pedidos en distribución en este momento. ✅</div>';
