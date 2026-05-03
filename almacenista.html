@@ -39,13 +39,13 @@
     .action-btn { margin-top:10px; min-height:60px; border:none; border-radius:12px; font-weight:800; font-size:18px; cursor:pointer; width:100%; background:#0b1f3a; color:#fff; }
     .group-list{ display:grid; gap:7px; }
     .row{ display:flex; justify-content:space-between; gap:8px; align-items:center; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
-    .stat-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:8px 0; }
-    .stat-card { background:#fff; border-radius:10px; padding:12px; text-align:center; border:1px solid #e5e7eb; }
-    .stat-card-green { border-bottom:4px solid #2e7d32; }
-    .stat-card-amber { border-bottom:4px solid #f59e0b; }
-    .stat-card-blue  { border-bottom:4px solid #1565c0; }
-    .stat-label { font-size:11px; color:#6b7280; font-weight:700; text-transform:uppercase; margin-bottom:4px; }
-    .stat-value { font-size:2rem; font-weight:900; color:#111827; }
+    .stat-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:6px 0; }
+    .stat-card { background:#fff; border-radius:8px; padding:7px 6px; text-align:center; border:1px solid #e5e7eb; }
+    .stat-card-green { border-bottom:3px solid #2e7d32; }
+    .stat-card-amber { border-bottom:3px solid #f59e0b; }
+    .stat-card-blue  { border-bottom:3px solid #1565c0; }
+    .stat-label { font-size:10px; color:#6b7280; font-weight:700; text-transform:uppercase; margin-bottom:2px; }
+    .stat-value { font-size:1.5rem; font-weight:900; color:#111827; line-height:1.1; }
     .team-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
     .team-card { border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff; text-align:center; }
     .team-card.me { border:2px solid #2e7d32; background:#f0fdf4; }
@@ -177,20 +177,6 @@
         <div class="status-btns">
           <button data-view="almacen" id="btnViewAlmacen">📦 MIS PEDIDOS EN EL ALMACÉN</button>
           <button data-view="ruta" id="btnViewRuta">🚚 MIS PEDIDOS PARA ENTREGAR</button>
-        </div>
-        <div id="myKpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0;">
-          <div class="kpi-mini" id="kpiPendientes">
-            <div class="kpi-mini-label">📦 Pendientes</div>
-            <div class="kpi-mini-value" id="kpiPendientesVal">0</div>
-          </div>
-          <div class="kpi-mini" id="kpiCompletados">
-            <div class="kpi-mini-label">✅ Completados Hoy</div>
-            <div class="kpi-mini-value" id="kpiCompletadosVal">0</div>
-          </div>
-          <div class="kpi-mini" id="kpiEnRuta">
-            <div class="kpi-mini-label">🚚 En Ruta</div>
-            <div class="kpi-mini-value" id="kpiEnRutaVal">0</div>
-          </div>
         </div>
       </article>
 
@@ -420,12 +406,6 @@
       const isDistribucion = myRol === 'DISTRIBUCION' || myRol === 'DISTRIBUCIÓN';
       const isSpecial = isKardex || isEmpaque || isDistribucion;
       document.querySelector('.status-btns').classList.toggle('hidden', isSpecial);
-      document.getElementById('kpiEnRuta').classList.toggle('hidden', isSpecial);
-      if (isSpecial) {
-        document.getElementById('myKpis').style.gridTemplateColumns = 'repeat(2,1fr)';
-      } else {
-        document.getElementById('myKpis').style.gridTemplateColumns = 'repeat(3,1fr)';
-      }
       document.getElementById('ordersPanel').classList.toggle('hidden', isSpecial);
       document.getElementById('kardexPanel').classList.toggle('hidden', !isKardex);
       document.getElementById('empaquePanel').classList.toggle('hidden', !isEmpaque);
@@ -589,6 +569,17 @@
     }
 
     async function loadStaff() {
+      // Try ?file=personal first (returns ALL active roles: ALMACENISTA, KARDEX, EMPAQUE, DISTRIBUCION, etc.)
+      // This is needed so DISTRIBUCION staff appear in the login selector
+      try {
+        const r = await fetch(`${WEB_APP_URL}?file=personal`);
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) {
+          STAFF = data;
+          return;
+        }
+      } catch (e) { /* fall through */ }
+      // Fallback to the standard staff endpoint
       try {
         const r = await fetch(`${WEB_APP_URL}?file=staff`);
         const data = await r.json();
@@ -681,7 +672,12 @@
     function setupIdentity() {
       const sel = document.getElementById('whoSelect');
       sel.innerHTML = '<option value="">Seleccione su nombre...</option>' +
-        STAFF.filter(s => s.activo !== false).map(s => {
+        STAFF.filter(s => {
+          const a = s.activo;
+          if (a === false) return false;
+          if (typeof a === 'string' && a.trim().toUpperCase() === 'NO') return false;
+          return true;
+        }).map(s => {
           const grupo = s.grupos?.[0] || s.rol || '';
           return `<option value="${s.nombre}">${s.nombre} · ${grupo}</option>`;
         }).join('');
@@ -906,40 +902,7 @@
     }
 
     function renderMyKpis() {
-      const person = getPerson();
-      if (!person) return;
-      const logs = readLS('almacen_log', []);
-      const today = isoToday();
-      if (myRol === 'KARDEX') {
-        const facturacion = rows.filter(r => r.estado === 'FACTURACIÓN');
-        const completadosHoy = logs.filter(l =>
-          new Date(l.ts).toISOString().slice(0, 10) === today &&
-          String(l.msg).includes(`· ${person.nombre}`) &&
-          String(l.msg).includes('facturado')
-        ).length;
-        document.getElementById('kpiPendientesVal').textContent = facturacion.length;
-        document.getElementById('kpiCompletadosVal').textContent = completadosHoy;
-        return;
-      }
-      if (myRol === 'EMPAQUE') {
-        const empacado = rows.filter(r => r.estado === 'EMPACADO');
-        const completadosHoy = logs.filter(l =>
-          new Date(l.ts).toISOString().slice(0, 10) === today &&
-          String(l.msg).includes(`· ${person.nombre}`) &&
-          String(l.msg).includes('solicita avance a')
-        ).length;
-        document.getElementById('kpiPendientesVal').textContent = empacado.length;
-        document.getElementById('kpiCompletadosVal').textContent = completadosHoy;
-        return;
-      }
-      const { almacen, ruta } = queueForMe();
-      const completadosHoy = logs.filter(l =>
-        new Date(l.ts).toISOString().slice(0, 10) === today &&
-        String(l.msg).includes(`· ${person.nombre}`)
-      ).length;
-      document.getElementById('kpiPendientesVal').textContent = almacen.length;
-      document.getElementById('kpiCompletadosVal').textContent = completadosHoy;
-      document.getElementById('kpiEnRutaVal').textContent = ruta.length;
+      // KPI mini-cards removed (counts now shown in the view-toggle buttons)
     }
 
     function rankingRows(scope = 'today') {
@@ -1013,9 +976,8 @@
       const speed = done / workedHours;
       document.getElementById('stDone').textContent = done;
       if (today.mine) {
-        const medal = today.mine.rank === 1 ? '🥇' : today.mine.rank === 2 ? '🥈' : today.mine.rank === 3 ? '🥉' : '🏅';
-        document.getElementById('stPosition').textContent = `Mi posición en el ranking: ${medal} #${today.mine.rank} del equipo`;
-        document.getElementById('stRankDisplay').textContent = today.mine.rank <= 3 ? medal : `#${today.mine.rank}`;
+        document.getElementById('stPosition').textContent = `Mi posición en el ranking: #${today.mine.rank} del equipo`;
+        document.getElementById('stRankDisplay').textContent = `#${today.mine.rank}`;
       } else {
         document.getElementById('stPosition').textContent = 'Mi posición en el ranking: —';
         document.getElementById('stRankDisplay').textContent = '—';
@@ -1045,15 +1007,9 @@
           : attend === 'baja-medica' ? '#ef6c00'
           : attend === 'capacitacion' ? '#7b1fa2'
           : '#b71c1c';
-        const statusLabel = attend === 'presente' ? st
-          : attend === 'en-ruta' ? '🚚 En Ruta'
-          : attend === 'baja-medica' ? '🏥 Baja Médica'
-          : attend === 'capacitacion' ? '📚 Capacitación'
-          : '❌ Ausente';
-        return `<div style="display:inline-flex;align-items:center;gap:6px;background:${isMe ? '#e3f2fd' : '#f8fafc'};border:1px solid ${isMe ? '#90caf9' : '#e2e8f0'};border-radius:999px;padding:4px 12px;font-size:13px;font-weight:${isMe ? '800' : '500'};margin:3px 2px;">
-          <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0;"></span>
+        return `<div style="display:inline-flex;align-items:center;gap:5px;background:${isMe ? '#e3f2fd' : '#f8fafc'};border:1px solid ${isMe ? '#90caf9' : '#e2e8f0'};border-radius:999px;padding:3px 10px;font-size:13px;font-weight:${isMe ? '800' : '500'};margin:2px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0;"></span>
           ${isMe ? `<strong>Tú (${me})</strong>` : pName}
-          <span style="color:#64748b;font-size:11px;">${statusLabel}</span>
         </div>`;
       }).join('');
     }

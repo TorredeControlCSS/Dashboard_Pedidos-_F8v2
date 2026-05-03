@@ -890,10 +890,10 @@
       renderDashboard();
     }
 
-    function redistribuirEquitativamente(datos, estadoPersonal) {
+    function redistribuirEquitativamente(datos, estadoPersonal, existingCounts = {}) {
       const asignaciones = {};
       const activeCounts = {};
-      STAFF.forEach(s => { activeCounts[s.nombre] = 0; });
+      STAFF.forEach(s => { activeCounts[s.nombre] = existingCounts[s.nombre] || 0; });
       datos.forEach(f8 => {
         const candidate = getAssignableStaff(f8, estadoPersonal, activeCounts);
         if (candidate) {
@@ -905,19 +905,16 @@
     }
 
     async function runRedistribucion() {
-      if (!confirm('¿Redistribuir todas las F8s equitativamente entre el personal disponible? Esto no afecta F8s ya en PICKING o estados avanzados.')) return;
+      if (!confirm('¿Asignar los pedidos nuevos (sin almacenista asignado) equitativamente entre todos los miembros del grupo, incluyendo ausentes? Los pedidos ya asignados NO serán modificados.')) return;
 
-      const attendance = readLS(ATTENDANCE_KEY, {});
-      const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
-      const personal = readLS('almacen_personal', {});
+      // Para la distribución de pedidos nuevos, todos los miembros del grupo son candidatos
+      // independientemente de su asistencia del día. Un ausente recibe pedidos pero los retoma al volver.
       const estadoPersonal = {};
       STAFF.forEach((s) => {
-        const absentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
-        const status = personal[s.nombre]?.status || 'DISPONIBLE';
-        estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
+        estadoPersonal[s.nombre] = 'presente'; // todos elegibles para nuevos pedidos
       });
 
-      // CAMBIO CLAVE: solo redistribuir los que NO tienen almacenista asignado aún
+      // Solo redistribuir los que NO tienen almacenista asignado aún
       const asig = readLS('almacen_asignaciones', {});
       const asignables = tracking.filter((t) => t.estado === 'ASIGNADA' && !asig[t.id]);
 
@@ -926,7 +923,15 @@
         return;
       }
 
-      const proposed = redistribuirEquitativamente(asignables, estadoPersonal);
+      // Contabilizar asignaciones existentes para equilibrar la carga correctamente
+      const existingCounts = {};
+      STAFF.forEach(s => { existingCounts[s.nombre] = 0; });
+      tracking.filter(i => i.estado !== 'ENTREGADO' && asig[i.id]).forEach(i => {
+        const p = asig[i.id];
+        if (p in existingCounts) existingCounts[p]++;
+      });
+
+      const proposed = redistribuirEquitativamente(asignables, estadoPersonal, existingCounts);
       if (!Object.keys(proposed).length) {
         showToast('⚠️ No hay F8s ASIGNADAS con personal disponible', 4000);
         return;
@@ -1225,7 +1230,6 @@
       cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
         const isAbsentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
         const st = isAbsentByList ? 'AUSENTE' : (personal[s.nombre]?.status || 'DISPONIBLE');
-        const dst = personal[s.nombre]?.destination || '';
         return `
           <article class="person" data-name="${s.nombre}">
             <strong>${s.nombre}</strong>
@@ -1237,7 +1241,6 @@
               <button data-status="AUSENTE" disabled title="Controlado por pase de lista" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
               <button class="reset-pin" data-name="${s.nombre}" title="Resetear PIN">🔑 Resetear PIN</button>
             </div>
-            ${st === 'EN RUTA' ? `<input class="destination" value="${dst}" placeholder="Destino (ej: CSS Chitré)" />` : ''}
             ${isAbsentByList ? `<div class="staff-lock">Bloqueado por pase de lista (AUSENTE)</div>` : ''}
           </article>
         `;
@@ -2261,15 +2264,6 @@
         addLog(`${person} marcado como ${st}`);
         renderStaff(filteredTracking, readLS('almacen_asignaciones', {}));
         renderBoard(filteredTracking, readLS('almacen_state_timestamps', {}), readLS('almacen_asignaciones', {}), personal);
-      });
-      document.getElementById('staffCards').addEventListener('change', (e) => {
-        if (!e.target.classList.contains('destination')) return;
-        const person = e.target.closest('.person')?.dataset.name;
-        if (!person) return;
-        const personal = readLS('almacen_personal', {});
-        personal[person] = { ...(personal[person] || {}), destination: e.target.value.trim(), updatedAt: Date.now(), status: 'EN RUTA' };
-        writeLS('almacen_personal', personal);
-        addLog(`${person} reporta ruta: ${e.target.value.trim() || 'Sin destino'}`);
       });
       document.getElementById('cancelAssign').addEventListener('click', closeAssignModal);
       document.getElementById('saveAssign').addEventListener('click', async () => {
