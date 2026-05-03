@@ -601,7 +601,7 @@
 
     function getAssignableStaff(item, estadoPersonal, activeCounts) {
       const candidates = STAFF.filter(s =>
-        matchStaff(item, s) && !['ausente','baja-medica','capacitacion'].includes(estadoPersonal[s.nombre])
+        matchStaff(item, s) && !BLOCKED_ATTENDANCE_STATES.includes(estadoPersonal[s.nombre])
       );
       candidates.sort((a, b) => (activeCounts[a.nombre] || 0) - (activeCounts[b.nombre] || 0));
       return candidates[0] || null;
@@ -675,6 +675,14 @@
     const STAFF_PINS_KEY = 'staff_pins';
     const PREV_STATE_KEY = 'almacen_prev_states';
     const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
+    const BLOCKED_ATTENDANCE_STATES = ['ausente', 'baja-medica', 'capacitacion'];
+    const ATTENDANCE_STATUS_MAP = {
+      'presente': 'DISPONIBLE',
+      'en-ruta': 'EN RUTA',
+      'baja-medica': 'BAJA MÉDICA',
+      'capacitacion': 'CAPACITACIÓN',
+      'ausente': 'AUSENTE'
+    };
 
     const readLS = (k, fallback) => {
       try { return JSON.parse(localStorage.getItem(k)) ?? fallback; }
@@ -902,7 +910,7 @@
       const personal = readLS('almacen_personal', {});
       const estadoPersonal = {};
       STAFF.forEach((s) => {
-        const absentByList = ['ausente','baja-medica','capacitacion'].includes(attendanceToday[s.nombre]);
+        const absentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
@@ -960,7 +968,7 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const estadoPersonal = {};
       STAFF.forEach(s => {
-        const absentByList = ['ausente','baja-medica','capacitacion'].includes(attendanceToday[s.nombre]);
+        const absentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
         const status = personal[s.nombre]?.status || 'DISPONIBLE';
         estadoPersonal[s.nombre] = absentByList || status === 'AUSENTE' ? 'ausente' : 'presente';
       });
@@ -1213,7 +1221,7 @@
       const attendanceToday = attendance?.fecha === isoToday() ? attendance.personal || {} : {};
       const activeBy = activeCountByPerson(items, asig);
       cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
-        const isAbsentByList = ['ausente','baja-medica','capacitacion'].includes(attendanceToday[s.nombre]);
+        const isAbsentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
         const st = isAbsentByList ? 'AUSENTE' : (personal[s.nombre]?.status || 'DISPONIBLE');
         const dst = personal[s.nombre]?.destination || '';
         return `
@@ -1605,18 +1613,11 @@
       history[today] = { ...attendanceDraft };
       writeLS(ATTENDANCE_HISTORY_KEY, history);
       const personal = readLS('almacen_personal', {});
-      const statusMap = {
-        'presente': 'DISPONIBLE',
-        'en-ruta': 'EN RUTA',
-        'baja-medica': 'BAJA MÉDICA',
-        'capacitacion': 'CAPACITACIÓN',
-        'ausente': 'AUSENTE'
-      };
       STAFF.forEach((s) => {
         const state = payload.personal[s.nombre] || 'presente';
         personal[s.nombre] = {
           ...(personal[s.nombre] || {}),
-          status: statusMap[state] || 'DISPONIBLE'
+          status: ATTENDANCE_STATUS_MAP[state] || 'DISPONIBLE'
         };
       });
       writeLS('almacen_personal', personal);
