@@ -2401,6 +2401,7 @@
           setInterval(() => loadData(false), 5 * 60 * 1000);
           renderAttendanceBadge();
         } catch(e) {
+          console.error('Error al cargar datos:', e);
           loText.textContent = '❌ Error al cargar los datos. Por favor verifica tu conexión.';
           loRetry.style.display = 'block';
         }

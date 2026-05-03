@@ -262,9 +262,10 @@
       const f8Date = fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION);
       const almacenista = String(r.ALMACENISTA || '').trim() || 'Sin asignar';
       const pedidoId = r.ID_PEDIDO || '—';
+      const safePedidoId = String(pedidoId).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       return `
         <article class="card" style="margin-top:12px">
-          <h2>${STATE_ICON[state] || '📦'} <button class="order-id-link" onclick="generatePDF('${pedidoId.replace(/'/g,"\\'")}')">📄 ${pedidoId}</button></h2>
+          <h2>${STATE_ICON[state] || '📦'} <button class="order-id-link do-pdf" data-pdf-id="${safePedidoId}">📄 ${safePedidoId}</button></h2>
           <div class="meta">${r.UNIDAD_EJECUTORA || 'Sin UE'}</div>
           <div class="meta">Fecha F8: ${f8Date} · Estado: ${state} · Grupo: ${r.GRUPO || '—'}</div>
           <div class="meta">👤 Responsable: ${almacenista}</div>
@@ -399,10 +400,11 @@
                 const pct = Number(r.TOTAL_SOLIC || 0) ? ((Number(r.TOTAL_ASIG || 0) / Number(r.TOTAL_SOLIC || 0)) * 100) : 0;
                 const almacenista = String(r.ALMACENISTA || '').trim() || 'Sin asignar';
                 const pid = String(r.ID_PEDIDO || '—');
+                const safePid = pid.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                 return `
                   <div class="ue-row">
                     <div class="ue-head">
-                      <div>${STATE_ICON[state] || '📦'} <button class="order-id-link" onclick="generatePDF('${pid.replace(/'/g,"\\'")}')">📄 ${pid}</button> | ${state} | ${fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION)} | ${pct.toFixed(0)}% fill rate | 👤 ${almacenista}</div>
+                      <div>${STATE_ICON[state] || '📦'} <button class="order-id-link do-pdf" data-pdf-id="${safePid}">📄 ${safePid}</button> | ${state} | ${fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION)} | ${pct.toFixed(0)}% fill rate | 👤 ${almacenista}</div>
                       <button class="ue-btn" data-toggle-ue="ue-${i}">Ver detalle ▼</button>
                     </div>
                     <div id="ue-${i}" class="hidden"></div>
@@ -441,6 +443,15 @@
       if (!id) return;
       document.getElementById('f8Input').value = id;
       doSearch(false);
+    });
+
+    // Delegated handler for PDF generation buttons
+    document.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('do-pdf')) {
+        const pdfId = e.target.dataset.pdfId || '';
+        if (pdfId) await generatePDF(pdfId);
+        return;
+      }
     });
 
     document.addEventListener('click', async (e) => {
@@ -550,6 +561,7 @@
 
       const win = window.open('', '_blank', 'width=800,height=700');
       if (!win) { alert('Por favor permite ventanas emergentes para generar el PDF.'); return; }
+      win.opener = null;
       win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>F8 ${pedidoId}</title>
         <style>
           body{font-family:Arial,sans-serif;margin:24px;color:#111827;}
@@ -600,7 +612,7 @@
         <div style="margin-top:24px;font-size:11px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px;">
           CEDIS PANAMÁ · Torre de Control · ${new Date().toLocaleDateString('es-PA')}
         </div>
-        <script>window.onload=function(){window.print();}<\/script>
+        <script>window.onload=function(){setTimeout(function(){window.print();},150);}<\/script>
       </body></html>`);
       win.document.close();
     }
