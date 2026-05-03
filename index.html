@@ -690,6 +690,7 @@
       catch { return fallback; }
     };
     const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const escapeHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     const showToast = (msg, duration = 2500) => {
       const t = document.getElementById('toast');
       t.textContent = msg; t.style.display = 'block';
@@ -1070,7 +1071,7 @@
         const who = p.solicitadoPor || 'Desconocido';
         requesterCounts[who] = (requesterCounts[who] || 0) + 1;
       });
-      const requesterText = Object.entries(requesterCounts).map(([name, cnt]) => `${name} (${cnt})`).join(', ');
+      const requesterText = Object.entries(requesterCounts).map(([name, cnt]) => `${escapeHtml(name)} (${cnt})`).join(', ');
       document.getElementById('pendingBarText').innerHTML = `⏳ ${count} pendiente${count !== 1 ? 's' : ''}: ${requesterText}`;
       let toggleBtn = document.getElementById('pendingFilterToggleBtn');
       if (!toggleBtn) {
