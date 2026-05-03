@@ -352,6 +352,7 @@
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
       <button class="btn" id="redistributeBtn">⚖️ Redistribuir</button>
       <button class="btn" id="saveBtn" title="Sincronizar asignaciones con el servidor">💾 Guardar</button>
+      <button class="btn" id="assignRoutesBtn">🗺️ Asignar Rutas</button>
       <button class="btn" id="attendanceBtn">📋 Asistencia <span id="attendanceBadge" class="btn-badge" aria-label="Asistencia pendiente" title="Asistencia pendiente">!</span></button>
       <button class="btn" id="closeShiftBtn">📸 Cerrar Turno</button>
       <button class="btn" id="changePinBtn">🔐 Cambiar PIN</button>
@@ -454,6 +455,18 @@
         <button id="attendanceCancelBtn">Cancelar</button>
         <button id="exportAttendanceBtn" style="border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer;font-weight:700;font-size:12px;">📊 Exportar Historial</button>
         <button id="attendanceSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 10px;border-radius:8px;">💾 Guardar Asistencia</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="routeAssignModal" style="position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:35;">
+    <div class="box" style="background:#fff;border-radius:10px;width:min(860px,95vw);max-height:90vh;overflow-y:auto;padding:14px;">
+      <h3 style="margin:0 0 4px;">🗺️ ASIGNACIÓN DE RUTAS</h3>
+      <div class="small" style="margin-bottom:10px;">Asigne pedidos de entrega a las personas marcadas <strong>En Ruta</strong> hoy.</div>
+      <div id="routeAssignBody"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+        <button id="routeAssignCancelBtn">Cancelar</button>
+        <button id="routeAssignSaveBtn" style="background:#0b1f3a;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;">💾 Guardar Asignación de Rutas</button>
       </div>
     </div>
   </div>
@@ -710,6 +723,7 @@
       return d.toLocaleString('es-PA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
     const hhmm = () => new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+    const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     const normalizeState = (s = "") => {
       const up = String(s).trim().toUpperCase();
@@ -1642,6 +1656,66 @@
       renderDashboard();
     }
 
+    function openRouteAssignModal() {
+      const attendance = readLS(ATTENDANCE_KEY, {});
+      const attendanceToday = attendance?.fecha === isoToday() ? (attendance.personal || {}) : {};
+      const enRutaStaff = STAFF.filter(s => attendanceToday[s.nombre] === 'en-ruta');
+      const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+      const currentAssignments = savedRoutes?.fecha === isoToday() ? { ...(savedRoutes.porPersona || {}) } : {};
+      const eligibleOrders = tracking.filter(t => (t.estado === 'DESPACHADO' || t.estado === 'DISTRIBUCIÓN') && getModalidad(t.id) === 'ruta');
+
+      const body = document.getElementById('routeAssignBody');
+      if (!enRutaStaff.length) {
+        body.innerHTML = '<div style="padding:12px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">⚠️ No hay personal marcado como <strong>En Ruta</strong> hoy. Primero registra la asistencia.</div>';
+      } else if (!eligibleOrders.length) {
+        body.innerHTML = '<div style="padding:12px;background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;">ℹ️ No hay pedidos elegibles para ruta en este momento (deben estar en DESPACHADO o DISTRIBUCIÓN con modalidad Ruta).</div>';
+      } else {
+        const orderToAssignee = {};
+        Object.entries(currentAssignments).forEach(([name, ids]) => {
+          ids.forEach(id => { orderToAssignee[id] = name; });
+        });
+        body.innerHTML = enRutaStaff.map(s => {
+          const assigned = currentAssignments[s.nombre] || [];
+          const items = eligibleOrders.map(t => {
+            const checked = assigned.includes(t.id);
+            const otherName = orderToAssignee[t.id] && orderToAssignee[t.id] !== s.nombre ? orderToAssignee[t.id] : null;
+            const takenBy = otherName ? ` <span style="color:#ef4444;font-size:11px;">(ya asignado a ${esc(otherName)})</span>` : '';
+            return `<label style="display:flex;gap:6px;align-items:center;margin-bottom:5px;cursor:pointer;">
+              <input type="checkbox" class="route-modal-cb" data-person="${esc(s.nombre)}" data-id="${esc(t.id)}" ${checked ? 'checked' : ''} />
+              <span style="font-weight:700;">${esc(t.id)}</span> — ${esc(t.unidad || t.ue || '—')} (${esc(t.estado)})${takenBy}
+            </label>`;
+          }).join('');
+          return `<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;">
+            <div style="font-weight:800;font-size:15px;margin-bottom:8px;">🚚 ${esc(s.nombre)}</div>
+            ${items}
+          </div>`;
+        }).join('');
+      }
+      document.getElementById('routeAssignModal').style.display = 'flex';
+    }
+
+    function closeRouteAssignModal() {
+      document.getElementById('routeAssignModal').style.display = 'none';
+    }
+
+    function saveRouteAssignments() {
+      const assignments = {};
+      document.querySelectorAll('.route-modal-cb:checked').forEach(cb => {
+        const person = cb.dataset.person;
+        const id = cb.dataset.id;
+        if (!assignments[person]) assignments[person] = [];
+        if (!assignments[person].includes(id)) assignments[person].push(id);
+      });
+      const porPedido = {};
+      Object.entries(assignments).forEach(([person, ids]) => {
+        ids.forEach(id => { porPedido[id] = person; });
+      });
+      writeLS(ROUTE_ASSIGNMENTS_KEY, { fecha: isoToday(), porPersona: assignments, porPedido });
+      closeRouteAssignModal();
+      showToast('✅ Asignación de rutas guardada');
+      renderDashboard();
+    }
+
     function buildShiftSnapshot() {
       const personalMap = readLS('almacen_personal', {});
       const detail = STAFF.map((s) => ({ nombre: s.nombre, estado: personalMap[s.nombre]?.status || 'DISPONIBLE' }));
@@ -2008,6 +2082,7 @@
         }
       });
       document.getElementById('attendanceBtn').addEventListener('click', openAttendanceModal);
+      document.getElementById('assignRoutesBtn').addEventListener('click', openRouteAssignModal);
       document.getElementById('closeShiftBtn').addEventListener('click', openCloseShiftModal);
       document.getElementById('redistributeBtn').addEventListener('click', runRedistribucion);
       document.getElementById('changePinBtn').addEventListener('click', changePinFlow);
@@ -2201,6 +2276,11 @@
       });
       document.getElementById('attendanceCancelBtn').addEventListener('click', closeAttendanceModal);
       document.getElementById('attendanceSaveBtn').addEventListener('click', saveAttendance);
+      document.getElementById('routeAssignCancelBtn').addEventListener('click', closeRouteAssignModal);
+      document.getElementById('routeAssignSaveBtn').addEventListener('click', saveRouteAssignments);
+      document.getElementById('routeAssignModal').addEventListener('click', (e) => {
+        if (e.target.id === 'routeAssignModal') closeRouteAssignModal();
+      });
       document.getElementById('attendanceList').addEventListener('click', (e) => {
         if (!e.target.classList.contains('attendance-set')) return;
         const name = e.target.dataset.name;
