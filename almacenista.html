@@ -660,7 +660,7 @@
       sel.innerHTML = '<option value="">Seleccione su nombre...</option>' +
         STAFF.filter(s => {
           const a = s.activo;
-          return String(a == null ? '' : a).trim().toUpperCase() !== 'NO';
+          return String(a ?? '').trim().toUpperCase() !== 'NO';
         }).map(s => {
           const grupo = s.grupos?.[0] || s.rol || '';
           return `<option value="${s.nombre}">${s.nombre} · ${grupo}</option>`;
