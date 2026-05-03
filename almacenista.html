@@ -248,6 +248,12 @@
         <div id="empaqueSubtitle" class="small"></div>
         <div id="empaqueQueue" class="queue"></div>
       </article>
+
+      <article class="panel hidden" id="distribucionPanel">
+        <h2>🚛 PEDIDOS PARA DISTRIBUCIÓN</h2>
+        <div id="distribucionSubtitle" class="small"></div>
+        <div id="distribucionQueue" class="queue"></div>
+      </article>
     </section>
 
     <section id="blockPanel" class="hidden">
@@ -345,6 +351,7 @@
       if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
       if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
       if (up === 'EMPACANDO') return 'EMPACADO';
+      if (up === 'DISTRIBUCION' || up === 'DISTRIBUCIÓN') return 'DISTRIBUCIÓN';
       return up || 'ASIGNADA';
     };
     const isDeliveryToday = (diasEntrega='') => normalizeText(diasEntrega).includes(DAY_MAP[new Date().getDay()]);
@@ -410,7 +417,8 @@
     function applyRoleLayout() {
       const isKardex = myRol === 'KARDEX';
       const isEmpaque = myRol === 'EMPAQUE';
-      const isSpecial = isKardex || isEmpaque;
+      const isDistribucion = myRol === 'DISTRIBUCION' || myRol === 'DISTRIBUCIÓN';
+      const isSpecial = isKardex || isEmpaque || isDistribucion;
       document.querySelector('.status-btns').classList.toggle('hidden', isSpecial);
       document.getElementById('kpiEnRuta').classList.toggle('hidden', isSpecial);
       if (isSpecial) {
@@ -421,6 +429,7 @@
       document.getElementById('ordersPanel').classList.toggle('hidden', isSpecial);
       document.getElementById('kardexPanel').classList.toggle('hidden', !isKardex);
       document.getElementById('empaquePanel').classList.toggle('hidden', !isEmpaque);
+      document.getElementById('distribucionPanel').classList.toggle('hidden', !isDistribucion);
     }
 
     async function doAdvanceKardex(id) {
@@ -444,13 +453,73 @@
       }
     }
 
+    async function doAdvanceDistribucion(id) {
+      const item = rows.find(r => r.id === id);
+      if (!item || item.estado !== 'DISTRIBUCIÓN') {
+        showToast('⚠️ Pedido no encontrado o no está en DISTRIBUCIÓN');
+        return;
+      }
+      try {
+        await postBatchUpdate([
+          { id: item.id, field: 'ESTADO', value: 'DESPACHADO' },
+          { id: item.id, field: 'FECHA_DESPACHO', value: nowStamp() }
+        ]);
+        addLog(`${item.id} distribución → DESPACHADO · ${getMe()}`);
+        showToast('✅ Pedido pasado a DESPACHADO');
+        await loadData();
+        renderAll();
+      } catch(e) {
+        console.error(e);
+        showToast('❌ Error al actualizar el pedido');
+      }
+    }
+
+    function renderDistribucionQueue() {
+      const me = getMe();
+      const stateMap = readLS('almacen_state_timestamps', {});
+      const pendings = getPendings();
+      const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
+      const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+      const routeForToday = savedRoutes?.fecha === isoToday() ? (savedRoutes.porPedido || {}) : {};
+      const allDistrib = rows.filter(r => r.estado === 'DISTRIBUCIÓN');
+      const myDistrib = allDistrib.filter(r => routeForToday[r.id] === me);
+      const toShow = myDistrib.length > 0 ? myDistrib : allDistrib;
+      const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {})).sort((a, b) => b.wait - a.wait);
+      document.getElementById('distribucionSubtitle').textContent = `${enriched.length} pedido${enriched.length !== 1 ? 's' : ''} para distribución`;
+      if (!enriched.length) {
+        document.getElementById('distribucionQueue').innerHTML = '<div class="small">No hay pedidos en distribución en este momento. ✅</div>';
+        return;
+      }
+      document.getElementById('distribucionQueue').innerHTML = enriched.map(r => {
+        const ageText = r.wait >= 0 ? fmtWait(r.wait) : '—';
+        const waitColor = getWaitColor(r.wait);
+        return `
+          <article class="card" style="border-left-color:#7b1fa2${r.pending ? ';border:3px solid #f9a825;' : ''}">
+            ${r.pending ? `<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;">⏳ PEND. APROBACIÓN → ${r.pending.estadoSolicitado}</div>` : ''}
+            <div class="badges">
+              <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
+              <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
+            </div>
+            <div style="font-weight:800;font-size:22px;">${r.id}</div>
+            <div style="font-size:20px;margin-top:4px;">${r.ue}</div>
+            <div class="small" style="margin-top:4px;">${Number(r.totalAsig || 0).toLocaleString('es-PA')} unidades</div>
+            <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
+            ${r.pending
+              ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>'
+              : `<button class="action-btn distribucion-advance" data-id="${r.id}" style="background:#7b1fa2;color:#fff;">✅ YA DISTRIBUÍ ESTE PEDIDO</button>`}
+          </article>
+        `;
+      }).join('');
+    }
+
     function renderKardexQueue() {
       const asig = readLS('almacen_asignaciones', {});
       const stateMap = readLS('almacen_state_timestamps', {});
       const pendings = getPendings();
       const facturacion = rows
         .filter(r => r.estado === 'FACTURACIÓN')
-        .map(r => enrichOrder(r, stateMap, pendings, {}));
+        .map(r => enrichOrder(r, stateMap, pendings, {}))
+        .sort((a, b) => b.wait - a.wait);
       document.getElementById('kardexSubtitle').textContent = `${facturacion.length} pedido${facturacion.length !== 1 ? 's' : ''} en espera de facturación`;
       if (!facturacion.length) {
         document.getElementById('kardexQueue').innerHTML = '<div class="small">No hay pedidos en facturación en este momento. ✅</div>';
@@ -460,8 +529,10 @@
         const ageText = r.wait >= 0 ? fmtWait(r.wait) : '—';
         const waitColor = getWaitColor(r.wait);
         const asigNombre = asig[r.id] || 'Sin asignar';
+        const ageBorder = r.wait >= 2 ? 'box-shadow:0 0 0 3px #b71c1c;' : r.wait >= 1 ? 'box-shadow:0 0 0 3px #f9a825;' : '';
         return `
-          <article class="card" style="border-left-color:#ef6c00">
+          <article class="card" style="border-left-color:#ef6c00;${ageBorder}">
+            ${r.wait >= 2 ? '<div class="small" style="background:#ffebee;border:1px solid #b71c1c;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;color:#b71c1c;">🔴 URGENTE: +2 horas esperando</div>' : r.wait >= 1 ? '<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;color:#f59e0b;">🟡 ATENCIÓN: +1 hora esperando</div>' : ''}
             <div class="badges">
               <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
               <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
@@ -486,7 +557,7 @@
       const allEmpacado = rows.filter(r => r.estado === 'EMPACADO');
       const myEmpacado = allEmpacado.filter(r => asig[r.id] === person.nombre);
       const toShow = myEmpacado.length > 0 ? myEmpacado : allEmpacado;
-      const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {}));
+      const enriched = toShow.map(r => enrichOrder(r, stateMap, pendings, {})).sort((a, b) => b.wait - a.wait);
       document.getElementById('empaqueSubtitle').textContent = `${enriched.length} pedido${enriched.length !== 1 ? 's' : ''} para empacar`;
       if (!enriched.length) {
         document.getElementById('empaqueQueue').innerHTML = '<div class="small">No hay pedidos para empacar en este momento. ✅</div>';
@@ -496,9 +567,10 @@
         const ageText = r.wait >= 0 ? fmtWait(r.wait) : '—';
         const waitColor = getWaitColor(r.wait);
         const asigNombre = asig[r.id] || 'Sin asignar';
+        const ageBorder = r.wait >= 2 ? 'box-shadow:0 0 0 3px #b71c1c;' : r.wait >= 1 ? 'box-shadow:0 0 0 3px #f9a825;' : '';
         return `
-          <article class="card" style="border-left-color:#6d4c41${r.pending ? ';border:3px solid #f9a825;' : ''}">
-            ${r.pending ? `<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;">⏳ PEND. APROBACIÓN → ${r.pending.estadoSolicitado}</div>` : ''}
+          <article class="card" style="border-left-color:#6d4c41${r.pending ? ';border:3px solid #f9a825;' : ''};${ageBorder}">
+            ${r.pending ? `<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;">⏳ PEND. APROBACIÓN → ${r.pending.estadoSolicitado}</div>` : r.wait >= 2 ? '<div class="small" style="background:#ffebee;border:1px solid #b71c1c;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;color:#b71c1c;">🔴 URGENTE: +2 horas esperando</div>' : r.wait >= 1 ? '<div class="small" style="background:#fff8e1;border:1px solid #f9a825;border-radius:999px;padding:2px 8px;display:inline-block;font-weight:800;margin-bottom:6px;color:#f59e0b;">🟡 ATENCIÓN: +1 hora esperando</div>' : ''}
             <div class="badges">
               <span class="badge" style="background:${r.tipo === 'URGENCIA' ? '#b71c1c' : '#455a64'}">${r.tipo}</span>
               <span class="badge" style="background:${GROUP_COLORS[r.group] || '#64748b'}">${r.group}</span>
@@ -510,7 +582,7 @@
             <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
             ${r.pending
               ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>'
-              : `<button class="action-btn empaque-advance" data-id="${r.id}" style="background:#6d4c41;color:#fff;">✅ YA TERMINÉ DE EMPACAR ESTE PEDIDO</button>`}
+              : `<button class="action-btn empaque-advance" data-id="${r.id}" style="background:#6d4c41;color:#fff;">✅ YA TERMINÉ DE EMPACAR</button>`}
           </article>
         `;
       }).join('');
@@ -708,6 +780,10 @@
       const stateMap = readLS('almacen_state_timestamps', {});
       const pendings = getPendings();
       const causales = readLS(CAUSALES_KEY, {});
+      const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
+      const savedRoutes = readLS(ROUTE_ASSIGNMENTS_KEY, {});
+      const routeForToday = savedRoutes?.fecha === isoToday() ? (savedRoutes.porPedido || {}) : {};
+      const hasRouteAssignments = Object.values(routeForToday).some(name => name === person.nombre);
 
       const myOrders = rows.filter(r => asig[r.id] === person.nombre);
 
@@ -715,9 +791,16 @@
         .filter(r => ['ASIGNADA', 'PICKING'].includes(r.estado))
         .map(r => enrichOrder(r, stateMap, pendings, causales));
 
-      const ruta = myOrders
-        .filter(r => r.estado === 'DESPACHADO' && getModalidad(r.id) === 'ruta')
-        .map(r => enrichOrder(r, stateMap, pendings, causales));
+      let ruta;
+      if (hasRouteAssignments) {
+        ruta = rows
+          .filter(r => r.estado === 'DESPACHADO' && routeForToday[r.id] === person.nombre)
+          .map(r => enrichOrder(r, stateMap, pendings, causales));
+      } else {
+        ruta = myOrders
+          .filter(r => r.estado === 'DESPACHADO' && getModalidad(r.id) === 'ruta')
+          .map(r => enrichOrder(r, stateMap, pendings, causales));
+      }
 
       return { almacen, ruta };
     }
@@ -737,6 +820,9 @@
       if (!person) return;
       const grupo = person.grupos?.[0] || person.rol || '';
       document.querySelectorAll('.status-btns [data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
+      const { almacen, ruta } = queueForMe();
+      document.getElementById('btnViewAlmacen').textContent = `📦 MIS PEDIDOS EN EL ALMACÉN (${almacen.length})`;
+      document.getElementById('btnViewRuta').textContent = `🚚 MIS PEDIDOS PARA ENTREGAR (${ruta.length})`;
       const now = new Date();
       document.getElementById('greeting').textContent = `Buenos días, ${person.nombre.toUpperCase()}`;
       document.getElementById('groupDate').textContent = `${grupo} · ${now.toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long' })}`;
@@ -771,7 +857,7 @@
               <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
               ${r.pending
                 ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO CONFIRMACIÓN DEL JEFE</div>'
-                : `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0;">✅ ENTREGUÉ ESTE PEDIDO</button>`}
+                : `<button class="action-btn doNext" data-id="${r.id}" style="background:#1565c0;">✅ YA ENTREGUÉ ESTE PEDIDO</button>`}
             </article>
           `;
         }).join('');
@@ -953,38 +1039,42 @@
         const pName = p.nombre || p.name;
         const isMe = pName === me;
         const attend = attendanceToday[pName] || 'presente';
-        const attendLabel = attend === 'presente' ? '✅ Presente'
-          : attend === 'en-ruta' ? '🚚 En Ruta'
-          : attend === 'baja-medica' ? '🏥 Baja Médica'
-          : '❌ Ausente';
-        const attendColor = attend === 'presente' ? '#2e7d32'
+        const st = personal[pName]?.status || 'DISPONIBLE';
+        const dotColor = attend === 'presente' ? '#2e7d32'
           : attend === 'en-ruta' ? '#1565c0'
           : attend === 'baja-medica' ? '#ef6c00'
+          : attend === 'capacitacion' ? '#7b1fa2'
           : '#b71c1c';
-        const st = personal[pName]?.status || 'DISPONIBLE';
-        return `<div class="team-card${isMe ? ' me' : ''}">
-          <div class="tc-name">${isMe ? '👤 YO' : pName}</div>
-          <div class="tc-attend" style="color:${attendColor};">${attendLabel}</div>
-          <div class="tc-status">${st}</div>
+        const statusLabel = attend === 'presente' ? st
+          : attend === 'en-ruta' ? '🚚 En Ruta'
+          : attend === 'baja-medica' ? '🏥 Baja Médica'
+          : attend === 'capacitacion' ? '📚 Capacitación'
+          : '❌ Ausente';
+        return `<div style="display:inline-flex;align-items:center;gap:6px;background:${isMe ? '#e3f2fd' : '#f8fafc'};border:1px solid ${isMe ? '#90caf9' : '#e2e8f0'};border-radius:999px;padding:4px 12px;font-size:13px;font-weight:${isMe ? '800' : '500'};margin:3px 2px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0;"></span>
+          ${isMe ? `<strong>Tú (${me})</strong>` : pName}
+          <span style="color:#64748b;font-size:11px;">${statusLabel}</span>
         </div>`;
       }).join('');
     }
 
     function renderBlockedState() {
       const status = attendanceStatusForMe();
-      const blocked = status === 'ausente' || status === 'baja-medica';
+      const blocked = status === 'ausente' || status === 'baja-medica' || status === 'capacitacion';
       document.getElementById('blockPanel').classList.toggle('hidden', !blocked);
       document.getElementById('app').classList.toggle('hidden', blocked);
       if (blocked) {
         const me = getMe();
         const personal = readLS('almacen_personal', {});
-        const label = status === 'baja-medica' ? 'BAJA MÉDICA' : 'AUSENTE';
+        const label = status === 'baja-medica' ? 'BAJA MÉDICA' : status === 'capacitacion' ? 'CAPACITACIÓN' : 'AUSENTE';
         personal[me] = { ...(personal[me] || {}), status: label, updatedAt: Date.now() };
         writeLS('almacen_personal', personal);
-        const icon = status === 'baja-medica' ? '🏥' : '⚠️';
-        const title = status === 'baja-medica' ? 'Estás en Baja Médica' : 'No registrado como presente hoy';
+        const icon = status === 'baja-medica' ? '🏥' : status === 'capacitacion' ? '📚' : '⚠️';
+        const title = status === 'baja-medica' ? 'Estás en Baja Médica' : status === 'capacitacion' ? 'Estás en Capacitación' : 'No registrado como presente hoy';
         const msg = status === 'baja-medica'
           ? 'Tu estado es BAJA MÉDICA. No tienes acceso al sistema mientras dure tu baja.'
+          : status === 'capacitacion'
+          ? 'Estás registrado en capacitación hoy. No tienes acceso al sistema en este momento.'
           : 'La Jefa de Almacén no te marcó como presente en el pase de lista de hoy.';
         document.getElementById('blockAbsent').innerHTML = `
           ${icon} ${title}
@@ -1010,6 +1100,8 @@
         renderKardexQueue();
       } else if (myRol === 'EMPAQUE') {
         renderEmpaqueQueue();
+      } else if (myRol === 'DISTRIBUCION' || myRol === 'DISTRIBUCIÓN') {
+        renderDistribucionQueue();
       } else {
         renderQueue();
       }
@@ -1086,6 +1178,9 @@
     });
     document.getElementById('empaqueQueue').addEventListener('click', (e) => {
       if (e.target.classList.contains('empaque-advance')) openConfirmFor(e.target.dataset.id);
+    });
+    document.getElementById('distribucionQueue').addEventListener('click', (e) => {
+      if (e.target.classList.contains('distribucion-advance')) doAdvanceDistribucion(e.target.dataset.id);
     });
 
     setInterval(() => {
