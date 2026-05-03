@@ -78,6 +78,8 @@
     .search-wrap input { width:100%; border:1px solid #d1d5db; border-radius:10px; padding:10px 36px 10px 10px; font-size:16px; }
     .search-wrap button { position:absolute; right:6px; top:6px; border:none; background:#e5e7eb; border-radius:8px; width:28px; height:28px; cursor:pointer; }
     .return-banner { margin-top:8px; border:2px solid #b71c1c; background:#ffebee; border-radius:8px; padding:8px; color:#b71c1c; font-size:13px; font-weight:700; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .staff-spinner { display:inline-block; width:18px; height:18px; border:3px solid #cbd5e1; border-top-color:#0b1f3a; border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-left:8px; }
 
     #modal-identidad {
       display: flex;
@@ -131,9 +133,14 @@
     <section id="modal-identidad">
       <div class="modal-content">
         <div id="identityStep1">
-          <h2 style="margin-top:0">¿Quién eres?</h2>
-          <select id="whoSelect"></select>
-          <button id="nextIdentityBtn">Siguiente →</button>
+          <h2 style="margin-top:0;font-size:26px;">¡Bienvenido al CEDIS PANAMÁ! 👋</h2>
+          <p style="color:#6b7280;margin:0 0 16px;font-size:15px;">Selecciona tu nombre para ver tus pedidos del día</p>
+          <div style="position:relative;display:flex;align-items:center;gap:8px;">
+            <select id="whoSelect" style="flex:1;"></select>
+            <span id="staffSpinner" class="staff-spinner" style="display:none;"></span>
+          </div>
+          <div id="staffLoadError" style="color:#b71c1c;font-size:13px;margin-top:6px;display:none;">❌ Error al cargar. Recarga la página.</div>
+          <button id="nextIdentityBtn" disabled>Entrar →</button>
         </div>
         <div id="identityStep2" class="hidden">
           <h2 id="pinWelcome" style="margin-top:0">Bienvenido</h2>
@@ -560,6 +567,15 @@
     }
 
     async function loadStaff() {
+      const sel = document.getElementById('whoSelect');
+      const spinner = document.getElementById('staffSpinner');
+      const errEl = document.getElementById('staffLoadError');
+      const btn = document.getElementById('nextIdentityBtn');
+      sel.innerHTML = '<option value="">Cargando personal...</option>';
+      sel.disabled = true;
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      errEl.style.display = 'none';
       // Try ?file=personal first (returns ALL active roles: ALMACENISTA, KARDEX, EMPAQUE, DISTRIBUCIÓN, etc.)
       // This is needed so DISTRIBUCIÓN staff appear in the login selector
       try {
@@ -567,6 +583,9 @@
         const data = await r.json();
         if (Array.isArray(data) && data.length > 0) {
           STAFF = data;
+          spinner.style.display = 'none';
+          sel.disabled = false;
+          btn.disabled = false;
           return;
         }
       } catch (e) { /* fall through */ }
@@ -575,13 +594,18 @@
         const r = await fetch(`${WEB_APP_URL}?file=staff`);
         const data = await r.json();
         if (!Array.isArray(data) || data.length === 0) {
-          alert('⚠️ No se pudo cargar el personal desde el servidor.');
+          spinner.style.display = 'none';
+          errEl.style.display = '';
           return;
         }
         STAFF = data;
+        spinner.style.display = 'none';
+        sel.disabled = false;
+        btn.disabled = false;
       } catch (e) {
         console.error(e);
-        alert('⚠️ Error al cargar el personal.');
+        spinner.style.display = 'none';
+        errEl.style.display = '';
       }
     }
 
@@ -881,6 +905,11 @@
         });
         document.getElementById('ordersSubtitle').textContent = `Tienes ${q.length} pedidos pendientes en el almacén`;
         priority.innerHTML = '';
+        // Check if the user is EN RUTA — if so, block action buttons
+        const isEnRuta = attendanceStatusForMe() === 'en-ruta';
+        if (isEnRuta) {
+          priority.innerHTML = '<div style="background:#fff3e0;border-left:4px solid #ef6c00;border-radius:8px;padding:10px 14px;font-weight:700;color:#e65100;margin-bottom:8px;">🚚 Estás en ruta. Cuando regreses al almacén podrás reportar avances de tus pedidos.</div>';
+        }
         if (!q.length) {
           box.innerHTML = '<div class="small">Sin pedidos asignados en este momento.</div>';
           return;
@@ -902,9 +931,11 @@
               <div class="state-chip" style="color:${copy.color};">Estado: ${copy.label}</div>
               <div class="wait" style="color:${waitColor}">⏱ Hace: ${ageText}</div>
               ${r.causal ? `<div class="return-banner">⚠️ PEDIDO DEVUELTO — Revisar antes de continuar<br>Motivo: "${r.causal.causal}"<br>Devuelto por ${r.causal.devueltoPor || 'Jefatura'} a las ${new Date(r.causal.timestamp).toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' })}</div>` : ''}
-              ${copy.action && !r.pending
-                ? `<button class="action-btn doNext" data-id="${r.id}" style="background:${copy.btnBg};">${copy.action}</button>`
-                : r.pending ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>' : ''}
+              ${isEnRuta
+                ? '<div style="background:#fff3e0;border:1px solid #ef6c00;border-radius:8px;padding:8px;font-weight:700;color:#e65100;margin-top:8px;">⚠️ Estás en ruta — solo puedes reportar tus entregas</div>'
+                : copy.action && !r.pending
+                  ? `<button class="action-btn doNext" data-id="${r.id}" style="background:${copy.btnBg};">${copy.action}</button>`
+                  : r.pending ? '<div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:8px;font-weight:800;color:#f59e0b;margin-top:8px;">⏳ ESPERANDO APROBACIÓN DEL JEFE</div>' : ''}
             </article>
           `;
         }).join('');

@@ -467,6 +467,13 @@
         <button id="routeTabABtn" style="border:2px solid #0b1f3a;border-radius:8px;padding:7px 14px;background:#0b1f3a;color:#fff;font-weight:700;cursor:pointer;font-size:13px;">📋 Por Pedido</button>
         <button id="routeTabBBtn" style="border:2px solid #e5e7eb;border-radius:8px;padding:7px 14px;background:#fff;font-weight:700;cursor:pointer;font-size:13px;">👤 Por Almacenista</button>
       </div>
+      <div id="routeUESearchWrap" style="margin-bottom:8px;">
+        <input id="routeUESearch" type="text" placeholder="🔍 Buscar por Unidad Ejecutora..." style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:14px;" />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;" id="routeTopBtns">
+        <button id="routeAssignCancelBtnTop">Cancelar</button>
+        <button id="routeAssignSaveBtnTop" style="background:#0b1f3a;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;">💾 Guardar Asignación de Rutas</button>
+      </div>
       <div id="routeAssignBody"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
         <button id="routeAssignCancelBtn">Cancelar</button>
@@ -1288,7 +1295,7 @@
               <button data-status="AUSENTE" disabled title="Controlado por pase de lista" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
               <button class="reset-pin" data-name="${s.nombre}" title="Resetear PIN">🔑 Resetear PIN</button>
             </div>
-            ${isAbsentByList ? `<div class="staff-lock">Bloqueado por pase de lista (AUSENTE)</div>` : ''}
+            ${isAbsentByList ? `<div class="staff-lock">⛔ Bloqueado · ${attendanceToday[s.nombre] === 'baja-medica' ? 'BAJA MÉDICA' : attendanceToday[s.nombre] === 'capacitacion' ? 'EN CAPACITACIÓN' : 'AUSENTE'}</div>` : ''}
           </article>
         `;
       }).join('');
@@ -1342,9 +1349,9 @@
     function renderOperationalMetrics(items, asig) {
       const personal = readLS('almacen_personal', {});
       const total = STAFF.length;
-      const available = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'DISPONIBLE').length;
-      const enRuta = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'EN RUTA').length;
-      const ausentes = STAFF.filter(s => (personal[s.nombre]?.status || 'DISPONIBLE') === 'AUSENTE').length;
+      const available = STAFF.filter(s => getPersonStatus(s.nombre) === 'DISPONIBLE').length;
+      const enRuta = STAFF.filter(s => getPersonStatus(s.nombre) === 'EN RUTA').length;
+      const ausentes = STAFF.filter(s => ['AUSENTE', 'BAJA MÉDICA', 'CAPACITACIÓN'].includes(getPersonStatus(s.nombre))).length;
       const byState = { ASIGNADA: 0, PICKING: 0, 'FACTURACIÓN': 0, EMPACADO: 0 };
       items.forEach(i => { if (byState[i.estado] !== undefined) byState[i.estado]++; });
       const actives = byState.PICKING + byState['FACTURACIÓN'] + byState.EMPACADO;
@@ -1708,6 +1715,7 @@
 
     let _routeCurrentTab = 'A';
     let _routeAssignments = []; // [{pedidoId, almacenista, fechaSalida}]
+    let _routeSearchUE = '';
 
     function getAbsencesThisMonth(nombre) {
       const history = readLS(ATTENDANCE_HISTORY_KEY, {});
@@ -1746,6 +1754,8 @@
         _routeAssignments = [];
       }
       _routeCurrentTab = 'A';
+      _routeSearchUE = '';
+      document.getElementById('routeUESearch').value = '';
       renderRouteAssignTab();
       document.getElementById('routeAssignModal').style.display = 'flex';
     }
@@ -1771,10 +1781,11 @@
       const abs = getAbsencesThisMonth(s.nombre);
       const rank = getRouteRankingPos(s.nombre);
       const rankTxt = rank ? `#${rank} ranking` : 'sin ranking';
-      const absTxt = abs > 0 ? `${abs} ausencia${abs > 1 ? 's' : ''}` : 'sin ausencias';
+      const absTxt = `${abs} ausencia${abs !== 1 ? 's' : ''}`;
+      const grupo = getStaffDisplayGroup(s) || 'SIN GRUPO';
       const pedidosHoy = _routeAssignments.filter(a => a.almacenista === s.nombre).length;
       const pedidosTxt = pedidosHoy > 0 ? ` · ${pedidosHoy} asignado${pedidosHoy > 1 ? 's' : ''}` : '';
-      return `${s.nombre} — ${rankTxt} · ${absTxt}${pedidosTxt}`;
+      return `${s.nombre} — ${grupo} · ${rankTxt} · ${absTxt}${pedidosTxt}`;
     }
 
     function buildStaffSelectHtml(pedidoId, currentAlmacenista) {
@@ -1796,24 +1807,33 @@
 
     function renderRouteTabA() {
       const body = document.getElementById('routeAssignBody');
+      // Show search and top buttons only for tab A
+      document.getElementById('routeUESearchWrap').style.display = '';
+      document.getElementById('routeTopBtns').style.display = '';
       if (!tracking.length) {
         body.innerHTML = '<div style="padding:12px;background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;">ℹ️ No hay pedidos disponibles.</div>';
         return;
       }
-      const rows = tracking.filter(t => t.estado !== 'ENTREGADO');
+      let rows = tracking.filter(t => t.estado !== 'ENTREGADO');
+      if (_routeSearchUE.trim()) {
+        const q = _routeSearchUE.trim().toUpperCase();
+        rows = rows.filter(t => (t.unidad || '').toUpperCase().includes(q));
+      }
       if (!rows.length) {
-        body.innerHTML = '<div style="padding:12px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;">✅ Todos los pedidos están entregados.</div>';
+        body.innerHTML = '<div style="padding:12px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;">✅ Todos los pedidos están entregados o no coinciden con el filtro.</div>';
         return;
       }
       const tableRows = rows.map(t => {
         const entry = _routeAssignments.find(a => a.pedidoId === t.id);
         const asigName = entry?.almacenista || '';
         const fechaSalida = entry?.fechaSalida || '';
+        const grupo = t.group || t.rawGroup || 'SIN GRUPO';
         return `
           <tr style="border-bottom:1px solid #e5e7eb;">
             <td style="padding:7px 6px;font-weight:700;white-space:nowrap;">${esc(t.id)}</td>
             <td style="padding:7px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(t.unidad)}">${esc(t.unidad)}</td>
             <td style="padding:7px 6px;"><span style="background:${getStatusColor(t.estado)};color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;">${esc(t.estado)}</span></td>
+            <td style="padding:7px 6px;font-size:12px;white-space:nowrap;">${esc(grupo)}</td>
             <td style="padding:7px 6px;min-width:100px;">
               <input type="date" class="route-date-input" data-id="${esc(t.id)}" value="${esc(fechaSalida)}" style="border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;font-size:12px;width:100%;" />
             </td>
@@ -1833,6 +1853,7 @@
                 <th style="padding:8px 6px;font-size:11px;text-transform:uppercase;color:#6b7280;">ID</th>
                 <th style="padding:8px 6px;font-size:11px;text-transform:uppercase;color:#6b7280;">Unidad Ejecutora</th>
                 <th style="padding:8px 6px;font-size:11px;text-transform:uppercase;color:#6b7280;">Estado</th>
+                <th style="padding:8px 6px;font-size:11px;text-transform:uppercase;color:#6b7280;">Grupo</th>
                 <th style="padding:8px 6px;font-size:11px;text-transform:uppercase;color:#6b7280;">📅 Fecha de salida a ruta</th>
                 <th style="padding:8px 6px;font-size:11px;text-transform:uppercase;color:#6b7280;">👤 Almacenista asignado</th>
               </tr>
@@ -1845,6 +1866,9 @@
 
     function renderRouteTabB() {
       const body = document.getElementById('routeAssignBody');
+      // Hide search and top buttons for tab B
+      document.getElementById('routeUESearchWrap').style.display = 'none';
+      document.getElementById('routeTopBtns').style.display = 'none';
       const active = getActiveStaffForRoutes();
       if (!_routeAssignments.length) {
         body.innerHTML = '<div style="padding:12px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">ℹ️ No hay asignaciones de ruta aún. Ve a la pestaña "Por Pedido" para asignar.</div>';
@@ -2459,6 +2483,12 @@
       document.getElementById('attendanceSaveBtn').addEventListener('click', saveAttendance);
       document.getElementById('routeAssignCancelBtn').addEventListener('click', closeRouteAssignModal);
       document.getElementById('routeAssignSaveBtn').addEventListener('click', saveRouteAssignments);
+      document.getElementById('routeAssignCancelBtnTop').addEventListener('click', closeRouteAssignModal);
+      document.getElementById('routeAssignSaveBtnTop').addEventListener('click', saveRouteAssignments);
+      document.getElementById('routeUESearch').addEventListener('input', (e) => {
+        _routeSearchUE = e.target.value || '';
+        if (_routeCurrentTab === 'A') renderRouteTabA();
+      });
       document.getElementById('routeAssignModal').addEventListener('click', (e) => {
         if (e.target.id === 'routeAssignModal') closeRouteAssignModal();
       });
