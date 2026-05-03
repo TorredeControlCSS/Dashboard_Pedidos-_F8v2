@@ -558,11 +558,13 @@
       // 1) Always save to localStorage (immediate, cross-page within same device)
       writeLS(ROUTE_ASSIGNMENTS_KEY, { asignaciones: valid, porPersona, porPedido });
 
-      // 2) Persist to backend so other devices (e.g. almacenista tablets) can read it
+      // 2) Persist to backend so other devices (e.g. almacenista tablets) can read it.
+      //    Uses no-cors mode (same pattern as all other backend calls in this app) — the
+      //    request is sent but we cannot read the response body; catch only fires on network error.
       //    Apps Script handler needed: action='saveRouteAssignments'
       //    Sheet: ASIGNACION_RUTAS
       //    Columns: PEDIDO_ID | ALMACENISTA | FECHA_SALIDA | FECHA_ASIGNACION | TIMESTAMP_REGISTRO
-      showToast('⏳ Guardando en el servidor...', 3000);
+      showToast('⏳ Enviando al servidor...', 3000);
       try {
         await fetch(WEB_APP_URL, {
           method: 'POST',
@@ -578,10 +580,12 @@
             }))
           })
         });
-        showToast(`✅ Asignación guardada · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} en ruta`);
+        // Request was sent successfully (no network error). no-cors prevents reading the
+        // response body, so persistence is not confirmed here — the backend must handle it.
+        showToast(`✅ Guardado · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} asignados (local + enviado al servidor)`);
       } catch (e) {
-        // no-cors responses always resolve even on success; network errors come here
-        showToast(`✅ Guardado localmente · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} (servidor no disponible)`);
+        // Network error — only localStorage was updated
+        showToast(`✅ Guardado localmente · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} (sin conexión al servidor)`);
       }
 
       // Rebuild staff labels so counters update

@@ -614,7 +614,8 @@
       return pase.personal?.[me] || 'presente';
     }
 
-    // Route assignments loaded from backend; null means not loaded yet (fall back to localStorage)
+    // Route assignments from backend. null = not yet loaded or backend unavailable (fall back to localStorage).
+    // An array (even empty) means the backend responded and its data should be used.
     let _backendRouteAssignments = null;
 
     async function loadRouteAssignmentsFromBackend() {
@@ -631,7 +632,8 @@
           return;
         }
       } catch (e) { /* fall through to localStorage */ }
-      _backendRouteAssignments = null; // signal: use localStorage
+      // Backend unavailable or returned no data: _backendRouteAssignments stays null so
+      // getEffectiveRouteAssignments() will use localStorage as fallback.
     }
 
     function getEffectiveRouteAssignments() {
