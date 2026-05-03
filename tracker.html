@@ -53,6 +53,10 @@
     .ue-row{ border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:10px; }
     .ue-head{ display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
     .ue-btn{ border:none; background:#e2e8f0; border-radius:8px; padding:6px 8px; cursor:pointer; font-weight:700; }
+    .order-id-link{ background:none; border:none; color:#1565c0; font-weight:800; font-size:inherit; cursor:pointer; text-decoration:underline; padding:0; }
+    .order-id-link:hover{ color:#0b1f3a; }
+    #jefaturaModal{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1100; }
+    #jefaturaModal .jbox{ background:#fff; border-radius:14px; width:min(360px,92vw); padding:20px; text-align:center; }
     @keyframes spin{to{transform:rotate(360deg)}}
     @media (max-width:780px){
       .timeline{ grid-template-columns:1fr; }
@@ -63,9 +67,27 @@
   </style>
 </head>
 <body>
+  <!-- Jefatura PIN modal -->
+  <div id="jefaturaModal">
+    <div class="jbox">
+      <h3 style="margin:0 0 12px;">🔐 Acceso a Jefatura</h3>
+      <p style="color:#6b7280;font-size:14px;margin:0 0 12px;">Ingresa el PIN de Jefatura para continuar</p>
+      <input id="jefaturaPinInput" type="password" maxlength="4" inputmode="numeric" placeholder="_ _ _ _"
+        style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:22px;letter-spacing:8px;text-align:center;" />
+      <div id="jefaturaPinError" style="color:#b71c1c;font-size:13px;min-height:18px;margin-top:6px;"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button id="jefaturaModalCancel" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;">Cancelar</button>
+        <button id="jefaturaModalAccess" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0b1f3a;color:#fff;font-weight:700;cursor:pointer;">Acceder</button>
+      </div>
+    </div>
+  </div>
+
   <header class="topbar">
     <h1>CEDIS PANAMÁ — Consulta de Requisiciones</h1>
-    <p>Sistema de Seguimiento de Formas 8 · <span id="connStatus">🟢 En línea</span></p>
+    <p>Sistema de Seguimiento de Formas 8 · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
+    <div style="margin-top:6px;">
+      <button id="goJefaturaBtn" style="border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;">← Jefatura</button>
+    </div>
   </header>
   <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
@@ -238,11 +260,15 @@
       const itemsAsig = Number(r.ITEMS_ASIG || 0);
       const pct = totalSolic ? Math.max(0, Math.min(100, (totalAsig / totalSolic) * 100)) : 0;
       const f8Date = fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION);
+      const almacenista = String(r.ALMACENISTA || '').trim() || 'Sin asignar';
+      const pedidoId = r.ID_PEDIDO || '—';
+      const safePedidoId = String(pedidoId).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       return `
         <article class="card" style="margin-top:12px">
-          <h2>${STATE_ICON[state] || '📦'} ${r.ID_PEDIDO || '—'}</h2>
+          <h2>${STATE_ICON[state] || '📦'} <button class="order-id-link do-pdf" data-pdf-id="${safePedidoId}">📄 ${safePedidoId}</button></h2>
           <div class="meta">${r.UNIDAD_EJECUTORA || 'Sin UE'}</div>
           <div class="meta">Fecha F8: ${f8Date} · Estado: ${state} · Grupo: ${r.GRUPO || '—'}</div>
+          <div class="meta">👤 Responsable: ${almacenista}</div>
           ${timelineHTML(r, state)}
           <div class="delivery-info">
             <strong>📅 Información de Entrega</strong>
@@ -253,7 +279,7 @@
             <div>Unidades Asignadas: ${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} solicitadas</div>
             <div class="meter"><span style="width:${pct.toFixed(1)}%"></span></div>
             <div>${pct.toFixed(1)}% fill rate · ${itemsAsig} items asignados</div>
-            <button class="details-toggle" data-toggle-detail="${key}" data-id="${r.ID_PEDIDO || ''}" data-items="${itemsAsig}">▶ Ver detalle de renglones asignados (${itemsAsig} items)</button>
+            <button class="details-toggle" data-toggle-detail="${key}" data-id="${pedidoId}" data-items="${itemsAsig}">▶ Ver detalle de renglones asignados (${itemsAsig} items)</button>
             <div id="detail-${key}" class="details-wrap hidden"></div>
           </div>
           <div class="msg">${contextual(state, deliveryToday)}</div>
@@ -372,10 +398,13 @@
               ${rows.map((r, i) => {
                 const state = normalizeState(r.ESTADO);
                 const pct = Number(r.TOTAL_SOLIC || 0) ? ((Number(r.TOTAL_ASIG || 0) / Number(r.TOTAL_SOLIC || 0)) * 100) : 0;
+                const almacenista = String(r.ALMACENISTA || '').trim() || 'Sin asignar';
+                const pid = String(r.ID_PEDIDO || '—');
+                const safePid = pid.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                 return `
                   <div class="ue-row">
                     <div class="ue-head">
-                      <div>${STATE_ICON[state] || '📦'} <strong>${r.ID_PEDIDO || '—'}</strong> | ${state} | ${fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION)} | ${pct.toFixed(0)}% fill rate</div>
+                      <div>${STATE_ICON[state] || '📦'} <button class="order-id-link do-pdf" data-pdf-id="${safePid}">📄 ${safePid}</button> | ${state} | ${fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION)} | ${pct.toFixed(0)}% fill rate | 👤 ${almacenista}</div>
                       <button class="ue-btn" data-toggle-ue="ue-${i}">Ver detalle ▼</button>
                     </div>
                     <div id="ue-${i}" class="hidden"></div>
@@ -414,6 +443,15 @@
       if (!id) return;
       document.getElementById('f8Input').value = id;
       doSearch(false);
+    });
+
+    // Delegated handler for PDF generation buttons
+    document.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('do-pdf')) {
+        const pdfId = e.target.dataset.pdfId || '';
+        if (pdfId) await generatePDF(pdfId);
+        return;
+      }
     });
 
     document.addEventListener('click', async (e) => {
@@ -459,6 +497,125 @@
 
     renderRecent();
     fetchTracking(false).catch(() => setConnectionStatus(false));
+
+    // ── Jefatura PIN modal ──────────────────────────────────────────
+    function openJefaturaModal() {
+      document.getElementById('jefaturaPinInput').value = '';
+      document.getElementById('jefaturaPinError').textContent = '';
+      document.getElementById('jefaturaModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('jefaturaPinInput').focus(), 10);
+    }
+    function closeJefaturaModal() {
+      document.getElementById('jefaturaModal').style.display = 'none';
+    }
+    function checkJefaturaPin() {
+      const pin = document.getElementById('jefaturaPinInput').value.trim();
+      const stored = localStorage.getItem('jefatura_pin') || '';
+      if (!stored) { window.location.href = 'index.html'; return; }
+      if (pin === stored) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('jefaturaPinError').textContent = 'PIN incorrecto';
+        document.getElementById('jefaturaPinInput').value = '';
+        document.getElementById('jefaturaPinInput').focus();
+      }
+    }
+    document.getElementById('goJefaturaBtn').addEventListener('click', openJefaturaModal);
+    document.getElementById('jefaturaModalCancel').addEventListener('click', closeJefaturaModal);
+    document.getElementById('jefaturaModalAccess').addEventListener('click', checkJefaturaPin);
+    document.getElementById('jefaturaPinInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkJefaturaPin();
+    });
+    document.getElementById('jefaturaModal').addEventListener('click', (e) => {
+      if (e.target.id === 'jefaturaModal') closeJefaturaModal();
+    });
+
+    // ── PDF generation for order ────────────────────────────────────
+    async function generatePDF(pedidoId) {
+      const row = trackingRows.find(r => String(r.ID_PEDIDO || '').toUpperCase() === String(pedidoId).toUpperCase());
+      if (!row) { alert('No se encontraron datos para este pedido.'); return; }
+      const state = normalizeState(row.ESTADO);
+      const totalSolic = Number(row.TOTAL_SOLIC || 0);
+      const totalAsig = Number(row.TOTAL_ASIG || 0);
+      const pct = totalSolic ? ((totalAsig / totalSolic) * 100).toFixed(1) : '0.0';
+      const f8Date = fmtDate(row.FECHA_F8 || row.fechaF8 || row.FECHA_ASIGNACION);
+      const almacenista = String(row.ALMACENISTA || '').trim() || 'Sin asignar';
+
+      // Fetch allocation items (only public fields)
+      let itemsHtml = '<tr><td colspan="3" style="color:#6b7280;text-align:center;">Cargando detalle...</td></tr>';
+      let allocationData = [];
+      try {
+        if (!allocationLoaded) await fetchAllocation(false);
+        allocationData = allocationRows.filter(r => String(r.N_Doc || '').trim().toUpperCase() === String(pedidoId).trim().toUpperCase());
+      } catch { /* keep empty */ }
+      if (allocationData.length) {
+        itemsHtml = allocationData.map(x => {
+          const code = x.CODIGO || x.Codigo || x.COD_ARTICULO || x.ITEM || '—';
+          const name = x.SUMINISTRO || x.DESCRIPCION || x.DESCRIPCIÓN || x.Nombre || '—';
+          const qty = Number(x.ASIGNADO ?? x.CANT_ASIG ?? x.CANTIDAD_ASIGNADA ?? x.CANT ?? 0).toLocaleString('es-PA');
+          return `<tr><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${code}</td><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${name}</td><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${qty}</td></tr>`;
+        }).join('');
+      } else {
+        itemsHtml = '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:10px;">Detalle no disponible</td></tr>';
+      }
+
+      const win = window.open('', '_blank', 'width=800,height=700');
+      if (!win) { alert('Por favor permite ventanas emergentes para generar el PDF.'); return; }
+      win.opener = null;
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>F8 ${pedidoId}</title>
+        <style>
+          body{font-family:Arial,sans-serif;margin:24px;color:#111827;}
+          h1{font-size:18px;margin:0 0 4px;}
+          h2{font-size:15px;color:#0b1f3a;margin:16px 0 8px;}
+          .header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #0b1f3a;padding-bottom:12px;margin-bottom:16px;}
+          .header-title{flex:1;}
+          .meta{font-size:13px;color:#374151;margin:3px 0;}
+          .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;background:#0b1f3a;}
+          table{width:100%;border-collapse:collapse;font-size:13px;}
+          th{background:#f1f5f9;padding:7px 8px;text-align:left;font-size:11px;text-transform:uppercase;color:#6b7280;}
+          td{padding:5px 8px;border-bottom:1px solid #e5e7eb;}
+          .fill-bar{width:100%;height:14px;border-radius:999px;background:#e5e7eb;overflow:hidden;}
+          .fill-inner{height:100%;background:#2e7d32;}
+          @media print{@page{margin:12mm;}}
+        </style>
+      </head><body>
+        <div class="header">
+          <div class="header-title">
+            <h1>HOJA DE ASIGNACIÓN F8 — CEDIS PANAMÁ</h1>
+            <div class="meta">👩‍💼 Jefa a Cargo: PAOLA MORENO</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;color:#6b7280;">Generado: ${new Date().toLocaleString('es-PA')}</div>
+          </div>
+        </div>
+
+        <h2>📋 Información del Pedido</h2>
+        <table>
+          <tr><td style="font-weight:700;width:40%">ID del Pedido</td><td>${pedidoId}</td></tr>
+          <tr><td style="font-weight:700">Unidad Ejecutora</td><td>${row.UNIDAD_EJECUTORA || '—'}</td></tr>
+          <tr><td style="font-weight:700">Fecha F8</td><td>${f8Date}</td></tr>
+          <tr><td style="font-weight:700">Fecha Asignación</td><td>${fmtDate(row.FECHA_ASIGNACION)}</td></tr>
+          <tr><td style="font-weight:700">Estado Actual</td><td><span class="badge">${state}</span></td></tr>
+          <tr><td style="font-weight:700">Almacenista Responsable</td><td>👤 ${almacenista}</td></tr>
+          <tr><td style="font-weight:700">% Fill Rate</td><td>
+            <div>${pct}% (${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} unidades)</div>
+            <div class="fill-bar" style="margin-top:4px;"><div class="fill-inner" style="width:${pct}%;"></div></div>
+          </td></tr>
+        </table>
+
+        <h2>📦 Ítems Asignados</h2>
+        <table>
+          <thead><tr><th>SKU / Código</th><th>Suministro</th><th style="text-align:right;">Cant. Asignada</th></tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+
+        <div style="margin-top:24px;font-size:11px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px;">
+          CEDIS PANAMÁ · Torre de Control · ${new Date().toLocaleDateString('es-PA')}
+        </div>
+        <script>window.onload=function(){setTimeout(function(){window.print();},150);}<\/script>
+      </body></html>`);
+      win.document.close();
+    }
   </script>
 </body>
 </html>

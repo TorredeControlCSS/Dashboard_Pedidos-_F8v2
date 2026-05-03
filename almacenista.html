@@ -115,6 +115,8 @@
     #confirmModal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:1000; }
     #confirmModal .box { background:#fff; border-radius:12px; width:min(440px,92vw); padding:14px; }
     #blockAbsent { border:2px solid #ef9a9a; background:#ffebee; border-radius:12px; padding:16px; font-size:18px; font-weight:700; margin:12px; }
+    #jefaturaModal { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1100; }
+    #jefaturaModal .box { background:#fff; border-radius:14px; width:min(360px,92vw); padding:20px; text-align:center; }
     @media (max-width: 640px){ .status-btns{ grid-template-columns:1fr; } }
   </style>
 </head>
@@ -123,11 +125,26 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — VISTA ALMACENISTA · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · <span id="connStatus">🟢 En línea</span></p>
+      <p><span id="clock">--</span> · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
     </div>
     <div class="actions" id="topbarActions"></div>
   </header>
   <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
+
+  <!-- Jefatura PIN modal -->
+  <div id="jefaturaModal">
+    <div class="box">
+      <h3 style="margin:0 0 12px;">🔐 Acceso a Jefatura</h3>
+      <p style="color:#6b7280;font-size:14px;margin:0 0 12px;">Ingresa el PIN de Jefatura para continuar</p>
+      <input id="jefaturaPinInput" type="password" maxlength="4" inputmode="numeric" placeholder="_ _ _ _"
+        style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:10px;font-size:22px;letter-spacing:8px;text-align:center;" />
+      <div id="jefaturaPinError" style="color:#b71c1c;font-size:13px;min-height:18px;margin-top:6px;"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button id="jefaturaModalCancel" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;">Cancelar</button>
+        <button id="jefaturaModalAccess" style="flex:1;padding:10px;border:none;border-radius:8px;background:#0b1f3a;color:#fff;font-weight:700;cursor:pointer;">Acceder</button>
+      </div>
+    </div>
+  </div>
 
   <main class="main">
     <section id="modal-identidad">
@@ -302,6 +319,8 @@
     };
     const NEXT = { ASIGNADA: 'PICKING', PICKING: 'FACTURACIÓN', FACTURACIÓN: 'EMPACADO', EMPACADO: 'DESPACHADO', DESPACHADO: 'ENTREGADO' };
     const IDENTITY_KEY = 'almacen_yo';
+    const LAST_USER_KEY = 'alm_last_user';
+    const JEFA_CARGO = 'PAOLA MORENO';
     const STAFF_PINS_KEY = 'staff_pins';
     const PENDING_KEY = 'almacen_pendientes';
     const CAUSALES_KEY = 'almacen_causales';
@@ -728,6 +747,11 @@
           const grupo = s.grupos?.[0] || s.rol || '';
           return `<option value="${s.nombre}">${s.nombre} · ${grupo}</option>`;
         }).join('');
+      // Pre-select last user as a suggestion (user still must enter PIN)
+      const lastUser = localStorage.getItem(LAST_USER_KEY) || '';
+      if (lastUser && STAFF.some(s => s.nombre === lastUser)) {
+        sel.value = lastUser;
+      }
       const me = getMe();
       const valid = me && STAFF.some(s => s.nombre === me);
       document.getElementById('modal-identidad').classList.toggle('hidden', valid);
@@ -781,6 +805,7 @@
         return;
       }
       localStorage.setItem(IDENTITY_KEY, identityCandidate);
+      localStorage.setItem(LAST_USER_KEY, identityCandidate);
       renderAll();
     }
 
@@ -792,13 +817,14 @@
       wrap.innerHTML = `
         <span class="btn" style="cursor:default">👤 ${person.nombre} · ${grupo}</span>
         <button class="btn" id="changeUserBtn">Cambiar</button>
-        <a class="btn" href="index.html">← Jefatura</a>
+        <button class="btn" id="goJefaturaBtn">← Jefatura</button>
       `;
       document.getElementById('changeUserBtn').addEventListener('click', () => {
         localStorage.removeItem(IDENTITY_KEY);
         setupIdentity();
         renderAll();
       });
+      document.getElementById('goJefaturaBtn').addEventListener('click', openJefaturaModal);
     }
 
     function stateCopy(state) {
@@ -1163,6 +1189,43 @@
       renderAll();
     }
 
+    function openJefaturaModal() {
+      document.getElementById('jefaturaPinInput').value = '';
+      document.getElementById('jefaturaPinError').textContent = '';
+      document.getElementById('jefaturaModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('jefaturaPinInput').focus(), 10);
+    }
+
+    function closeJefaturaModal() {
+      document.getElementById('jefaturaModal').style.display = 'none';
+    }
+
+    function checkJefaturaPin() {
+      const pin = document.getElementById('jefaturaPinInput').value.trim();
+      const stored = localStorage.getItem('jefatura_pin') || '';
+      if (!stored) {
+        // No PIN configured yet — allow access
+        window.location.href = 'index.html';
+        return;
+      }
+      if (pin === stored) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('jefaturaPinError').textContent = 'PIN incorrecto';
+        document.getElementById('jefaturaPinInput').value = '';
+        document.getElementById('jefaturaPinInput').focus();
+      }
+    }
+
+    document.getElementById('jefaturaModalCancel').addEventListener('click', closeJefaturaModal);
+    document.getElementById('jefaturaModalAccess').addEventListener('click', checkJefaturaPin);
+    document.getElementById('jefaturaPinInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkJefaturaPin();
+    });
+    document.getElementById('jefaturaModal').addEventListener('click', (e) => {
+      if (e.target.id === 'jefaturaModal') closeJefaturaModal();
+    });
+
     document.getElementById('nextIdentityBtn').addEventListener('click', startPinStep);
     document.getElementById('backIdentityBtn').addEventListener('click', resetIdentitySteps);
     document.getElementById('loginBtn').addEventListener('click', finishIdentityLogin);
@@ -1214,6 +1277,8 @@
 
     (async () => {
       document.getElementById('clock').textContent = new Date().toLocaleString('es-PA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      // Always require fresh login — never resume a previous session automatically
+      localStorage.removeItem(IDENTITY_KEY);
       try {
         await loadStaff();
         await loadData();

@@ -137,7 +137,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>🗺️ ASIGNACIÓN DE RUTAS · CEDIS PANAMA</h1>
-      <p id="pageSubtitle">Cargando datos...</p>
+      <p id="pageSubtitle">Cargando datos... · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
     </div>
     <div class="actions">
       <a class="btn" href="index.html">← Volver a Jefatura</a>
@@ -607,7 +607,7 @@
         document.getElementById('mainContent').style.display = '';
 
         const today = new Date().toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        document.getElementById('pageSubtitle').textContent = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos`;
+        document.getElementById('pageSubtitle').innerHTML = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span>`;
 
         populateFilters();
         renderTabA();
