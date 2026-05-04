@@ -130,6 +130,19 @@
       .filters-bar { flex-direction: column; }
       .filters-bar input, .filters-bar select { min-width: 0; width: 100%; }
     }
+    .mini-dash {
+      background: linear-gradient(90deg, #0b1f3a, #133a74);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 10px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .mini-dash-label { color: #cbd5e1; font-size: 11px; font-weight: 700; white-space: nowrap; margin-right: 4px; }
+    .mini-dash-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px; padding: 4px 12px; color: #fff;
+      font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+    .mini-dash-chip .chip-count { background: rgba(255,255,255,.2); border-radius: 999px; padding: 1px 7px; font-size: 11px; margin-left: 4px; }
   </style>
 </head>
 <body>
@@ -151,6 +164,9 @@
   <div id="errorBanner" class="error-banner"></div>
 
   <div class="wrap" id="mainContent" style="display:none;">
+
+    <!-- Mini-dashboard: almacenistas with assignments -->
+    <div id="miniDash" style="display:none;" class="mini-dash"></div>
 
     <!-- Filter bar -->
     <div class="filters-bar">
@@ -403,6 +419,27 @@
       return `<option value="">— Sin asignar —</option>${options}`;
     }
 
+    // ─── MINI-DASHBOARD ──────────────────────────────────────────────────────────
+    function renderMiniDashboard() {
+      const el = document.getElementById('miniDash');
+      if (!el) return;
+      const today = isoToday();
+      const byPerson = {};
+      _routeAssignments.forEach(a => {
+        if (!a.pedidoId || !a.almacenista) return;
+        if (!byPerson[a.almacenista]) byPerson[a.almacenista] = { count: 0, hasToday: false };
+        byPerson[a.almacenista].count++;
+        if (a.fechaSalida && a.fechaSalida === today) byPerson[a.almacenista].hasToday = true;
+      });
+      const entries = Object.entries(byPerson).filter(([, v]) => v.count > 0).sort((a, b) => a[0].localeCompare(b[0]));
+      if (!entries.length) { el.style.display = 'none'; return; }
+      el.style.display = 'flex';
+      el.innerHTML = `<span class="mini-dash-label">🗺️ Almacenistas asignados:</span>` +
+        entries.map(([nombre, { count, hasToday }]) =>
+          `<span class="mini-dash-chip">${hasToday ? '📅 ' : ''}${esc(nombre)}<span class="chip-count">${count} pedido${count > 1 ? 's' : ''}</span></span>`
+        ).join('');
+    }
+
     // ─── FILTER & PAGINATION ─────────────────────────────────────────────────────
     function getFilteredRows() {
       let rows = tracking.filter(t => t.estado !== 'ENTREGADO');
@@ -589,6 +626,7 @@
       }
 
       // Rebuild staff labels so counters update
+      renderMiniDashboard();
       if (_currentTab === 'A') renderTabA();
       if (_currentTab === 'B') renderTabB();
     }
@@ -610,6 +648,7 @@
         document.getElementById('pageSubtitle').innerHTML = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span>`;
 
         populateFilters();
+        renderMiniDashboard();
         renderTabA();
       } catch (e) {
         console.error(e);
@@ -623,6 +662,7 @@
         if (tracking.length || STAFF.length) {
           document.getElementById('mainContent').style.display = '';
           populateFilters();
+          renderMiniDashboard();
           renderTabA();
         }
       }
@@ -651,6 +691,7 @@
         document.getElementById('tabAContent').style.display = 'none';
         document.getElementById('saveRowTop').style.display = 'none';
         document.getElementById('saveRowBottom').style.display = '';
+        renderMiniDashboard();
         renderTabB();
       });
 

@@ -480,7 +480,7 @@
         const box = document.getElementById(ueKey);
         if (!box) return;
         const row = e.target.closest('.ue-row');
-        const f8Id = row?.querySelector('strong')?.textContent || '';
+        const f8Id = row?.querySelector('[data-pdf-id]')?.dataset?.pdfId || '';
         const open = !box.classList.contains('hidden');
         if (open) {
           box.classList.add('hidden');
@@ -541,22 +541,53 @@
       const f8Date = fmtDate(row.FECHA_F8 || row.fechaF8 || row.FECHA_ASIGNACION);
       const almacenista = String(row.ALMACENISTA || '').trim() || 'Sin asignar';
 
-      // Fetch allocation items (only public fields)
-      let itemsHtml = '<tr><td colspan="3" style="color:#6b7280;text-align:center;">Cargando detalle...</td></tr>';
-      let allocationData = [];
+      // Show loading state on the clicked button
+      const loadingEl = document.createElement('span');
+      loadingEl.textContent = ' ⏳';
+      const clickedBtn = document.querySelector(`.do-pdf[data-pdf-id="${CSS.escape(pedidoId)}"]`);
+      if (clickedBtn) { clickedBtn.disabled = true; clickedBtn.append(loadingEl); }
+
+      let itemsData = [];
       try {
-        if (!allocationLoaded) await fetchAllocation(false);
-        allocationData = allocationRows.filter(r => String(r.N_Doc || '').trim().toUpperCase() === String(pedidoId).trim().toUpperCase());
-      } catch { /* keep empty */ }
-      if (allocationData.length) {
-        itemsHtml = allocationData.map(x => {
-          const code = x.CODIGO || x.Codigo || x.COD_ARTICULO || x.ITEM || '—';
-          const name = x.SUMINISTRO || x.DESCRIPCION || x.DESCRIPCIÓN || x.Nombre || '—';
-          const qty = Number(x.ASIGNADO ?? x.CANT_ASIG ?? x.CANTIDAD_ASIGNADA ?? x.CANT ?? 0).toLocaleString('es-PA');
-          return `<tr><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${code}</td><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${name}</td><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${qty}</td></tr>`;
+        // 1) Try history (HISTORIAL_ACUMULADO) first — contains all items per pedido
+        const historyResp = await fetch(`${WEB_APP_URL}?file=history`);
+        const historyRaw = await historyResp.json();
+        if (Array.isArray(historyRaw)) {
+          const id = String(pedidoId).trim().toUpperCase();
+          itemsData = historyRaw.filter(r =>
+            String(r.F8_ID || r.N_Doc || r.ID_PEDIDO || '').trim().toUpperCase() === id
+          );
+        }
+      } catch { /* fall through */ }
+
+      if (!itemsData.length) {
+        // 2) Fallback: allocation endpoint
+        try {
+          if (!allocationLoaded) await fetchAllocation(false);
+          const id = String(pedidoId).trim().toUpperCase();
+          itemsData = allocationRows.filter(r => String(r.N_Doc || '').trim().toUpperCase() === id);
+        } catch { /* keep empty */ }
+      }
+
+      // Remove loading indicator
+      if (clickedBtn) { clickedBtn.disabled = false; loadingEl.remove(); }
+
+      let itemsHtml;
+      if (itemsData.length) {
+        itemsHtml = itemsData.map(x => {
+          const code = x.Codigo || x.CODIGO || x.SKU || x.COD_ARTICULO || x.ITEM || '—';
+          const name = x.Suministro || x.SUMINISTRO || x.NOMBRE_SUMINISTRO || x.DESCRIPCION || x.DESCRIPCIÓN || '—';
+          const solicitado = Number(x.Solicitado_redondeado ?? x.CANT_SOLICITADA_AJUSTADA ?? x.CANT_SOLICITADA ?? x.SOLICITADO ?? 0).toLocaleString('es-PA');
+          const asignado = Number(x.Asignado ?? x.CANT_ASIGNADA ?? x.ASIGNADO ?? x.CANT_ASIG ?? x.CANTIDAD_ASIGNADA ?? 0).toLocaleString('es-PA');
+          return `<tr>
+            <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${code}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${name}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${solicitado}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${asignado}</td>
+          </tr>`;
         }).join('');
       } else {
-        itemsHtml = '<tr><td colspan="3" style="color:#6b7280;text-align:center;padding:10px;">Detalle no disponible</td></tr>';
+        itemsHtml = '<tr><td colspan="4" style="color:#6b7280;text-align:center;padding:10px;">Detalle no disponible</td></tr>';
       }
 
       const win = window.open('', '_blank', 'width=800,height=700');
@@ -605,7 +636,7 @@
 
         <h2>📦 Ítems Asignados</h2>
         <table>
-          <thead><tr><th>SKU / Código</th><th>Suministro</th><th style="text-align:right;">Cant. Asignada</th></tr></thead>
+          <thead><tr><th>SKU / Código</th><th>Suministro</th><th style="text-align:right;">Solicitado</th><th style="text-align:right;">Asignado</th></tr></thead>
           <tbody>${itemsHtml}</tbody>
         </table>
 
