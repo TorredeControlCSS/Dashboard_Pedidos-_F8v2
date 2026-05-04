@@ -394,7 +394,7 @@
       <article class="kpi kpi-pack"><div class="label">En Empaque</div><div id="kPack" class="value">0</div></article>
       <article class="kpi" style="border-left-color:#7b1fa2;"><div class="label">En Distribución</div><div id="kDistrib" class="value">0</div></article>
       <article class="kpi kpi-desp"><div class="label">Despachadas Hoy</div><div id="kDespHoy" class="value">0</div><div id="kDespSub" class="small">0 de 0 con entrega hoy</div></article>
-      <article class="kpi kpi-sla" id="kSlaWrap"><div class="label">⏱️ PEDIDOS ATRASADOS</div><div id="kSla" class="value">0</div><div id="kSlaSub" class="sub" style="font-size:11px;color:#6b7280;margin-top:3px;">Todo al día</div><div class="sub" style="font-size:10px;color:#9ca3af;margin-top:1px;" title="Pedidos que llevan más tiempo del esperado en su etapa actual">Tiempo excedido por etapa</div></article>
+      <article class="kpi kpi-sla" id="kSlaWrap"><div class="label">⏱️ PEDIDOS ATRASADOS</div><div id="kSla" class="value">0</div><div id="kSlaSub" class="sub" style="font-size:11px;color:#6b7280;margin-top:3px;">Todo al día</div></article>
     </section>
 
     <section class="delivery-widget" id="deliveryWidget"></section>
@@ -1029,7 +1029,7 @@
     function activeCountByPerson(items, asig) {
       const out = {};
       items.filter(i => i.estado !== 'ENTREGADO').forEach(i => {
-        const p = asig[i.id];
+        const p = asig[i.id] || i.ALMACENISTA || i.almacenista;
         if (p) out[p] = (out[p] || 0) + 1;
       });
       return out;
@@ -1070,11 +1070,11 @@
       } else if (slaAlerts <= 3) {
         kSlaWrap.style.borderLeftColor = '#f59e0b';
         kSlaVal.style.color = '#f59e0b';
-        kSlaSubEl.textContent = `⏳ ${slaAlerts} pedido${slaAlerts > 1 ? 's' : ''} demorado${slaAlerts > 1 ? 's' : ''}`;
+        kSlaSubEl.textContent = `⏳ ${slaAlerts} pedido${slaAlerts > 1 ? 's' : ''} · Tiempo excedido por etapa`;
       } else {
         kSlaWrap.style.borderLeftColor = '#b71c1c';
         kSlaVal.style.color = '#b71c1c';
-        kSlaSubEl.textContent = `¡${slaAlerts} pedidos críticos! 🔴`;
+        kSlaSubEl.textContent = `🔴 ${slaAlerts} pedidos · Tiempo excedido por etapa`;
       }
       document.getElementById('kSlaWrap').classList.toggle('blink', slaAlerts > 0);
       document.getElementById('kSla').classList.toggle('pulse', slaAlerts > 0);
@@ -1285,6 +1285,8 @@
       const activeBy = activeCountByPerson(items, asig);
       cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
         const isAbsentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
+        const isEnRutaByList = attendanceToday[s.nombre] === 'en-ruta';
+        const isStatusLocked = isAbsentByList || isEnRutaByList;
         const st = personal[s.nombre]?.status || 'DISPONIBLE';
         return `
           <article class="person" data-name="${s.nombre}">
@@ -1292,12 +1294,13 @@
             <span class="small">${s.rol}</span>
             <div class="small" style="margin-top:4px">${activeBy[s.nombre] || 0} F8s activas</div>
             <div class="st-buttons">
-              <button data-status="DISPONIBLE" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
-              <button data-status="EN RUTA" ${isAbsentByList ? 'disabled title="Bloqueado por pase de lista"' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
+              <button data-status="DISPONIBLE" ${isStatusLocked ? 'disabled title="Controlado por pase de lista"' : ''} class="${st === 'DISPONIBLE' ? 'active' : ''}">✅ Disponible</button>
+              <button data-status="EN RUTA" ${isStatusLocked ? 'disabled title="Controlado por pase de lista"' : ''} class="${st === 'EN RUTA' ? 'active' : ''}">🚚 En Ruta</button>
               <button data-status="AUSENTE" disabled title="Controlado por pase de lista" class="${st === 'AUSENTE' ? 'active' : ''}">⏸ Ausente</button>
               <button class="reset-pin" data-name="${s.nombre}" title="Resetear PIN">🔑 Resetear PIN</button>
             </div>
             ${isAbsentByList ? `<div class="staff-lock">⛔ Bloqueado · ${attendanceToday[s.nombre] === 'baja-medica' ? 'BAJA MÉDICA' : attendanceToday[s.nombre] === 'capacitacion' ? 'EN CAPACITACIÓN' : 'AUSENTE'}</div>` : ''}
+            ${isEnRutaByList ? `<div class="staff-lock">🚚 En ruta · Controlado por pase de lista</div>` : ''}
           </article>
         `;
       }).join('');
@@ -1676,12 +1679,18 @@
       history[today] = { ...attendanceDraft };
       writeLS(ATTENDANCE_HISTORY_KEY, history);
       const personal = readLS('almacen_personal', {});
-      STAFF.forEach((s) => {
-        const state = payload.personal[s.nombre] || 'presente';
-        personal[s.nombre] = {
-          ...(personal[s.nombre] || {}),
-          status: ATTENDANCE_STATUS_MAP[state] || 'DISPONIBLE'
-        };
+      Object.entries(attendanceDraft).forEach(([nombre, val]) => {
+        if (!personal[nombre]) personal[nombre] = {};
+        if (val === 'en-ruta') {
+          personal[nombre].status = 'EN RUTA';
+        } else if (val === 'presente') {
+          // Solo actualizar si actualmente está en un estado de ausencia — no sobreescribir EN RUTA manual
+          if (['AUSENTE', 'BAJA MÉDICA', 'CAPACITACIÓN'].includes(personal[nombre].status)) {
+            personal[nombre].status = 'DISPONIBLE';
+          }
+        } else if (val === 'ausente' || val === 'baja-medica' || val === 'capacitacion') {
+          personal[nombre].status = 'AUSENTE';
+        }
       });
       writeLS('almacen_personal', personal);
       const ausentes = Object.values(payload.personal).filter(v => v === 'ausente').length;
@@ -2203,9 +2212,20 @@
         renderDashboard();
       });
       document.getElementById('kSlaWrap').addEventListener('click', () => {
-        const firstCritical = document.querySelector('.card.critical-sla');
-        if (!firstCritical) return;
-        firstCritical.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const stateMap = readLS('almacen_state_timestamps', {});
+        const slaFiltered = tracking.filter(i => {
+          const elapsed = getElapsed(i, stateMap);
+          const sla = getSla(i, elapsed);
+          return sla.alert;
+        });
+        if (!slaFiltered.length) {
+          showToast('✅ No hay pedidos demorados actualmente', 3000);
+          return;
+        }
+        filteredTracking = slaFiltered;
+        renderBoard(filteredTracking, stateMap, readLS('almacen_asignaciones', {}), readLS('almacen_personal', {}));
+        showToast(`🔴 Mostrando ${filteredTracking.length} pedido${filteredTracking.length !== 1 ? 's' : ''} demorado${filteredTracking.length !== 1 ? 's' : ''}`, 3000);
+        document.getElementById('board')?.scrollIntoView({ behavior: 'smooth' });
       });
       document.getElementById('board').addEventListener('click', async (e) => {
         const id = e.target.dataset.id;
