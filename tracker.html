@@ -586,8 +586,8 @@
       if (!stored) {
         try {
           const ps = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json());
-          if (ps['JEFATURA']?.pin && /^\d{4}$/.test(ps['JEFATURA'].pin)) {
-            stored = ps['JEFATURA'].pin;
+          if (ps['PAOLA MORENO']?.pin && /^\d{4}$/.test(ps['PAOLA MORENO'].pin)) {
+            stored = ps['PAOLA MORENO'].pin;
             localStorage.setItem('jefatura_pin', stored);
           }
         } catch(e) { console.error('Error al recuperar PIN de Jefatura del backend:', e); }
