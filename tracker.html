@@ -544,7 +544,7 @@
       // Show loading state on the clicked button
       const loadingEl = document.createElement('span');
       loadingEl.textContent = ' ⏳';
-      const clickedBtn = document.querySelector(`.do-pdf[data-pdf-id="${pedidoId}"]`);
+      const clickedBtn = document.querySelector(`.do-pdf[data-pdf-id="${CSS.escape(pedidoId)}"]`);
       if (clickedBtn) { clickedBtn.disabled = true; clickedBtn.append(loadingEl); }
 
       let itemsData = [];
