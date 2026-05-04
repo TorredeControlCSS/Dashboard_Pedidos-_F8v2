@@ -2034,9 +2034,12 @@
 
     async function loadData(showMessage = true) {
       try {
-        const r = await fetch(`${WEB_APP_URL}?file=tracking`);
-        const raw = await r.json();
-        tracking = (Array.isArray(raw) ? raw : []).map(row => {
+        const [rawTracking, personalStatus, attendanceBackend] = await Promise.all([
+          fetch(`${WEB_APP_URL}?file=tracking`).then(r => r.json()),
+          fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json()).catch(() => ({})),
+          fetch(WEB_APP_URL + '?file=attendance').then(r => r.json()).catch(() => null)
+        ]);
+        tracking = (Array.isArray(rawTracking) ? rawTracking : []).map(row => {
           const rawGroup = row.GRUPO || row.grupo || row.Grupo || '';
           const group = normalizeGroup(rawGroup);
           const diasEntrega = String(row.Dias_Entrega || row.DIAS_ENTREGA || row.dias_entrega || '').trim();
@@ -2068,13 +2071,12 @@
 
         // Sincronizar estado personal y PINs desde backend
         try {
-          const personalStatus = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json()).catch(() => ({}));
           const personalLocal = readLS('almacen_personal', {});
           const pins = readLS(STAFF_PINS_KEY, {});
           let personalChanged = false;
           let pinsChanged = false;
           Object.entries(personalStatus).forEach(([nombre, datos]) => {
-            if (datos.status && datos.status !== 'DISPONIBLE') {
+            if (datos.status) {
               if (!personalLocal[nombre] || personalLocal[nombre].status !== datos.status) {
                 personalLocal[nombre] = { ...(personalLocal[nombre] || {}), status: datos.status };
                 personalChanged = true;
@@ -2089,14 +2091,10 @@
           if (pinsChanged) writeLS(STAFF_PINS_KEY, pins);
         } catch(e) {}
 
-        // Cargar asistencia de hoy desde backend (fallback a localStorage)
+        // Sobreescribir pase de lista con los datos del backend si hay datos de hoy
         try {
-          const attendanceBackend = await fetch(WEB_APP_URL + '?file=attendance').then(r => r.json()).catch(() => null);
           if (attendanceBackend && attendanceBackend.fecha === isoToday() && Object.keys(attendanceBackend.personal || {}).length > 0) {
-            const attendanceLocal = readLS(ATTENDANCE_KEY, {});
-            if (!attendanceLocal?.fecha || attendanceLocal.fecha !== isoToday()) {
-              writeLS(ATTENDANCE_KEY, { fecha: isoToday(), personal: attendanceBackend.personal });
-            }
+            writeLS(ATTENDANCE_KEY, { fecha: isoToday(), personal: attendanceBackend.personal });
           }
         } catch(e) {}
 
@@ -2540,9 +2538,6 @@
     async function init() {
       startClock();
       bindEvents();
-      await loadStaff();
-      const staffSel = document.getElementById('staffNameFilter');
-      staffSel.innerHTML = '<option value="">Almacenista: TODOS</option>' + STAFF.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
       document.getElementById('exportAttendanceBtn').addEventListener('click', exportAttendanceReport);
       const overlay = document.getElementById('loadingOverlay');
       const loText = document.getElementById('loText');
@@ -2553,7 +2548,9 @@
         loRetry.style.display = 'none';
         overlay.style.display = 'flex';
         try {
-          await loadData();
+          await Promise.all([loadStaff(), loadData()]);
+          const staffSel = document.getElementById('staffNameFilter');
+          staffSel.innerHTML = '<option value="">Almacenista: TODOS</option>' + STAFF.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
           overlay.style.display = 'none';
           setInterval(() => loadData(false), 5 * 60 * 1000);
           setInterval(() => { fetch(WEB_APP_URL + '?file=params').catch(() => {}); }, 4 * 60 * 1000);
