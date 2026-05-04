@@ -39,6 +39,10 @@
       border:none; border-radius:8px; background:var(--navy); color:#fff;
       font-weight:700; padding:9px 16px; font-size:14px; cursor:pointer; white-space:nowrap; flex-shrink:0;
     }
+    .filter-bar button.btn-clear{
+      background:#6b7280;
+    }
+    .filter-bar button.btn-clear:hover{ background:#374151; }
     @media (max-width:768px){
       .filter-bar{ flex-wrap:wrap; }
       .filter-bar input, .filter-bar select{ min-width:calc(50% - 4px); }
@@ -125,6 +129,7 @@
         <input id="skuInput" type="text" placeholder="💊 SKU/Producto..." />
         <select id="grupoSelect"><option value="">📦 Grupo</option></select>
         <button id="searchBtn">Consultar</button>
+        <button id="clearBtn" class="btn-clear">🗑 Limpiar</button>
       </div>
       <div id="searchCounter" class="counter hidden"></div>
       <div id="loading" class="hidden"><div class="spinner"></div></div>
@@ -142,6 +147,8 @@
     let trackingRows = [];
     let allocationRows = [];
     let allocationLoaded = false;
+    let historyData = [];
+    let historyLoaded = false;
     const MAX_DETAIL_ROWS = 100;
     const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
     const DAY_MAP = { 0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES', 4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO' };
@@ -265,6 +272,46 @@
       `;
     }
 
+    function renderDetailFromHistory(pedidoId) {
+      const id = String(pedidoId).trim().toUpperCase();
+      const items = historyData.filter(row =>
+        String(row.F8_ID || row.N_Doc || row.f8_id || row.id || '').trim().toUpperCase() === id
+      );
+      if (!items.length) {
+        return '<div class="details-wrap" style="margin-top:8px;"><strong>Detalle de Renglones</strong><div class="small" style="margin-top:8px;">Sin detalle de ítems disponible</div></div>';
+      }
+      const safeItems = items.slice(0, MAX_DETAIL_ROWS);
+      const limitedMsg = items.length > MAX_DETAIL_ROWS
+        ? `<div class="small" style="margin:6px 0">Mostrando los primeros ${MAX_DETAIL_ROWS} renglones de ${items.length}.</div>`
+        : '';
+      const rows = safeItems.map(row => {
+        const codigo = row.Codigo || row.CODIGO || row.SKU || row.sku || row.codigo || '—';
+        const suministro = row.NOMBRE_SUMINISTRO || row.Suministro || row.suministro || row.SUMINISTRO || row.nombre_suministro || '—';
+        const cantAsig = Number(row.CANT_ASIGNADA || row.Asignado || row.asignado || row.cantAsig || 0);
+        const cantSolic = Number(row.CANT_SOLICITADA_AJUSTADA || row.Solicitado || row.solicitado || row.cantSolic || 0);
+        const estado = (cantSolic > 0 && cantAsig >= cantSolic) ? '✅ Completo' : (cantAsig > 0 && cantAsig < cantSolic ? '⚠️ Parcial' : '❌ Sin stock');
+        return `<tr>
+          <td>${codigo}</td>
+          <td>${suministro}</td>
+          <td style="text-align:right;">${cantSolic.toLocaleString('es-PA')}</td>
+          <td style="text-align:right;">${cantAsig.toLocaleString('es-PA')}</td>
+          <td>${estado}</td>
+        </tr>`;
+      }).join('');
+      return `
+        <div class="details-wrap" style="margin-top:8px;">
+          <strong>Detalle de Renglones</strong>
+          ${limitedMsg}
+          <div class="details-table-wrap" style="margin-top:8px;">
+            <table>
+              <thead><tr><th>Código</th><th>Suministro</th><th style="text-align:right;">Solicitado</th><th style="text-align:right;">Asignado</th><th>Estado</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
     function resultCardHTML(r, key){
       const state = normalizeState(r.ESTADO);
       const diasEntrega = String(r.Dias_Entrega || r.DIAS_ENTREGA || r.dias_entrega || '').trim();
@@ -283,7 +330,7 @@
           <h2>${STATE_ICON[state] || '📦'} <button class="order-id-link do-pdf" data-pdf-id="${safePedidoId}">📄 ${safePedidoId}</button></h2>
           <div class="meta">${r.UNIDAD_EJECUTORA || 'Sin UE'}</div>
           <div class="meta">Fecha F8: ${f8Date} · Estado: ${state} · Grupo: ${r.GRUPO || '—'}</div>
-          <div class="meta">👤 Responsable: ${almacenista}</div>
+          <div class="meta">👤 Almacenista Responsable: ${almacenista}</div>
           ${timelineHTML(r, state)}
           <div class="delivery-info">
             <strong>📅 Información de Entrega</strong>
@@ -294,8 +341,7 @@
             <div>Unidades Asignadas: ${totalAsig.toLocaleString('es-PA')} de ${totalSolic.toLocaleString('es-PA')} solicitadas</div>
             <div class="meter"><span style="width:${pct.toFixed(1)}%"></span></div>
             <div>${pct.toFixed(1)}% fill rate · ${itemsAsig} items asignados</div>
-            <button class="details-toggle" data-toggle-detail="${key}" data-id="${pedidoId}" data-items="${itemsAsig}">▶ Ver detalle de renglones asignados (${itemsAsig} items)</button>
-            <div id="detail-${key}" class="details-wrap hidden"></div>
+            ${renderDetailFromHistory(pedidoId)}
           </div>
           <div class="msg">${contextual(state, deliveryToday)}</div>
         </article>
@@ -321,6 +367,15 @@
       allocationRows = Array.isArray(raw) ? raw : [];
       allocationLoaded = true;
       return allocationRows;
+    }
+
+    async function fetchHistory(force = false){
+      if (historyLoaded && !force) return historyData;
+      const r = await fetch(`${WEB_APP_URL}?file=history`);
+      const raw = await r.json();
+      historyData = Array.isArray(raw) ? raw : [];
+      historyLoaded = true;
+      return historyData;
     }
 
     function findById(id){
@@ -364,6 +419,7 @@
       setLoading(true);
       try {
         await fetchTracking(force);
+        await fetchHistory(false);
         let matched = [...trackingRows];
 
         // Filter by F8 ID(s) — supports comma/newline separated list
@@ -383,23 +439,23 @@
           matched = matched.filter(r => (r.GRUPO || '').trim() === grupoVal);
         }
 
-        // Filter by SKU/Producto — cross-references allocation rows
+        // Filter by SKU/Producto — uses historyData (HISTORIAL_ACUMULADO) loaded at page start
         if (skuVal) {
           const skuNorm = normalizeText(skuVal);
-          if (!allocationLoaded) await fetchAllocation(false).catch(e => { console.warn('Allocation data unavailable for SKU filter:', e); });
-          if (allocationRows.length) {
+          if (historyData.length) {
             const matchingIds = new Set(
-              allocationRows
+              historyData
                 .filter(r => {
-                  const code = normalizeText(r.CODIGO || r.Codigo || r.COD_ARTICULO || r.ITEM || '');
-                  const name = normalizeText(r.SUMINISTRO || r.DESCRIPCION || r.DESCRIPCIÓN || r.Nombre || '');
+                  const code = normalizeText(r.Codigo || r.CODIGO || r.SKU || r.sku || r.codigo || '');
+                  const name = normalizeText(r.NOMBRE_SUMINISTRO || r.Suministro || r.suministro || r.SUMINISTRO || r.nombre_suministro || '');
                   return code.includes(skuNorm) || name.includes(skuNorm);
                 })
-                .map(r => String(r.N_Doc || '').trim().toUpperCase())
+                .map(r => String(r.F8_ID || r.N_Doc || r.f8_id || r.id || '').trim().toUpperCase())
+                .filter(Boolean)
             );
             matched = matched.filter(r => matchingIds.has(String(r.ID_PEDIDO || '').toUpperCase()));
           } else {
-            // Allocation data not available — fall back to text search on tracking fields
+            // historyData not yet available — fall back to text search on tracking fields
             matched = matched.filter(r =>
               normalizeText(r.ID_PEDIDO || '').includes(skuNorm) ||
               normalizeText(r.GRUPO || '').includes(skuNorm)
@@ -438,6 +494,16 @@
     }
 
     document.getElementById('searchBtn').addEventListener('click', () => doSearch(false));
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('f8Input').value = '';
+      document.getElementById('skuInput').value = '';
+      document.getElementById('ueSelect').value = '';
+      document.getElementById('grupoSelect').value = '';
+      document.getElementById('results').innerHTML = '';
+      document.getElementById('ueResults').innerHTML = '';
+      document.getElementById('noFound').classList.add('hidden');
+      document.getElementById('searchCounter').classList.add('hidden');
+    });
     document.getElementById('f8Input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(false); });
     document.getElementById('skuInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(false); });
 
@@ -492,6 +558,7 @@
     });
 
     fetchTracking(false).catch(() => setConnectionStatus(false));
+    fetchHistory(false).catch(e => { console.warn('History data unavailable at startup:', e); });
 
     // ── Jefatura PIN modal ──────────────────────────────────────────
     function openJefaturaModal() {
@@ -542,27 +609,11 @@
       const clickedBtn = document.querySelector(`.do-pdf[data-pdf-id="${CSS.escape(pedidoId)}"]`);
       if (clickedBtn) { clickedBtn.disabled = true; clickedBtn.append(loadingEl); }
 
-      let itemsData = [];
-      try {
-        // 1) Try history (HISTORIAL_ACUMULADO) first — contains all items per pedido
-        const historyResp = await fetch(`${WEB_APP_URL}?file=history`);
-        const historyRaw = await historyResp.json();
-        if (Array.isArray(historyRaw)) {
-          const id = String(pedidoId).trim().toUpperCase();
-          itemsData = historyRaw.filter(r =>
-            String(r.F8_ID || r.N_Doc || r.ID_PEDIDO || '').trim().toUpperCase() === id
-          );
-        }
-      } catch { /* fall through */ }
-
-      if (!itemsData.length) {
-        // 2) Fallback: allocation endpoint
-        try {
-          if (!allocationLoaded) await fetchAllocation(false);
-          const id = String(pedidoId).trim().toUpperCase();
-          itemsData = allocationRows.filter(r => String(r.N_Doc || '').trim().toUpperCase() === id);
-        } catch { /* keep empty */ }
-      }
+      // Use historyData already loaded at page start — no additional fetch needed
+      const id = String(pedidoId).trim().toUpperCase();
+      const itemsData = historyData.filter(r =>
+        String(r.F8_ID || r.N_Doc || r.f8_id || r.id || '').trim().toUpperCase() === id
+      );
 
       // Remove loading indicator
       if (clickedBtn) { clickedBtn.disabled = false; loadingEl.remove(); }
@@ -570,19 +621,23 @@
       let itemsHtml;
       if (itemsData.length) {
         itemsHtml = itemsData.map(x => {
-          const code = x.Codigo || x.CODIGO || x.SKU || x.COD_ARTICULO || x.ITEM || '—';
-          const name = x.Suministro || x.SUMINISTRO || x.NOMBRE_SUMINISTRO || x.DESCRIPCION || x.DESCRIPCIÓN || '—';
-          const solicitado = Number(x.Solicitado_redondeado ?? x.CANT_SOLICITADA_AJUSTADA ?? x.CANT_SOLICITADA ?? x.SOLICITADO ?? 0).toLocaleString('es-PA');
-          const asignado = Number(x.Asignado ?? x.CANT_ASIGNADA ?? x.ASIGNADO ?? x.CANT_ASIG ?? x.CANTIDAD_ASIGNADA ?? 0).toLocaleString('es-PA');
+          const code = x.Codigo || x.CODIGO || x.SKU || x.sku || x.codigo || '—';
+          const name = x.NOMBRE_SUMINISTRO || x.Suministro || x.suministro || x.SUMINISTRO || x.nombre_suministro || '—';
+          const cantSolicRaw = Number(x.CANT_SOLICITADA_AJUSTADA || x.Solicitado || x.solicitado || x.cantSolic || 0);
+          const cantAsigRaw = Number(x.CANT_ASIGNADA || x.Asignado || x.asignado || x.cantAsig || 0);
+          const solicitado = cantSolicRaw.toLocaleString('es-PA');
+          const asignado = cantAsigRaw.toLocaleString('es-PA');
+          const estado = (cantSolicRaw > 0 && cantAsigRaw >= cantSolicRaw) ? 'Completo' : (cantAsigRaw > 0 && cantAsigRaw < cantSolicRaw ? 'Parcial' : 'Sin stock');
           return `<tr>
             <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${code}</td>
             <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${name}</td>
             <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${solicitado}</td>
             <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${asignado}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;">${estado}</td>
           </tr>`;
         }).join('');
       } else {
-        itemsHtml = '<tr><td colspan="4" style="color:#6b7280;text-align:center;padding:10px;">Detalle no disponible</td></tr>';
+        itemsHtml = '<tr><td colspan="5" style="color:#6b7280;text-align:center;padding:10px;">Detalle no disponible</td></tr>';
       }
 
       const win = window.open('', '_blank', 'width=800,height=700');
@@ -631,7 +686,7 @@
 
         <h2>📦 Ítems Asignados</h2>
         <table>
-          <thead><tr><th>SKU / Código</th><th>Suministro</th><th style="text-align:right;">Solicitado</th><th style="text-align:right;">Asignado</th></tr></thead>
+          <thead><tr><th>SKU / Código</th><th>Suministro</th><th style="text-align:right;">Solicitado</th><th style="text-align:right;">Asignado</th><th>Estado</th></tr></thead>
           <tbody>${itemsHtml}</tbody>
         </table>
 
