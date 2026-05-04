@@ -1313,9 +1313,15 @@
       localStorage.removeItem(IDENTITY_KEY);
       try {
         await loadStaff();
+        // Ejecutar los 3 fetches al backend en paralelo
+        // solo personalStatus se usa aquí; loadData y loadRouteAssignmentsFromBackend actualizan su estado internamente
+        const [personalStatus] = await Promise.all([
+          fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json()).catch(() => ({})),
+          loadData(),
+          loadRouteAssignmentsFromBackend()
+        ]);
         // Sincronizar PINs desde backend
         try {
-          const personalStatus = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json()).catch(() => ({}));
           const pins = readLS(STAFF_PINS_KEY, {});
           let changed = false;
           Object.entries(personalStatus).forEach(([nombre, datos]) => {
@@ -1326,9 +1332,6 @@
           });
           if (changed) writeLS(STAFF_PINS_KEY, pins);
         } catch(e) {}
-        await loadData();
-        // Load route assignments from backend in background (falls back to localStorage on error)
-        await loadRouteAssignmentsFromBackend();
         lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
         setConnectionStatus(true);
         setInterval(() => { fetch(WEB_APP_URL + '?file=params').catch(() => {}); }, 4 * 60 * 1000);

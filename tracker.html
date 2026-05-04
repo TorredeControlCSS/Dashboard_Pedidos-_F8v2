@@ -30,10 +30,10 @@
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px; }
     .hero{ text-align:center; margin-top:12px; }
     .filter-bar{
-      display:flex; gap:8px; align-items:center; flex-wrap:nowrap; margin-top:12px;
+      display:flex; gap:16px; align-items:center; flex-wrap:nowrap; margin-top:12px;
     }
     .filter-bar input, .filter-bar select{
-      flex:1; min-width:0; border:1px solid #cbd5e1; border-radius:8px; padding:9px 10px; font-size:14px; background:#fff;
+      flex:1; min-width:0; border:1px solid #cbd5e1; border-radius:8px; padding:10px 12px; font-size:14px; background:#fff;
     }
     .filter-bar button{
       border:none; border-radius:8px; background:var(--navy); color:#fff;
@@ -125,7 +125,7 @@
       <h2 style="margin-top:0">🔍 Consultar Requisiciones F8</h2>
       <div class="filter-bar">
         <input id="f8Input" type="text" placeholder="🔍 N° Forma 8..." />
-        <select id="ueSelect"><option value="">🏥 Unidad Ejecutora</option></select>
+        <select id="ueSelect"><option value="">Unidad Ejecutora</option></select>
         <input id="skuInput" type="text" placeholder="💊 SKU/Producto..." />
         <select id="grupoSelect"><option value="">📦 Grupo</option></select>
         <button id="searchBtn">Consultar</button>
@@ -396,7 +396,7 @@
       const sel = document.getElementById('ueSelect');
       const current = sel.value;
       const ues = [...new Set(trackingRows.map(r => (r.UNIDAD_EJECUTORA || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b));
-      sel.innerHTML = '<option value="">🏥 Unidad Ejecutora</option>' + ues.map(ue => `<option value="${ue}">${ue}</option>`).join('');
+      sel.innerHTML = '<option value="">Unidad Ejecutora</option>' + ues.map(ue => `<option value="${ue}">${ue}</option>`).join('');
       if (ues.includes(current)) sel.value = current;
     }
 
