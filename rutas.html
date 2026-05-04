@@ -150,7 +150,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>🗺️ ASIGNACIÓN DE RUTAS · CEDIS PANAMA</h1>
-      <p id="pageSubtitle">Cargando datos... · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
+      <p id="pageSubtitle">Cargando datos... · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span></p>
     </div>
     <div class="actions">
       <a class="btn" href="index.html">← Volver a Jefatura</a>
@@ -318,6 +318,20 @@
     }
 
     // ─── DATA LOADING ────────────────────────────────────────────────────────────
+    function getCachedStaff() {
+      try {
+        const cached = JSON.parse(localStorage.getItem('cache_staff_v1'));
+        if (cached && (Date.now() - cached.ts) < 30 * 60 * 1000) return cached.data;
+      } catch(e) {}
+      return null;
+    }
+
+    function setCachedStaff(data) {
+      try {
+        localStorage.setItem('cache_staff_v1', JSON.stringify({ ts: Date.now(), data }));
+      } catch(e) {}
+    }
+
     async function loadTracking() {
       const r = await fetch(`${WEB_APP_URL}?file=tracking`);
       const raw = await r.json();
@@ -336,16 +350,19 @@
     }
 
     async function loadStaff() {
+      // Use cached staff if available (30-minute TTL)
+      const cached = getCachedStaff();
+      if (cached) { STAFF = cached; return; }
       // Try ?file=personal first (returns all roles including DISTRIBUCIÓN)
       try {
         const r = await fetch(`${WEB_APP_URL}?file=personal`);
         const data = await r.json();
-        if (Array.isArray(data) && data.length > 0) { STAFF = data; return; }
+        if (Array.isArray(data) && data.length > 0) { STAFF = data; setCachedStaff(data); return; }
       } catch (e) { /* fall through */ }
       // Fallback to ?file=staff
       const r = await fetch(`${WEB_APP_URL}?file=staff`);
       const data = await r.json();
-      if (Array.isArray(data) && data.length > 0) STAFF = data;
+      if (Array.isArray(data) && data.length > 0) { STAFF = data; setCachedStaff(data); }
     }
 
     async function loadRouteAssignments() {
@@ -643,9 +660,10 @@
 
         document.getElementById('loadingBanner').style.display = 'none';
         document.getElementById('mainContent').style.display = '';
+        setInterval(() => { fetch(WEB_APP_URL + '?file=params').catch(() => {}); }, 4 * 60 * 1000);
 
         const today = new Date().toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        document.getElementById('pageSubtitle').innerHTML = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span>`;
+        document.getElementById('pageSubtitle').innerHTML = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span>`;
 
         populateFilters();
         renderMiniDashboard();

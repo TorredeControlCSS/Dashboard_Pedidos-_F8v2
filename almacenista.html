@@ -125,7 +125,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — VISTA ALMACENISTA · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
+      <p><span id="clock">--</span> · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span></p>
     </div>
     <div class="actions" id="topbarActions"></div>
   </header>
@@ -578,6 +578,20 @@
       }).join('');
     }
 
+    function getCachedStaff() {
+      try {
+        const cached = JSON.parse(localStorage.getItem('cache_staff_v1'));
+        if (cached && (Date.now() - cached.ts) < 30 * 60 * 1000) return cached.data;
+      } catch(e) {}
+      return null;
+    }
+
+    function setCachedStaff(data) {
+      try {
+        localStorage.setItem('cache_staff_v1', JSON.stringify({ ts: Date.now(), data }));
+      } catch(e) {}
+    }
+
     async function loadStaff() {
       const sel = document.getElementById('whoSelect');
       const spinner = document.getElementById('staffSpinner');
@@ -588,6 +602,17 @@
       btn.disabled = true;
       spinner.style.display = 'inline-block';
       errEl.style.display = 'none';
+
+      // Use cached staff if available (30-minute TTL)
+      const cached = getCachedStaff();
+      if (cached) {
+        STAFF = cached;
+        spinner.style.display = 'none';
+        sel.disabled = false;
+        btn.disabled = false;
+        return;
+      }
+
       // Try ?file=personal first (returns ALL active roles: ALMACENISTA, KARDEX, EMPAQUE, DISTRIBUCIÓN, etc.)
       // This is needed so DISTRIBUCIÓN staff appear in the login selector
       try {
@@ -595,6 +620,7 @@
         const data = await r.json();
         if (Array.isArray(data) && data.length > 0) {
           STAFF = data;
+          setCachedStaff(data);
           spinner.style.display = 'none';
           sel.disabled = false;
           btn.disabled = false;
@@ -611,6 +637,7 @@
           return;
         }
         STAFF = data;
+        setCachedStaff(data);
         spinner.style.display = 'none';
         sel.disabled = false;
         btn.disabled = false;
@@ -1286,6 +1313,7 @@
         await loadRouteAssignmentsFromBackend();
         lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
         setConnectionStatus(true);
+        setInterval(() => { fetch(WEB_APP_URL + '?file=params').catch(() => {}); }, 4 * 60 * 1000);
       } catch {
         setConnectionStatus(false);
         alert('Backend no disponible en este momento.');

@@ -370,7 +370,7 @@
     <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
     <div class="title">
       <h1>TORRE DE CONTROL — JEFATURA DE ALMACÉN · CEDIS PANAMA</h1>
-      <p><span id="clock">--</span> · V14.3 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
+      <p><span id="clock">--</span> · V14.3 · Panel de Comando Operativo · <span class="sync" id="lastSync">Última sync: --:--</span> · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span></p>
     </div>
     <div class="actions">
       <button class="btn" id="refreshBtn">🔄 Actualizar</button>
@@ -2399,6 +2399,7 @@
           await loadData();
           overlay.style.display = 'none';
           setInterval(() => loadData(false), 5 * 60 * 1000);
+          setInterval(() => { fetch(WEB_APP_URL + '?file=params').catch(() => {}); }, 4 * 60 * 1000);
           renderAttendanceBadge();
         } catch(e) {
           console.error('Error al cargar datos:', e);
