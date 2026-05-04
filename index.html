@@ -1616,6 +1616,7 @@
         return;
       }
       localStorage.setItem(PIN_KEY, next);
+      fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'savePin', nombre: 'JEFATURA', pin: next }) }).catch(() => {});
       closePinManageModal();
       showToast('✅ PIN actualizado');
     }
@@ -2089,6 +2090,9 @@
           });
           if (personalChanged) writeLS('almacen_personal', personalLocal);
           if (pinsChanged) writeLS(STAFF_PINS_KEY, pins);
+          if (personalStatus['JEFATURA']?.pin && /^\d{4}$/.test(personalStatus['JEFATURA'].pin) && !localStorage.getItem(PIN_KEY)) {
+            localStorage.setItem(PIN_KEY, personalStatus['JEFATURA'].pin);
+          }
         } catch(e) {}
 
         // Sobreescribir pase de lista con los datos del backend si hay datos de hoy
@@ -2481,11 +2485,20 @@
       document.getElementById('clock').textContent = humanClock();
     }
 
-    function showJefaturaLogin(onSuccess) {
+    async function showJefaturaLogin(onSuccess) {
+      let storedPin = localStorage.getItem(PIN_KEY);
+      if (!storedPin) {
+        try {
+          const ps = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json());
+          if (ps['JEFATURA']?.pin && /^\d{4}$/.test(ps['JEFATURA'].pin)) {
+            storedPin = ps['JEFATURA'].pin;
+            localStorage.setItem(PIN_KEY, storedPin);
+          }
+        } catch(e) { console.error('Error al recuperar PIN de Jefatura del backend:', e); }
+      }
       const overlay = document.createElement('div');
       overlay.id = 'jefaturaLoginOverlay';
       overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0a1628;display:flex;align-items:center;justify-content:center;z-index:99999;';
-      const storedPin = localStorage.getItem(PIN_KEY);
       const isFirstTime = !storedPin;
       overlay.innerHTML = `
         <div style="background:#fff;border-radius:16px;padding:40px;text-align:center;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
@@ -2520,6 +2533,7 @@
             return;
           }
           localStorage.setItem(PIN_KEY, pin);
+          fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'savePin', nombre: 'JEFATURA', pin: pin }) }).catch(() => {});
         } else if (pin !== storedPin) {
           document.getElementById('jefLoginError').textContent = 'PIN incorrecto';
           document.getElementById('jefLoginPin').value = '';
