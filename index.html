@@ -834,6 +834,14 @@
     }
 
     function updateStateTimestamps(items) {
+      const ESTADO_FECHA_MAP = {
+        'PICKING': 'FECHA_PICKING',
+        'FACTURACIÓN': 'FECHA_FACTURACION',
+        'EMPACADO': 'FECHA_EMPACADO',
+        'DISTRIBUCIÓN': 'FECHA_DISTRIBUCION',
+        'DESPACHADO': 'FECHA_DESPACHO',
+        'ENTREGADO': 'FECHA_ENTREGA'
+      };
       const stateMap = readLS('almacen_state_timestamps', {});
       let changed = false;
       items.forEach(item => {
@@ -841,11 +849,26 @@
         if (!row.state) {
           stateMap[item.id] = { state: item.estado };
           changed = true;
-          return;
-        }
-        if (row.state !== item.estado) {
+        } else if (row.state !== item.estado) {
           stateMap[item.id] = { state: item.estado, enteredAt: Date.now() };
           changed = true;
+        }
+        // Use backend date for current state if available
+        const fechaCampo = ESTADO_FECHA_MAP[item.estado];
+        const fechaBackend = fechaCampo ? item[fechaCampo] : null;
+        if (fechaBackend && fechaBackend !== '') {
+          let ts = 0;
+          const s = String(fechaBackend).trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            ts = new Date(s + 'T08:00:00').getTime();
+          } else {
+            const parts = s.split('/');
+            if (parts.length === 3) ts = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T08:00:00`).getTime();
+          }
+          if (ts > 0) {
+            stateMap[item.id] = { state: item.estado, enteredAt: ts };
+            changed = true;
+          }
         }
       });
       if (changed) writeLS('almacen_state_timestamps', stateMap);
@@ -1669,6 +1692,22 @@
       const today = isoToday();
       const payload = { fecha: today, personal: { ...attendanceDraft } };
       writeLS(ATTENDANCE_KEY, payload);
+      // Persistir asistencia en backend
+      fetch(WEB_APP_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'saveAttendance', fecha: isoToday(), personal: attendanceDraft })
+      }).catch(() => {});
+      // Guardar estado personal en backend en batch
+      const statusUpdatesForBackend = Object.entries(attendanceDraft).map(([nombre, val]) => ({
+        nombre,
+        status: val === 'en-ruta' ? 'EN RUTA' : (val === 'presente' ? 'DISPONIBLE' : 'AUSENTE')
+      }));
+      fetch(WEB_APP_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'savePersonalStatus', updates: statusUpdatesForBackend })
+      }).catch(() => {});
       // Migrate old array format to object format if needed
       let history = readLS(ATTENDANCE_HISTORY_KEY, {});
       if (Array.isArray(history)) {
@@ -2027,6 +2066,40 @@
           };
         }).filter(i => i.id && i.id !== '---');
 
+        // Sincronizar estado personal y PINs desde backend
+        try {
+          const personalStatus = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json()).catch(() => ({}));
+          const personalLocal = readLS('almacen_personal', {});
+          const pins = readLS(STAFF_PINS_KEY, {});
+          let personalChanged = false;
+          let pinsChanged = false;
+          Object.entries(personalStatus).forEach(([nombre, datos]) => {
+            if (datos.status && datos.status !== 'DISPONIBLE') {
+              if (!personalLocal[nombre] || personalLocal[nombre].status !== datos.status) {
+                personalLocal[nombre] = { ...(personalLocal[nombre] || {}), status: datos.status };
+                personalChanged = true;
+              }
+            }
+            if (datos.pin && /^\d{4}$/.test(datos.pin) && pins[nombre] !== datos.pin) {
+              pins[nombre] = datos.pin;
+              pinsChanged = true;
+            }
+          });
+          if (personalChanged) writeLS('almacen_personal', personalLocal);
+          if (pinsChanged) writeLS(STAFF_PINS_KEY, pins);
+        } catch(e) {}
+
+        // Cargar asistencia de hoy desde backend (fallback a localStorage)
+        try {
+          const attendanceBackend = await fetch(WEB_APP_URL + '?file=attendance').then(r => r.json()).catch(() => null);
+          if (attendanceBackend && attendanceBackend.fecha === isoToday() && Object.keys(attendanceBackend.personal || {}).length > 0) {
+            const attendanceLocal = readLS(ATTENDANCE_KEY, {});
+            if (!attendanceLocal?.fecha || attendanceLocal.fecha !== isoToday()) {
+              writeLS(ATTENDANCE_KEY, { fecha: isoToday(), personal: attendanceBackend.personal });
+            }
+          }
+        } catch(e) {}
+
         autoAssign(tracking);
         updateStateTimestamps(tracking);
         updateGroupFilterOptions(tracking);
@@ -2311,6 +2384,11 @@
           const pins = readLS(STAFF_PINS_KEY, {});
           delete pins[who];
           writeLS(STAFF_PINS_KEY, pins);
+          fetch(WEB_APP_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'savePin', nombre: who, pin: '' })
+          }).catch(() => {});
           showToast(`🔑 PIN reseteado: ${who}`);
           return;
         }
@@ -2323,6 +2401,11 @@
         const personal = readLS('almacen_personal', {});
         personal[person] = { ...(personal[person] || {}), status: st, updatedAt: Date.now(), destination: st === 'EN RUTA' ? (personal[person]?.destination || '') : '' };
         writeLS('almacen_personal', personal);
+        fetch(WEB_APP_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'savePersonalStatus', updates: [{ nombre: person, status: st }] })
+        }).catch(() => {});
         addLog(`${person} marcado como ${st}`);
         renderStaff(filteredTracking, readLS('almacen_asignaciones', {}));
         renderBoard(filteredTracking, readLS('almacen_state_timestamps', {}), readLS('almacen_asignaciones', {}), personal);
@@ -2400,6 +2483,60 @@
       document.getElementById('clock').textContent = humanClock();
     }
 
+    function showJefaturaLogin(onSuccess) {
+      const overlay = document.createElement('div');
+      overlay.id = 'jefaturaLoginOverlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0a1628;display:flex;align-items:center;justify-content:center;z-index:99999;';
+      const storedPin = localStorage.getItem(PIN_KEY);
+      const isFirstTime = !storedPin;
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:40px;text-align:center;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+          <div style="font-size:2.5rem;margin-bottom:8px">🔐</div>
+          <h2 style="margin:0 0 4px;color:#1a237e;font-size:1.2rem">TORRE DE CONTROL</h2>
+          <p style="color:#666;font-size:0.85rem;margin:0 0 24px">Jefatura de Almacén · CEDIS Panamá</p>
+          <p style="color:#333;font-size:0.9rem;margin:0 0 16px;font-weight:600">${isFirstTime ? 'Crea tu PIN de acceso (4 dígitos)' : 'Ingresa tu PIN de Jefatura'}</p>
+          <input id="jefLoginPin" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+            style="width:120px;font-size:2rem;text-align:center;letter-spacing:8px;border:2px solid #ddd;border-radius:8px;padding:8px;outline:none"
+            placeholder="••••" />
+          ${isFirstTime ? '<br><br><input id="jefLoginPin2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width:120px;font-size:2rem;text-align:center;letter-spacing:8px;border:2px solid #ddd;border-radius:8px;padding:8px;outline:none" placeholder="Confirmar" />' : ''}
+          <br><br>
+          <button id="jefLoginBtn" style="background:#1a237e;color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;cursor:pointer;width:100%">
+            ${isFirstTime ? 'Crear PIN' : 'Acceder'}
+          </button>
+          <p id="jefLoginError" style="color:#c62828;font-size:0.85rem;margin:12px 0 0;min-height:20px"></p>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      document.getElementById('jefLoginPin').focus();
+
+      const doLogin = () => {
+        const pin = document.getElementById('jefLoginPin').value.trim();
+        if (!/^\d{4}$/.test(pin)) {
+          document.getElementById('jefLoginError').textContent = 'Ingresa exactamente 4 dígitos';
+          return;
+        }
+        if (isFirstTime) {
+          const pin2 = document.getElementById('jefLoginPin2')?.value.trim();
+          if (pin !== pin2) {
+            document.getElementById('jefLoginError').textContent = 'Los PINs no coinciden';
+            return;
+          }
+          localStorage.setItem(PIN_KEY, pin);
+        } else if (pin !== storedPin) {
+          document.getElementById('jefLoginError').textContent = 'PIN incorrecto';
+          document.getElementById('jefLoginPin').value = '';
+          document.getElementById('jefLoginPin').focus();
+          return;
+        }
+        sessionStorage.setItem('jefatura_access', '1');
+        overlay.remove();
+        onSuccess();
+      };
+
+      document.getElementById('jefLoginBtn').addEventListener('click', doLogin);
+      document.getElementById('jefLoginPin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    }
+
     async function init() {
       startClock();
       bindEvents();
@@ -2429,7 +2566,12 @@
       }
 
       loRetry.addEventListener('click', doLoad);
-      await doLoad();
+      // Verificar acceso por PIN antes de mostrar el dashboard
+      if (!sessionStorage.getItem('jefatura_access')) {
+        showJefaturaLogin(doLoad);
+      } else {
+        await doLoad();
+      }
     }
 
     init();

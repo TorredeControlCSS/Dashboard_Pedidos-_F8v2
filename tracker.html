@@ -274,9 +274,14 @@
 
     function renderDetailFromHistory(pedidoId) {
       const id = String(pedidoId).trim().toUpperCase();
-      const items = historyData.filter(row =>
+      let items = historyData.filter(row =>
         String(row.F8_ID || row.N_Doc || row.f8_id || row.id || '').trim().toUpperCase() === id
       );
+      if (!items.length) {
+        items = allocationRows.filter(row =>
+          String(row.N_Doc || row.F8_ID || row.f8_id || '').trim().toUpperCase() === id
+        );
+      }
       if (!items.length) {
         return '<div class="details-wrap" style="margin-top:8px;"><strong>Detalle de Renglones</strong><div class="small" style="margin-top:8px;">Sin detalle de ítems disponible</div></div>';
       }
@@ -486,7 +491,11 @@
       detailBox.innerHTML = '<div class="spinner"></div>';
       try {
         await fetchAllocation(false);
-        const rows = allocationRows.filter(r => String(r.N_Doc || '').trim().toUpperCase() === String(f8Id || '').trim().toUpperCase());
+        const id = String(f8Id || '').trim().toUpperCase();
+        let rows = historyData.filter(r => String(r.F8_ID || r.N_Doc || r.f8_id || r.id || '').trim().toUpperCase() === id);
+        if (!rows.length) {
+          rows = allocationRows.filter(r => String(r.N_Doc || r.F8_ID || r.f8_id || '').trim().toUpperCase() === id);
+        }
         detailBox.innerHTML = `<div><strong>Detalle de Renglones</strong></div>${detailsTableHTML(rows)}`;
       } catch {
         detailBox.innerHTML = '<div class="small">Detalle no disponible en este momento</div>';
@@ -559,6 +568,7 @@
 
     fetchTracking(false).catch(() => setConnectionStatus(false));
     fetchHistory(false).catch(e => { console.warn('History data unavailable at startup:', e); });
+    fetchAllocation(false).catch(e => { console.warn('Allocation data unavailable at startup:', e); });
 
     // ── Jefatura PIN modal ──────────────────────────────────────────
     function openJefaturaModal() {
@@ -609,11 +619,16 @@
       const clickedBtn = document.querySelector(`.do-pdf[data-pdf-id="${CSS.escape(pedidoId)}"]`);
       if (clickedBtn) { clickedBtn.disabled = true; clickedBtn.append(loadingEl); }
 
-      // Use historyData already loaded at page start — no additional fetch needed
+      // Use historyData already loaded at page start — fall back to allocationRows for active orders
       const id = String(pedidoId).trim().toUpperCase();
-      const itemsData = historyData.filter(r =>
+      let itemsData = historyData.filter(r =>
         String(r.F8_ID || r.N_Doc || r.f8_id || r.id || '').trim().toUpperCase() === id
       );
+      if (!itemsData.length) {
+        itemsData = allocationRows.filter(r =>
+          String(r.N_Doc || r.F8_ID || r.f8_id || '').trim().toUpperCase() === id
+        );
+      }
 
       // Remove loading indicator
       if (clickedBtn) { clickedBtn.disabled = false; loadingEl.remove(); }
