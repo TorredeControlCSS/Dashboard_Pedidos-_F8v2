@@ -824,6 +824,11 @@
         }
         pins[identityCandidate] = pin;
         writeLS(STAFF_PINS_KEY, pins);
+        fetch(WEB_APP_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'savePin', nombre: identityCandidate, pin: pin })
+        }).catch(() => {});
       } else if ((pins[identityCandidate] || '') !== pin) {
         document.getElementById('pinErrorMsg').textContent = 'PIN incorrecto, intenta de nuevo';
         shakePins('pinDigitsWrap');
@@ -1308,6 +1313,19 @@
       localStorage.removeItem(IDENTITY_KEY);
       try {
         await loadStaff();
+        // Sincronizar PINs desde backend
+        try {
+          const personalStatus = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json()).catch(() => ({}));
+          const pins = readLS(STAFF_PINS_KEY, {});
+          let changed = false;
+          Object.entries(personalStatus).forEach(([nombre, datos]) => {
+            if (datos.pin && /^\d{4}$/.test(datos.pin) && pins[nombre] !== datos.pin) {
+              pins[nombre] = datos.pin;
+              changed = true;
+            }
+          });
+          if (changed) writeLS(STAFF_PINS_KEY, pins);
+        } catch(e) {}
         await loadData();
         // Load route assignments from backend in background (falls back to localStorage on error)
         await loadRouteAssignmentsFromBackend();
