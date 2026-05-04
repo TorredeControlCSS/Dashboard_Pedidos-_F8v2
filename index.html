@@ -1070,7 +1070,7 @@
       } else if (slaAlerts <= 3) {
         kSlaWrap.style.borderLeftColor = '#f59e0b';
         kSlaVal.style.color = '#f59e0b';
-        kSlaSubEl.textContent = `${slaAlerts} pedido${slaAlerts > 1 ? 's' : ''} caliente${slaAlerts > 1 ? 's' : ''} 🟡`;
+        kSlaSubEl.textContent = `⏳ ${slaAlerts} pedido${slaAlerts > 1 ? 's' : ''} demorado${slaAlerts > 1 ? 's' : ''}`;
       } else {
         kSlaWrap.style.borderLeftColor = '#b71c1c';
         kSlaVal.style.color = '#b71c1c';
@@ -1213,8 +1213,8 @@
           const sla = getSla(item, elapsed);
           const pending = readPendings()[item.id];
           const modalidad = getModalidad(item.id);
-          const st = getPersonStatus(who);
-          const warn = st && st !== 'DISPONIBLE' && item.estado !== 'ENTREGADO';
+          const st = personal[who]?.status || 'DISPONIBLE';
+          const warn = st !== 'DISPONIBLE' && item.estado !== 'ENTREGADO';
           const pct = item.totalSolic > 0 ? Math.max(0, Math.min(100, (item.totalAsig / item.totalSolic) * 100)) : 0;
           const fillColor = pct >= 90 ? '#2e7d32' : pct >= 70 ? '#ef6c00' : '#b71c1c';
           const card = document.createElement('article');
@@ -1285,7 +1285,7 @@
       const activeBy = activeCountByPerson(items, asig);
       cardsWrap.innerHTML = STAFF.filter(s => getStaffDisplayGroup(s) === currentGroupTab).map(s => {
         const isAbsentByList = BLOCKED_ATTENDANCE_STATES.includes(attendanceToday[s.nombre]);
-        const st = getPersonStatus(s.nombre);
+        const st = personal[s.nombre]?.status || 'DISPONIBLE';
         return `
           <article class="person" data-name="${s.nombre}">
             <strong>${s.nombre}</strong>
