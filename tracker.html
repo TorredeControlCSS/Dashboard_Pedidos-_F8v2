@@ -3,23 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CEDIS PANAMÁ — Consulta de Requisiciones</title>
+  <title>TORRE DE CONTROL — Seguimiento de Formas 8</title>
   <link rel="icon" href="./favicon.ico?v=1" />
   <style>
     :root { --navy:#0b1f3a; --blue:#1565c0; --ok:#2e7d32; --gray:#cbd5e1; }
     *{ box-sizing: border-box; }
     body{ margin:0; font-family: Arial, sans-serif; background:#f3f6fb; color:#1f2937; }
-    .topbar{ background:linear-gradient(90deg,#0b1f3a,#133a74); color:#fff; padding:12px; text-align:center; }
-    .topbar h1{ margin:0; font-size:22px; }
-    .topbar p{ margin:4px 0 0; color:#cbd5e1; }
+    .topbar{
+      position:sticky; top:0; z-index:20;
+      background:linear-gradient(90deg,#0b1f3a,#133a74);
+      color:#fff; padding:10px 14px; display:flex; align-items:center; gap:12px;
+      box-shadow:0 2px 8px rgba(0,0,0,.18);
+    }
+    .topbar img { width:44px; height:44px; object-fit:contain; }
+    .title { flex:1; min-width:0; }
+    .title h1 { margin:0; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .title p { margin:2px 0 0; font-size:12px; color:#cbd5e1; }
+    .actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .btn {
+      border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.12); color:#fff;
+      border-radius:8px; padding:8px 10px; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none;
+    }
+    .btn:hover { background:rgba(255,255,255,.2); }
     .offline-banner{ display:none; background:#fff3cd; border-left:4px solid #f59e0b; color:#6b4f00; padding:8px 12px; font-size:13px; }
     .wrap{ max-width:920px; margin:0 auto; padding:16px; }
     .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px; }
     .hero{ text-align:center; margin-top:12px; }
-    .hero input, .hero select{ width:min(640px,100%); min-height:48px; border-radius:10px; border:1px solid #cbd5e1; padding:10px; font-size:18px; }
-    .hero button{ margin-top:10px; min-height:46px; border:none; border-radius:10px; background:var(--navy); color:#fff; font-weight:700; padding:0 18px; font-size:16px; cursor:pointer; }
-    .chips{ margin-top:12px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-    .chip{ border:1px solid #cbd5e1; border-radius:999px; padding:5px 10px; cursor:pointer; background:#f8fafc; }
+    .filter-bar{
+      display:flex; gap:8px; align-items:center; flex-wrap:nowrap; margin-top:12px;
+    }
+    .filter-bar input, .filter-bar select{
+      flex:1; min-width:0; border:1px solid #cbd5e1; border-radius:8px; padding:9px 10px; font-size:14px; background:#fff;
+    }
+    .filter-bar button{
+      border:none; border-radius:8px; background:var(--navy); color:#fff;
+      font-weight:700; padding:9px 16px; font-size:14px; cursor:pointer; white-space:nowrap; flex-shrink:0;
+    }
+    @media (max-width:768px){
+      .filter-bar{ flex-wrap:wrap; }
+      .filter-bar input, .filter-bar select{ min-width:calc(50% - 4px); }
+    }
     .hidden{ display:none; }
     .result{ margin-top:12px; }
     .result h2{ margin:0; color:#0b1f3a; }
@@ -41,7 +64,6 @@
     .footer{ margin-top:14px; color:#6b7280; font-size:13px; }
     .err{ margin-top:12px; background:#fff3cd; border-left:4px solid #f59e0b; border-radius:8px; padding:10px; }
     .spinner{ width:24px; height:24px; border:3px solid #d1d5db; border-top-color:#0b1f3a; border-radius:999px; margin:12px auto; animation:spin 1s linear infinite; }
-    .sep{ margin:16px auto 4px; color:#6b7280; font-weight:700; }
     .counter{ margin-top:8px; color:#475569; font-size:13px; }
     .details-toggle{ margin-top:8px; border:none; background:#f1f5f9; border-radius:8px; padding:8px 10px; cursor:pointer; font-weight:700; }
     .details-wrap{ margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; padding:10px; background:#f8fafc; }
@@ -83,31 +105,30 @@
   </div>
 
   <header class="topbar">
-    <h1>CEDIS PANAMÁ — Consulta de Requisiciones</h1>
-    <p>Sistema de Seguimiento de Formas 8 · <span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">👩‍💼 Jefa: PAOLA MORENO</span></p>
-    <div style="margin-top:6px;">
-      <button id="goJefaturaBtn" style="border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;">← Jefatura</button>
+    <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
+    <div class="title">
+      <h1>TORRE DE CONTROL — Seguimiento de Formas 8 · CEDIS PANAMÁ</h1>
+      <p><span id="connStatus">🟢 En línea</span> · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span></p>
+    </div>
+    <div class="actions">
+      <button id="goJefaturaBtn" class="btn">← Jefatura</button>
     </div>
   </header>
   <div id="offlineBanner" class="offline-banner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
 
   <main class="wrap">
     <section class="card hero">
-      <h2 style="margin-top:0">📦 Consulte su Requisición F8</h2>
-      <label for="f8Input" style="display:block;margin:8px 0">Número(s) de Forma 8:</label>
-      <input id="f8Input" placeholder="Ej: 8107-2026-1-96, 8084-2026-1-160" />
-      <div><button id="searchBtn">🔍 Consultar</button></div>
+      <h2 style="margin-top:0">🔍 Consultar Requisiciones F8</h2>
+      <div class="filter-bar">
+        <input id="f8Input" type="text" placeholder="🔍 N° Forma 8..." />
+        <select id="ueSelect"><option value="">🏥 Unidad Ejecutora</option></select>
+        <input id="skuInput" type="text" placeholder="💊 SKU/Producto..." />
+        <select id="grupoSelect"><option value="">📦 Grupo</option></select>
+        <button id="searchBtn">Consultar</button>
+      </div>
       <div id="searchCounter" class="counter hidden"></div>
-
-      <div class="sep">────── o ──────</div>
-      <div style="font-weight:700;margin-top:6px">🏥 Consultar por Unidad Ejecutora</div>
-      <select id="ueSelect"><option value="">Seleccione su institución</option></select>
-      <div><button id="ueSearchBtn">📋 Ver todos mis pedidos</button></div>
-
-      <div class="small" style="margin-top:8px;color:#6b7280">Búsquedas recientes:</div>
-      <div id="recent" class="chips"></div>
       <div id="loading" class="hidden"><div class="spinner"></div></div>
-      <div id="noFound" class="err hidden">⚠️ No se encontró la Forma 8 ingresada.<br/>Verifique el número e intente nuevamente.<br/>Si el problema persiste, contacte a Torre de Control.</div>
+      <div id="noFound" class="err hidden">⚠️ No se encontraron resultados para los filtros ingresados.<br/>Verifique los datos e intente nuevamente.<br/>Si el problema persiste, contacte a Torre de Control.</div>
     </section>
 
     <section id="results" class="result"></section>
@@ -172,12 +193,6 @@
       const rec = getRecent().filter(x => x !== id);
       rec.unshift(id);
       localStorage.setItem('tracker_recientes', JSON.stringify(rec.slice(0,10)));
-      renderRecent();
-    }
-    function renderRecent(){
-      const box = document.getElementById('recent');
-      const arr = getRecent();
-      box.innerHTML = arr.length ? arr.map(x => `<span class="chip" data-id="${x}">${x}</span>`).join('') : '<span class="small">Sin búsquedas recientes.</span>';
     }
 
     function fmtDate(s){
@@ -295,6 +310,7 @@
       lastSuccessfulSync = new Date().toLocaleTimeString('es-PA', { hour:'2-digit', minute:'2-digit' });
       setConnectionStatus(true);
       populateUES();
+      populateGrupos();
       return trackingRows;
     }
 
@@ -320,12 +336,23 @@
       const sel = document.getElementById('ueSelect');
       const current = sel.value;
       const ues = [...new Set(trackingRows.map(r => (r.UNIDAD_EJECUTORA || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b));
-      sel.innerHTML = '<option value="">Seleccione su institución</option>' + ues.map(ue => `<option value="${ue}">${ue}</option>`).join('');
+      sel.innerHTML = '<option value="">🏥 Unidad Ejecutora</option>' + ues.map(ue => `<option value="${ue}">${ue}</option>`).join('');
       if (ues.includes(current)) sel.value = current;
     }
 
+    function populateGrupos(){
+      const sel = document.getElementById('grupoSelect');
+      const current = sel.value;
+      const grupos = [...new Set(trackingRows.map(r => (r.GRUPO || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+      sel.innerHTML = '<option value="">📦 Grupo</option>' + grupos.map(g => `<option value="${g}">${g}</option>`).join('');
+      if (grupos.includes(current)) sel.value = current;
+    }
+
     async function doSearch(force = false){
-      const ids = parseInputIds();
+      const f8Val = document.getElementById('f8Input').value.trim();
+      const ueVal = document.getElementById('ueSelect').value;
+      const skuVal = document.getElementById('skuInput').value.trim();
+      const grupoVal = document.getElementById('grupoSelect').value;
       const err = document.getElementById('noFound');
       const results = document.getElementById('results');
       const ueResults = document.getElementById('ueResults');
@@ -333,87 +360,63 @@
       ueResults.innerHTML = '';
       err.classList.add('hidden');
       document.getElementById('searchCounter').classList.add('hidden');
-      if (!ids.length) return;
-      if (ids.length > 10) {
-        err.innerHTML = '⚠️ Máximo 10 F8s por consulta simultánea.';
-        err.classList.remove('hidden');
-        return;
-      }
+      if (!f8Val && !ueVal && !skuVal && !grupoVal) return;
       setLoading(true);
       try {
         await fetchTracking(force);
-        document.getElementById('searchCounter').textContent = `Consultando ${ids.length} de ${ids.length}...`;
-        document.getElementById('searchCounter').classList.remove('hidden');
-        const found = [];
-        const notFound = [];
-        ids.forEach(id => {
-          const row = findById(id);
-          if (row) { found.push(row); saveRecent(id); }
-          else notFound.push(id);
-        });
-        if (!found.length) {
-          err.innerHTML = '⚠️ No se encontraron las F8 ingresadas.';
-          err.classList.remove('hidden');
-          return;
-        }
-        results.innerHTML = found.map((row, idx) => resultCardHTML(row, `search-${idx}`)).join('');
-        if (notFound.length) {
-          err.innerHTML = `⚠️ No encontradas: ${notFound.join(', ')}`;
-          err.classList.remove('hidden');
-        }
-      } catch {
-        setConnectionStatus(false);
-        err.innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
-        err.classList.remove('hidden');
-      } finally {
-        setLoading(false);
-      }
-    }
+        let matched = [...trackingRows];
 
-    async function searchByUE(){
-      const ue = document.getElementById('ueSelect').value;
-      const box = document.getElementById('ueResults');
-      const results = document.getElementById('results');
-      const err = document.getElementById('noFound');
-      box.innerHTML = '';
-      results.innerHTML = '';
-      err.classList.add('hidden');
-      if (!ue) return;
-      setLoading(true);
-      try {
-        await fetchTracking(false);
-        const rows = trackingRows.filter(r => (r.UNIDAD_EJECUTORA || '').trim() === ue).sort(sortByRecent);
-        const active = rows.filter(r => normalizeState(r.ESTADO) !== 'ENTREGADO').length;
-        const done = rows.length - active;
-        if (!rows.length) {
-          err.innerHTML = '⚠️ No hay requisiciones para esta Unidad Ejecutora.';
+        // Filter by F8 ID(s) — supports comma/newline separated list
+        if (f8Val) {
+          const ids = [...new Set(f8Val.split(/[\n,]+/).map(x => x.trim().toUpperCase()).filter(Boolean))];
+          matched = matched.filter(r => ids.includes(String(r.ID_PEDIDO || '').toUpperCase()));
+          ids.forEach(id => { if (matched.find(r => String(r.ID_PEDIDO||'').toUpperCase() === id)) saveRecent(id); });
+        }
+
+        // Filter by Unidad Ejecutora
+        if (ueVal) {
+          matched = matched.filter(r => (r.UNIDAD_EJECUTORA || '').trim() === ueVal);
+        }
+
+        // Filter by Grupo
+        if (grupoVal) {
+          matched = matched.filter(r => (r.GRUPO || '').trim() === grupoVal);
+        }
+
+        // Filter by SKU/Producto — cross-references allocation rows
+        if (skuVal) {
+          const skuNorm = normalizeText(skuVal);
+          if (!allocationLoaded) await fetchAllocation(false).catch(e => { console.warn('Allocation data unavailable for SKU filter:', e); });
+          if (allocationRows.length) {
+            const matchingIds = new Set(
+              allocationRows
+                .filter(r => {
+                  const code = normalizeText(r.CODIGO || r.Codigo || r.COD_ARTICULO || r.ITEM || '');
+                  const name = normalizeText(r.SUMINISTRO || r.DESCRIPCION || r.DESCRIPCIÓN || r.Nombre || '');
+                  return code.includes(skuNorm) || name.includes(skuNorm);
+                })
+                .map(r => String(r.N_Doc || '').trim().toUpperCase())
+            );
+            matched = matched.filter(r => matchingIds.has(String(r.ID_PEDIDO || '').toUpperCase()));
+          } else {
+            // Allocation data not available — fall back to text search on tracking fields
+            matched = matched.filter(r =>
+              normalizeText(r.ID_PEDIDO || '').includes(skuNorm) ||
+              normalizeText(r.GRUPO || '').includes(skuNorm)
+            );
+          }
+        }
+
+        matched = matched.sort(sortByRecent);
+
+        if (!matched.length) {
+          err.innerHTML = '⚠️ No se encontraron requisiciones para los filtros ingresados.';
           err.classList.remove('hidden');
           return;
         }
-        box.innerHTML = `
-          <article class="card">
-            <h2>🏥 ${ue.toUpperCase()} — ${rows.length} requisiciones</h2>
-            <div class="meta">${ue} — ${active} requisiciones activas · ${done} completadas</div>
-            <div class="ue-list">
-              ${rows.map((r, i) => {
-                const state = normalizeState(r.ESTADO);
-                const pct = Number(r.TOTAL_SOLIC || 0) ? ((Number(r.TOTAL_ASIG || 0) / Number(r.TOTAL_SOLIC || 0)) * 100) : 0;
-                const almacenista = String(r.ALMACENISTA || '').trim() || 'Sin asignar';
-                const pid = String(r.ID_PEDIDO || '—');
-                const safePid = pid.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                return `
-                  <div class="ue-row">
-                    <div class="ue-head">
-                      <div>${STATE_ICON[state] || '📦'} <button class="order-id-link do-pdf" data-pdf-id="${safePid}">📄 ${safePid}</button> | ${state} | ${fmtDate(r.FECHA_F8 || r.fechaF8 || r.FECHA_ASIGNACION)} | ${pct.toFixed(0)}% fill rate | 👤 ${almacenista}</div>
-                      <button class="ue-btn" data-toggle-ue="ue-${i}">Ver detalle ▼</button>
-                    </div>
-                    <div id="ue-${i}" class="hidden"></div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </article>
-        `;
+        document.getElementById('searchCounter').textContent = `${matched.length} requisición(es) encontrada(s)`;
+        document.getElementById('searchCounter').classList.remove('hidden');
+        results.innerHTML = matched.map((row, idx) => resultCardHTML(row, `search-${idx}`)).join('');
       } catch {
         setConnectionStatus(false);
         err.innerHTML = '⚠️ No se pudo consultar el backend en este momento. Intente nuevamente.';
@@ -436,14 +439,7 @@
 
     document.getElementById('searchBtn').addEventListener('click', () => doSearch(false));
     document.getElementById('f8Input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(false); });
-    document.getElementById('ueSearchBtn').addEventListener('click', () => searchByUE());
-
-    document.getElementById('recent').addEventListener('click', (e) => {
-      const id = e.target.dataset.id;
-      if (!id) return;
-      document.getElementById('f8Input').value = id;
-      doSearch(false);
-    });
+    document.getElementById('skuInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(false); });
 
     // Delegated handler for PDF generation buttons
     document.addEventListener('click', async (e) => {
@@ -495,7 +491,6 @@
       }
     });
 
-    renderRecent();
     fetchTracking(false).catch(() => setConnectionStatus(false));
 
     // ── Jefatura PIN modal ──────────────────────────────────────────
@@ -613,7 +608,7 @@
         <div class="header">
           <div class="header-title">
             <h1>HOJA DE ASIGNACIÓN F8 — CEDIS PANAMÁ</h1>
-            <div class="meta">👩‍💼 Jefa a Cargo: PAOLA MORENO</div>
+            <div class="meta">Jefa a Cargo: PAOLA MORENO</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:12px;color:#6b7280;">Generado: ${new Date().toLocaleString('es-PA')}</div>
