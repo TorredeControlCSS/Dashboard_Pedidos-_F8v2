@@ -580,10 +580,19 @@
     function closeJefaturaModal() {
       document.getElementById('jefaturaModal').style.display = 'none';
     }
-    function checkJefaturaPin() {
+    async function checkJefaturaPin() {
       const pin = document.getElementById('jefaturaPinInput').value.trim();
-      const stored = localStorage.getItem('jefatura_pin') || '';
-      if (!stored) { window.location.href = 'index.html'; return; }
+      let stored = localStorage.getItem('jefatura_pin') || '';
+      if (!stored) {
+        try {
+          const ps = await fetch(WEB_APP_URL + '?file=personal_status').then(r => r.json());
+          if (ps['JEFATURA']?.pin && /^\d{4}$/.test(ps['JEFATURA'].pin)) {
+            stored = ps['JEFATURA'].pin;
+            localStorage.setItem('jefatura_pin', stored);
+          }
+        } catch(e) { console.error('Error al recuperar PIN de Jefatura del backend:', e); }
+        if (!stored) { window.location.href = 'index.html'; return; }
+      }
       if (pin === stored) {
         window.location.href = 'index.html';
       } else {
