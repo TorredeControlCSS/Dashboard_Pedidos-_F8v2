@@ -5,58 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Asignación de Rutas · CEDIS PANAMA</title>
   <link rel="icon" href="./favicon.ico?v=1" />
+  <!-- Leaflet.js – gratuito, sin API key, sin límite de uso -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
     :root {
       --navy: #0b1f3a;
+      --navy2: #133a74;
       --panel: #ffffff;
       --muted: #f5f5f5;
       --text: #1f2937;
       --warn: #f59e0b;
       --danger: #b71c1c;
       --ok: #2e7d32;
+      --border: #e5e7eb;
+      --bg: #eef2f7;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, sans-serif; background: #eef2f7; color: var(--text); }
+    body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── TOPBAR ── */
     .topbar {
-      position: sticky; top: 0; z-index: 20;
-      background: linear-gradient(90deg, #0b1f3a, #133a74);
+      position: sticky; top: 0; z-index: 200;
+      background: linear-gradient(90deg, var(--navy), var(--navy2));
       color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+      box-shadow: 0 2px 8px rgba(0,0,0,.22);
     }
     .topbar img { width: 44px; height: 44px; object-fit: contain; }
     .title { flex: 1; min-width: 0; }
     .title h1 { margin: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .title p { margin: 2px 0 0; font-size: 12px; color: #cbd5e1; }
-    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .title p  { margin: 2px 0 0; font-size: 12px; color: #cbd5e1; }
+    .actions  { display: flex; gap: 6px; flex-wrap: wrap; }
     .btn {
       border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); color: #fff;
       border-radius: 8px; padding: 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none;
     }
-    .btn:hover { background: rgba(255,255,255,.2); }
-    .wrap { padding: 12px; max-width: 1200px; margin: 0 auto; }
-    .loading-banner {
-      background: #e3f2fd; border-left: 4px solid #1565c0;
-      padding: 10px 14px; font-size: 13px; color: #0d47a1;
-      display: flex; align-items: center; gap: 8px;
-    }
+    .btn:hover { background: rgba(255,255,255,.22); }
+
+    /* ── BANNERS ── */
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      display: inline-block; width: 16px; height: 16px;
-      border: 3px solid #93c5fd; border-top-color: #1565c0;
-      border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 3px solid #93c5fd; border-top-color: #1565c0; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+    .loading-banner { background: #e3f2fd; border-left: 4px solid #1565c0; padding: 10px 14px; font-size: 13px; color: #0d47a1; display: flex; align-items: center; gap: 8px; }
+    .error-banner   { background: #ffebee; border-left: 4px solid var(--danger); padding: 10px 14px; font-size: 13px; color: var(--danger); display: none; }
+
+    /* ── LAYOUT ── */
+    .wrap { padding: 12px; max-width: 1400px; margin: 0 auto; }
+
+    /* ── MINI DASH ── */
+    .mini-dash {
+      background: linear-gradient(90deg, var(--navy), var(--navy2));
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 10px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
     }
-    .error-banner {
-      background: #ffebee; border-left: 4px solid #b71c1c;
-      padding: 10px 14px; font-size: 13px; color: #b71c1c; display: none;
+    .mini-dash-label { color: #cbd5e1; font-size: 11px; font-weight: 700; white-space: nowrap; margin-right: 4px; }
+    .mini-dash-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px; padding: 4px 12px; color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap;
     }
-    .box {
-      background: #fff; border-radius: 10px; padding: 14px;
-      border: 1px solid #e5e7eb; margin-bottom: 12px;
-    }
+    .mini-dash-chip .chip-count { background: rgba(255,255,255,.2); border-radius: 999px; padding: 1px 7px; font-size: 11px; margin-left: 4px; }
+
+    /* ── FILTERS BAR ── */
     .filters-bar {
       display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-      padding: 10px 12px; background: #fff;
-      border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 10px;
+      padding: 10px 12px; background: #fff; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px;
     }
     .filters-bar input, .filters-bar select {
       border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 10px;
@@ -67,113 +79,155 @@
       border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 12px;
       background: #f1f5f9; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
     }
-    .tabs-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+    /* ── TABS ── */
+    .tabs-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
     .tab-btn {
-      border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px 16px;
+      border: 2px solid var(--border); border-radius: 8px; padding: 8px 16px;
       background: #fff; font-weight: 700; cursor: pointer; font-size: 13px; transition: all .15s;
     }
-    .tab-btn.active { background: #0b1f3a; color: #fff; border-color: #0b1f3a; }
-    .save-row {
-      display: flex; justify-content: flex-end; gap: 8px;
-      padding: 8px 0;
-    }
-    .btn-cancel {
-      border: 1px solid #d1d5db; background: #fff; border-radius: 8px;
-      padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 13px; color: #374151;
-    }
-    .btn-save {
-      background: #0b1f3a; color: #fff; border: none; border-radius: 8px;
-      padding: 8px 16px; font-weight: 700; cursor: pointer; font-size: 13px;
-    }
-    .btn-save:hover { background: #133a74; }
+    .tab-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* ── SAVE ROW ── */
+    .save-row { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 0; }
+    .btn-cancel { border: 1px solid #d1d5db; background: #fff; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 13px; color: #374151; }
+    .btn-save   { background: var(--navy); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 700; cursor: pointer; font-size: 13px; }
+    .btn-save:hover { background: var(--navy2); }
+
+    /* ── TABLE ── */
+    .box { background: #fff; border-radius: 10px; padding: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     thead tr { background: #f1f5f9; }
     th { padding: 8px 6px; font-size: 11px; text-transform: uppercase; color: #6b7280; text-align: left; white-space: nowrap; }
     td { padding: 6px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     tr:hover td { background: #f8fafc; }
-    .badge {
-      display: inline-block; color: #fff; border-radius: 999px;
-      padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap;
-    }
-    .pagination {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 0; font-size: 13px;
-    }
-    .pagination button {
-      border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 12px;
-      background: #fff; cursor: pointer; font-weight: 700;
-    }
+    .badge { display: inline-block; color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pagination { display: flex; align-items: center; gap: 8px; padding: 10px 0; font-size: 13px; }
+    .pagination button { border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 12px; background: #fff; cursor: pointer; font-weight: 700; }
     .pagination button:disabled { opacity: .4; cursor: not-allowed; }
     .pagination .page-info { color: #6b7280; }
-    .person-block {
-      border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; margin-bottom: 8px;
-    }
+
+    /* ── PERSON BLOCKS (Tab B) ── */
+    .person-block { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
     .person-block-title { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
-    .person-block-row {
-      display: flex; gap: 8px; align-items: center; padding: 5px 0;
-      border-bottom: 1px dashed #e5e7eb; font-size: 12px;
-    }
+    .person-block-row { display: flex; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px dashed var(--border); font-size: 12px; }
     .person-block-row:last-child { border-bottom: none; }
-    select.route-staff-select, input.route-date-input {
-      border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 7px;
-      font-size: 12px; width: 100%;
+    select.route-staff-select, input.route-date-input { border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 7px; font-size: 12px; width: 100%; }
+
+    /* ── MAP TAB (Tab C) ── */
+    #mapSection { display: none; }
+    #routeMap { height: 520px; border-radius: 10px; border: 1px solid var(--border); }
+    .map-controls {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 10px;
     }
+    .map-controls select, .map-controls input { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+    .map-controls button { border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-propose  { background: #1565c0; color: #fff; }
+    .btn-propose:hover { background: #0d47a1; }
+    .btn-clearmap { background: #f1f5f9; color: #374151; border: 1px solid #d1d5db !important; }
+
+    /* Route legend */
+    .route-legend {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+      background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+    .legend-dot  { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Route cards below map */
+    .route-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+    .route-card {
+      border-radius: 10px; padding: 12px; border: 2px solid; font-size: 12px;
+    }
+    .route-card-header { font-weight: 800; font-size: 13px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .route-card-stop { padding: 4px 0; border-bottom: 1px dashed #e5e7eb; display: flex; align-items: flex-start; gap: 6px; }
+    .route-card-stop:last-child { border-bottom: none; }
+    .stop-num { font-weight: 800; color: #fff; background: #546e7a; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; margin-top: 1px; }
+    .route-card-meta { font-size: 11px; color: #6b7280; margin-top: 6px; }
+
+    /* ── BUDGET TAB (Tab D) ── */
+    #budgetSection { display: none; }
+    .budget-summary {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px;
+    }
+    .budget-kpi {
+      background: var(--navy); color: #fff; border-radius: 10px; padding: 12px 14px; text-align: center;
+    }
+    .budget-kpi-value { font-size: 22px; font-weight: 900; }
+    .budget-kpi-label { font-size: 11px; color: #93c5fd; margin-top: 3px; }
+    .budget-table-wrap { overflow-x: auto; }
+    .budget-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .budget-table thead tr { background: var(--navy); color: #fff; }
+    .budget-table th { padding: 9px 8px; font-size: 11px; text-align: left; white-space: nowrap; }
+    .budget-table td { padding: 7px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .budget-table tr:hover td { background: #f8fafc; }
+    .budget-table input[type="number"] { border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 6px; width: 90px; font-size: 12px; }
+    .budget-table .total-cell { font-weight: 800; color: var(--ok); }
+    .budget-total-row td { background: #f0fdf4; font-weight: 800; border-top: 2px solid #16a34a; }
+    .budget-note { background: #fef9c3; border-left: 4px solid #ca8a04; padding: 10px 14px; font-size: 12px; border-radius: 0 8px 8px 0; margin-bottom: 12px; }
+    .btn-export-budget { background: var(--ok); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-export-budget:hover { background: #1b5e20; }
+    .btn-save-budget { background: var(--navy); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-save-budget:hover { background: var(--navy2); }
+
+    /* ── TOAST ── */
     #toast {
       position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px;
       background: #111827; color: #fff; border-radius: 999px;
-      padding: 8px 14px; font-size: 13px; display: none; z-index: 40;
+      padding: 8px 14px; font-size: 13px; display: none; z-index: 400;
     }
+
     .small { color: #6b7280; font-size: 12px; }
+
     @media (max-width: 640px) {
       .topbar { align-items: flex-start; }
       .actions { width: 100%; }
       .filters-bar { flex-direction: column; }
       .filters-bar input, .filters-bar select { min-width: 0; width: 100%; }
+      #routeMap { height: 360px; }
     }
-    .mini-dash {
-      background: linear-gradient(90deg, #0b1f3a, #133a74);
-      border-radius: 10px; padding: 10px 14px; margin-bottom: 10px;
-      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    }
-    .mini-dash-label { color: #cbd5e1; font-size: 11px; font-weight: 700; white-space: nowrap; margin-right: 4px; }
-    .mini-dash-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
-      border-radius: 999px; padding: 4px 12px; color: #fff;
-      font-size: 12px; font-weight: 700; white-space: nowrap;
-    }
-    .mini-dash-chip .chip-count { background: rgba(255,255,255,.2); border-radius: 999px; padding: 1px 7px; font-size: 11px; margin-left: 4px; }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
-    <div class="title">
-      <h1>🗺️ ASIGNACIÓN DE RUTAS · CEDIS PANAMA</h1>
-      <p id="pageSubtitle">Cargando datos... · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span></p>
-    </div>
-    <div class="actions">
-      <a class="btn" href="index.html">← Volver a Jefatura</a>
-    </div>
-  </header>
 
-  <div id="loadingBanner" class="loading-banner">
-    <span class="spinner"></span>
-    <span id="loadingMsg">Cargando pedidos y personal...</span>
+<header class="topbar">
+  <img src="icons/icon-512.png" alt="logo" onerror="this.style.display='none'" />
+  <div class="title">
+    <h1>🗺️ ASIGNACIÓN DE RUTAS · CEDIS PANAMA</h1>
+    <p id="pageSubtitle">Cargando datos... · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span></p>
   </div>
-  <div id="errorBanner" class="error-banner"></div>
+  <div class="actions">
+    <a class="btn" href="index.html">← Volver a Jefatura</a>
+  </div>
+</header>
 
-  <div class="wrap" id="mainContent" style="display:none;">
+<div id="loadingBanner" class="loading-banner">
+  <span class="spinner"></span>
+  <span id="loadingMsg">Cargando pedidos y personal...</span>
+</div>
+<div id="errorBanner" class="error-banner"></div>
 
-    <!-- Mini-dashboard: almacenistas with assignments -->
-    <div id="miniDash" style="display:none;" class="mini-dash"></div>
+<div class="wrap" id="mainContent" style="display:none;">
 
+  <!-- Mini-dashboard -->
+  <div id="miniDash" style="display:none;" class="mini-dash"></div>
+
+  <!-- Tabs -->
+  <div class="tabs-row">
+    <button class="tab-btn active" id="tabABtn">📋 Por Pedido</button>
+    <button class="tab-btn"        id="tabBBtn">👤 Por Almacenista</button>
+    <button class="tab-btn"        id="tabCBtn">🗺️ Mapa de Rutas</button>
+    <button class="tab-btn"        id="tabDBtn">💰 Presupuesto</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ TAB A ═══ -->
+  <div id="tabAContent">
     <!-- Filter bar -->
     <div class="filters-bar">
       <input id="filterSearch" type="text" placeholder="🔍 Buscar por ID o Unidad Ejecutora..." />
-      <select id="filterGroup">
-        <option value="">Grupo: TODOS</option>
-      </select>
+      <select id="filterGroup"><option value="">Grupo: TODOS</option></select>
       <select id="filterState">
         <option value="">Estado: TODOS</option>
         <option value="ASIGNADA">ASIGNADA</option>
@@ -183,599 +237,890 @@
         <option value="DISTRIBUCIÓN">DISTRIBUCIÓN</option>
         <option value="DESPACHADO">DESPACHADO</option>
       </select>
-      <select id="filterPerson">
-        <option value="">Almacenista: TODOS</option>
-      </select>
+      <select id="filterPerson"><option value="">Almacenista: TODOS</option></select>
       <button id="clearFiltersBtn">↺ Limpiar</button>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs-row">
-      <button class="tab-btn active" id="tabABtn">📋 Por Pedido</button>
-      <button class="tab-btn" id="tabBBtn">👤 Por Almacenista</button>
-    </div>
-
-    <!-- Save buttons (top) -->
     <div class="save-row" id="saveRowTop">
       <button class="btn-cancel" id="cancelBtnTop">↩ Volver sin guardar</button>
-      <button class="btn-save" id="saveBtnTop">💾 Guardar Asignación de Rutas</button>
+      <button class="btn-save"   id="saveBtnTop">💾 Guardar Asignación</button>
     </div>
 
-    <!-- Tab A content -->
-    <div id="tabAContent">
-      <div class="box" style="padding:0;overflow:hidden;">
-        <div style="overflow-x:auto;">
-          <table id="routeTable">
-            <thead>
-              <tr>
-                <th style="padding:8px 6px;">ID</th>
-                <th style="padding:8px 6px;">Unidad Ejecutora</th>
-                <th style="padding:8px 6px;">Grupo</th>
-                <th style="padding:8px 6px;">Estado</th>
-                <th style="padding:8px 6px; min-width:120px;">📅 Fecha de salida</th>
-                <th style="padding:8px 6px; min-width:240px;">👤 Almacenista</th>
-              </tr>
-            </thead>
-            <tbody id="routeTableBody"></tbody>
-          </table>
-        </div>
-        <div class="pagination" id="paginationWrap" style="padding:10px 12px;">
-          <button id="prevPageBtn">← Anterior</button>
-          <span class="page-info" id="pageInfo">Página 1</span>
-          <button id="nextPageBtn">Siguiente →</button>
-          <span class="small" id="totalInfo"></span>
-        </div>
+    <div class="box" style="padding:0;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table id="routeTable">
+          <thead><tr>
+            <th style="padding:8px 6px;">ID</th>
+            <th style="padding:8px 6px;">Unidad Ejecutora</th>
+            <th style="padding:8px 6px;">Grupo</th>
+            <th style="padding:8px 6px;">Estado</th>
+            <th style="padding:8px 6px; min-width:120px;">📅 Fecha salida</th>
+            <th style="padding:8px 6px; min-width:240px;">👤 Almacenista</th>
+          </tr></thead>
+          <tbody id="routeTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="paginationWrap" style="padding:10px 12px;">
+        <button id="prevPageBtn">← Anterior</button>
+        <span class="page-info" id="pageInfo">Página 1</span>
+        <button id="nextPageBtn">Siguiente →</button>
+        <span class="small" id="totalInfo"></span>
       </div>
     </div>
 
-    <!-- Tab B content -->
-    <div id="tabBContent" style="display:none;">
-      <div class="box">
-        <div id="tabBBody"></div>
-      </div>
-    </div>
-
-    <!-- Save buttons (bottom) -->
     <div class="save-row" id="saveRowBottom">
       <button class="btn-cancel" id="cancelBtnBottom">↩ Volver sin guardar</button>
-      <button class="btn-save" id="saveBtnBottom">💾 Guardar Asignación de Rutas</button>
+      <button class="btn-save"   id="saveBtnBottom">💾 Guardar Asignación</button>
     </div>
   </div>
 
-  <div id="toast"></div>
+  <!-- ═══════════════════════════════════════════════════ TAB B ═══ -->
+  <div id="tabBContent" style="display:none;">
+    <div class="box"><div id="tabBBody"></div></div>
+  </div>
 
-  <script>
-    // ─── CONFIG ─────────────────────────────────────────────────────────────────
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
-    const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
-    const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
-    const PAGE_SIZE = 50;
+  <!-- ═══════════════════════════════════════════════════ TAB C MAP ═══ -->
+  <div id="mapSection">
 
-    // ─── STATE ───────────────────────────────────────────────────────────────────
-    let tracking = [];   // rows from ?file=tracking
-    let STAFF = [];      // rows from ?file=personal
-    let _routeAssignments = []; // [{pedidoId, almacenista, fechaSalida, fechaAsignacion}]
-    let _currentTab = 'A';
-    let _currentPage = 1;
-    let _filterSearch = '';
-    let _filterGroup = '';
-    let _filterState = '';
-    let _filterPerson = '';
+    <div class="map-controls">
+      <select id="mapFilterDay">
+        <option value="">📅 Día: TODOS</option>
+        <option value="LUNES">LUNES</option>
+        <option value="MARTES">MARTES</option>
+        <option value="MIERCOLES">MIÉRCOLES</option>
+        <option value="JUEVES">JUEVES</option>
+        <option value="VIERNES">VIERNES</option>
+      </select>
+      <select id="mapFilterCateg">
+        <option value="">🏥 Categoría: TODAS</option>
+        <option value="HOSPITAL">HOSPITAL</option>
+        <option value="POLICLINICA DE ALTO VOL.">POLICLÍNICA ALTO VOL.</option>
+        <option value="POLICLINICA DE BAJO VOL.">POLICLÍNICA BAJO VOL.</option>
+        <option value="CAPPS">CAPPS</option>
+        <option value="ULAPS">ULAPS</option>
+        <option value="CEDIS">CEDIS</option>
+      </select>
+      <select id="mapFilterPerson">
+        <option value="">👤 Almacenista: TODOS</option>
+      </select>
+      <input type="number" id="mapMaxStops" value="6" min="2" max="15" style="width:110px;" title="Paradas máx. por ruta" />
+      <label style="font-size:12px;white-space:nowrap;">paradas/ruta</label>
+      <button class="btn-propose" id="btnProposeRoutes">⚡ Proponer Rutas Óptimas</button>
+      <button class="btn-clearmap" id="btnClearRoutes" style="border:1px solid #d1d5db;">🗑️ Limpiar Rutas</button>
+    </div>
 
-    // ─── UTILS ──────────────────────────────────────────────────────────────────
-    const readLS = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
-    const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-    const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-    const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    <!-- Route legend (dynamic) -->
+    <div class="route-legend" id="routeLegend">
+      <span style="font-size:12px;font-weight:700;color:#6b7280;">Leyenda:</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#b71c1c;"></span> Hospital</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#1565c0;"></span> Pol. Alto Vol.</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#0288d1;"></span> Pol. Bajo Vol.</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#6a1b9a;"></span> CAPPS</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#2e7d32;"></span> ULAPS</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#e65100;"></span> CEDIS</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f9a825;border:2px solid #888;"></span> Almacén Central</span>
+    </div>
 
-    const GROUP_MAP = {
-      'G1-TABLETAS': 'GRUPO 1', 'GRUPO 1': 'GRUPO 1',
-      'G2-SOLUCION': 'GRUPO 2', 'GRUPO 2': 'GRUPO 2',
-      'G3-JARABE': 'GRUPO 3', 'GRUPO 3': 'GRUPO 3',
-      'G4-CREMAS': 'GRUPO 4-5-11', 'G5-OVULOS': 'GRUPO 4-5-11', 'G5-ÓVULOS': 'GRUPO 4-5-11',
-      'G11-ODONTOLOGIA': 'GRUPO 4-5-11', 'G-11-ODONTOLOGIA': 'GRUPO 4-5-11',
-      'GRUPO 4': 'GRUPO 4-5-11', 'GRUPO 4-5-11': 'GRUPO 4-5-11',
-      'G9-MQ': 'MÓDULO', 'MODULO': 'MÓDULO', 'MÓDULO': 'MÓDULO',
-      'FRÍO': 'FRÍO', 'FRIO': 'FRÍO',
-      'EMPAQUE': 'EMPAQUE', 'URGENCIAS': 'URGENCIAS', 'VENCIDOS': 'VENCIDOS', 'KARDEX': 'KARDEX'
-    };
-    function normalizeGroup(rawGroup) {
-      if (!rawGroup) return 'SIN GRUPO';
-      let upper = String(rawGroup).toUpperCase().trim();
-      const fixes = { 'Ã\u0093': 'Ó', 'Ã\u0081': 'Á' };
-      Object.entries(fixes).forEach(([b, g]) => { upper = upper.split(b).join(g); });
-      const entries = Object.entries(GROUP_MAP);
-      for (const [k, v] of entries) if (upper === k.toUpperCase()) return v;
-      for (const [k, v] of entries) { const ku = k.toUpperCase(); if (upper.includes(ku) || ku.includes(upper)) return v; }
-      return String(rawGroup).trim();
+    <div id="routeMap"></div>
+
+    <div class="route-cards" id="routeCards"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ TAB D BUDGET ═══ -->
+  <div id="budgetSection">
+    <div class="budget-note">
+      💡 <strong>Estimación presupuestaria por ruta.</strong> Ingrese los valores estimados de cada rubro.
+      Los totales se calculan automáticamente. Use "Guardar" para persistir los datos en el sistema.
+    </div>
+
+    <div class="budget-summary" id="budgetKPIs"></div>
+
+    <div class="box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <strong style="font-size:14px;">📊 Estimación por Ruta</strong>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-save-budget" id="btnSaveBudget">💾 Guardar Presupuesto</button>
+          <button class="btn-export-budget" id="btnExportBudget">📥 Exportar CSV</button>
+        </div>
+      </div>
+      <div class="budget-table-wrap">
+        <table class="budget-table" id="budgetTable">
+          <thead><tr>
+            <th>Ruta / Almacenista</th>
+            <th>Paradas</th>
+            <th>Distancia km (est.)</th>
+            <th>Combustible ($)</th>
+            <th>Viáticos ($)</th>
+            <th>Peajes ($)</th>
+            <th>Otros ($)</th>
+            <th>Total ($)</th>
+            <th>Notas</th>
+          </tr></thead>
+          <tbody id="budgetTableBody"></tbody>
+          <tfoot>
+            <tr class="budget-total-row" id="budgetTotalRow">
+              <td colspan="3"><strong>TOTAL GENERAL</strong></td>
+              <td id="totCombustible">$0.00</td>
+              <td id="totViaticos">$0.00</td>
+              <td id="totPeajes">$0.00</td>
+              <td id="totOtros">$0.00</td>
+              <td id="totTotal">$0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════════════════════
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
+const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
+const BUDGET_KEY = 'presupuesto_rutas_v1';
+const PAGE_SIZE = 50;
+
+// Almacén Central Nacional – punto de origen para rutas
+const ALMACEN_CENTRAL = { lat: 9.0368, lng: -79.4963, nombre: 'Almacén Central CEDIS' };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  BASE DE DATOS DE CENTROS DE SALUD (con coordenadas del Excel)
+// ═══════════════════════════════════════════════════════════════════════════════
+const CENTROS_SALUD = [
+  { nombre:'C. H. M. DR. ARNULFO ARIAS MADRID', categ:'HOSPITAL', dias:'LUNES / JUEVES', lat:8.981046542551233, lng:-79.5349048899699 },
+  { nombre:'CAPPS DE CAPIRA', categ:'POLICLINICA DE BAJO VOLUMEN', dias:'MIERCOLES / JUEVES', lat:8.758159832430776, lng:-79.88412503648318 },
+  { nombre:'CAPPS EL TECAL', categ:'ULAPS', dias:'MIERCOLES / JUEVES', lat:8.9101287779027, lng:-79.7118685629869 },
+  { nombre:'CAPPS LAS ACACIAS (PLAZA TOCUMEN)', categ:'CAPPS', dias:'MARTES / JUEVES', lat:9.060945849868794, lng:-79.42288081695285 },
+  { nombre:'CAPPS MAÑANITAS (LOS NOGALES)', categ:'CAPPS', dias:'MARTES / JUEVES', lat:9.077264191563527, lng:-79.41133702065746 },
+  { nombre:'CAPPS PEDREGAL', categ:'CAPPS', dias:'MARTES / JUEVES', lat:9.068714596115905, lng:-79.4203238439364 },
+  { nombre:'CAPPS TORRIJOS CARTER', categ:'CAPPS', dias:'LUNES / MIERCOLES', lat:9.077740274705528, lng:-79.49091225928058 },
+  { nombre:'CAPPS VACAMONTE', categ:'CAPPS', dias:'MARTES / MIERCOLES', lat:8.864562202869868, lng:-79.67262718626611 },
+  { nombre:'CEDIS CHIRIQUÍ', categ:'CEDIS', dias:'MARTES / MIERCOLES', lat:8.434460949575248, lng:-82.46164553121342 },
+  { nombre:'CEDIS DIVISA', categ:'CEDIS', dias:'MARTES / MIERCOLES', lat:8.131580880617786, lng:-80.6866474476491 },
+  { nombre:'CIUDAD DE LA SALUD', categ:'HOSPITAL', dias:'MARTES / VIERNES', lat:9.078729684257596, lng:-79.40023462111328 },
+  { nombre:'HOSP. DE CHEPO', categ:'HOSPITAL', dias:'LUNES / MIERCOLES', lat:9.160610034243465, lng:-79.0954027057122 },
+  { nombre:'ESPECIALIDADES PEDIATRICAS (HEPOTH)', categ:'HOSPITAL', dias:'LUNES / MIERCOLES', lat:9.001085254338339, lng:-79.51799593386734 },
+  { nombre:'HOSP. DRA. SUSANA JONES CANO', categ:'HOSPITAL', dias:'LUNES / JUEVES', lat:9.03784893776744, lng:-79.48321729250783 },
+  { nombre:'HOSP. IRMA DE LOURDES TZANETATOS', categ:'HOSPITAL', dias:'LUNES / VIERNES', lat:9.094515382364895, lng:-79.3915864108704 },
+  { nombre:'HOSP. MANUEL AMADOR G.', categ:'HOSPITAL', dias:'MARTES / JUEVES', lat:9.357756511988807, lng:-79.89270151324523 },
+  { nombre:'HOGAR DE LA ESPERANZA', categ:'HOSPITAL', dias:'LUNES / MIERCOLES', lat:8.888731291014292, lng:-79.62638428018377 },
+  { nombre:'POL. ALEJANDRO DE LA GUARDIA (BETHANIA)', categ:'POLICLINICA DE ALTO VOL.', dias:'MARTES / VIERNES', lat:9.021824897682881, lng:-79.52537024949409 },
+  { nombre:'POL. CARLOS N. BRIN (SAN FRANCISCO)', categ:'POLICLINICA DE ALTO VOL.', dias:'LUNES / MIERCOLES', lat:8.997458498998267, lng:-79.51057003044521 },
+  { nombre:'POL. DE CAÑITA', categ:'POLICLINICA DE BAJO VOL.', dias:'LUNES / MIERCOLES', lat:9.220017163785325, lng:-78.88972282303354 },
+  { nombre:'POL. DE NUEVO SAN JUAN', categ:'POLICLINICA DE BAJO VOL.', dias:'MARTES / JUEVES', lat:9.260760703830988, lng:-79.68134682065579 },
+  { nombre:'POL. DE SABANITAS', categ:'POLICLINICA DE BAJO VOL.', dias:'MARTES / JUEVES', lat:9.347196118425904, lng:-79.80605613229446 },
+  { nombre:'POL. DR. BLAS D. GOMEZ CHETRO', categ:'POLICLINICA DE ALTO VOL.', dias:'LUNES / VIERNES', lat:8.953158274159687, lng:-79.65526494023264 },
+  { nombre:'POL. GENEROSO GUARDIA (STA. LIBRADA)', categ:'POLICLINICA DE ALTO VOL.', dias:'MARTES / JUEVES', lat:9.072384599539527, lng:-79.5047271341494 },
+  { nombre:'POL. HUGO SPADAFORA', categ:'POLICLINICA DE ALTO VOL.', dias:'MARTES / JUEVES', lat:9.351190812136752, lng:-79.85849393599923 },
+  { nombre:'POL. JOAQUIN J. VALLARINO (JUAN DIAZ)', categ:'POLICLINICA DE ALTO VOL.', dias:'LUNES / MIERCOLES', lat:9.054963065564364, lng:-79.43463535649136 },
+  { nombre:'POL. JUAN VEGA M. (SAN CARLOS)', categ:'POLICLINICA DE BAJO VOL.', dias:'LUNES / MIERCOLES', lat:8.47273525599877, lng:-79.95509866113824 },
+  { nombre:'POL. MANUEL FERRER VALDES (PEDIATRICA)', categ:'POLICLINICA DE ALTO VOL.', dias:'MARTES / JUEVES', lat:8.962450863100885, lng:-79.53830369790464 },
+  { nombre:'POL. MANUEL MARIA VALDES (SAN MIGUELITO)', categ:'POLICLINICA DE BAJO VOL.', dias:'MARTES / VIERNES', lat:9.03812925168755, lng:-79.49514157462518 },
+  { nombre:'POL. PRESIDENTE REMON (CALLE 17)', categ:'POLICLINICA DE ALTO VOL.', dias:'LUNES / MIERCOLES', lat:8.95652505316473, lng:-79.541519352365 },
+  { nombre:'POL. SANTIAGO BARRAZA (CHORRERA)', categ:'POLICLINICA DE ALTO VOL.', dias:'LUNES / MIERCOLES', lat:8.890576668353143, lng:-79.76048135975141 },
+  { nombre:'POLICLINICA DE SAN ANTONIO', categ:'POLICLINICA DE ALTO VOL.', dias:'LUNES / MIERCOLES', lat:9.06053451772318, lng:-79.44509051927776 },
+  { nombre:'ULAPS - LAS CUMBRES', categ:'ULAPS', dias:'LUNES / MIERCOLES', lat:9.079802501404192, lng:-79.52679888626417 },
+  { nombre:'ULAPS - SAN CRISTOBAL', categ:'ULAPS', dias:'MARTES / JUEVES', lat:9.028263009443105, lng:-79.49111848070737 },
+  { nombre:'ULAPS GUADALUPE (CHORRERA)', categ:'ULAPS', dias:'MIERCOLES / JUEVES', lat:8.865362808482192, lng:-79.80996683415125 },
+  { nombre:'ULAPS MAXIMO HERRERA (HIPODROMO)', categ:'ULAPS', dias:'MARTES / JUEVES', lat:9.037214160786885, lng:-79.46661511880544 },
+  { nombre:'ULAPS PORTOBELO', categ:'ULAPS', dias:'MARTES / VIERNES', lat:9.553346151319534, lng:-79.65170870345634 },
+  { nombre:'ULAPS SAN JOSE', categ:'ULAPS', dias:'LUNES / MIERCOLES', lat:8.535164721908043, lng:-79.92378570161318 },
+  { nombre:'ULAPS VISTA ALEGRE (ARRAIJAN)', categ:'ULAPS', dias:'MARTES / MIERCOLES', lat:8.925529068500278, lng:-79.69824146113437 },
+  { nombre:'HOSPITAL RAFAEL ESTEVEZ', categ:'HOSPITAL', dias:'MARTES / MIERCOLES', lat:8.245121914734158, lng:-80.55793397172965 },
+];
+
+// Colors by category
+const CATEG_COLORS = {
+  'HOSPITAL':                 '#b71c1c',
+  'POLICLINICA DE ALTO VOL.': '#1565c0',
+  'POLICLINICA DE BAJO VOL.': '#0288d1',
+  'CAPPS':                    '#6a1b9a',
+  'ULAPS':                    '#2e7d32',
+  'CEDIS':                    '#e65100',
+};
+
+// Palette for route polylines
+const ROUTE_PALETTE = ['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc1','#c0ca33','#6d4c41','#f06292','#26a69a'];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let tracking = [];
+let STAFF = [];
+let _routeAssignments = [];
+let _currentTab = 'A';
+let _currentPage = 1;
+let _filterSearch = '', _filterGroup = '', _filterState = '', _filterPerson = '';
+let _leafletMap = null;
+let _mapLayers = [];
+let _proposedRoutes = [];
+let _budgetData = {};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════════════════════
+const readLS  = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
+const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+const isoToday = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fmt$ = v => '$' + Number(v||0).toFixed(2);
+
+const GROUP_MAP = {
+  'G1-TABLETAS':'GRUPO 1','GRUPO 1':'GRUPO 1','G2-SOLUCION':'GRUPO 2','GRUPO 2':'GRUPO 2',
+  'G3-JARABE':'GRUPO 3','GRUPO 3':'GRUPO 3','G4-CREMAS':'GRUPO 4-5-11','G5-OVULOS':'GRUPO 4-5-11',
+  'G5-ÓVULOS':'GRUPO 4-5-11','G11-ODONTOLOGIA':'GRUPO 4-5-11','G-11-ODONTOLOGIA':'GRUPO 4-5-11',
+  'GRUPO 4':'GRUPO 4-5-11','GRUPO 4-5-11':'GRUPO 4-5-11','G9-MQ':'MÓDULO','MODULO':'MÓDULO','MÓDULO':'MÓDULO',
+  'FRÍO':'FRÍO','FRIO':'FRÍO','EMPAQUE':'EMPAQUE','URGENCIAS':'URGENCIAS','VENCIDOS':'VENCIDOS','KARDEX':'KARDEX'
+};
+function normalizeGroup(rawGroup) {
+  if (!rawGroup) return 'SIN GRUPO';
+  let upper = String(rawGroup).toUpperCase().trim();
+  const fixes = {'Ã\u0093':'Ó','Ã\u0081':'Á'};
+  Object.entries(fixes).forEach(([b,g]) => { upper = upper.split(b).join(g); });
+  for (const [k,v] of Object.entries(GROUP_MAP)) if (upper===k.toUpperCase()) return v;
+  for (const [k,v] of Object.entries(GROUP_MAP)) { const ku=k.toUpperCase(); if(upper.includes(ku)||ku.includes(upper)) return v; }
+  return String(rawGroup).trim();
+}
+const normalizeState = (s='') => {
+  const up=String(s).trim().toUpperCase();
+  if(up==='ASIGNADO'||up==='ASIGNADA') return 'ASIGNADA';
+  if(up==='FACTURADO'||up==='FACTURACION'||up==='FACTURACIÓN') return 'FACTURACIÓN';
+  if(up==='EMPACANDO') return 'EMPACADO';
+  if(up==='DISTRIBUCION'||up==='DISTRIBUCIÓN') return 'DISTRIBUCIÓN';
+  return up||'ASIGNADA';
+};
+const STATE_COLORS = {
+  'ASIGNADA':'#546e7a','PICKING':'#f9a825','FACTURACIÓN':'#ef6c00',
+  'EMPACADO':'#6d4c41','DISTRIBUCIÓN':'#7b1fa2','DESPACHADO':'#2e7d32','ENTREGADO':'#1b5e20'
+};
+const GROUP_COLORS = {
+  'GRUPO 1':'#1565c0','GRUPO 2':'#2e7d32','GRUPO 3':'#6a1b9a',
+  'GRUPO 4-5-11':'#e65100','GRUPO 4':'#bf360c','FRÍO':'#0277bd',
+  'EMPAQUE':'#4e342e','URGENCIAS':'#b71c1c','MÓDULO':'#37474f','VENCIDOS':'#558b2f','KARDEX':'#5d4037'
+};
+
+function showToast(msg, duration=2800) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(()=>t.style.display='none', duration);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  DISTANCE (Haversine km)
+// ═══════════════════════════════════════════════════════════════════════════════
+function haversine(a, b) {
+  const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  DATA LOADING
+// ═══════════════════════════════════════════════════════════════════════════════
+function getCachedStaff() {
+  try { const c=JSON.parse(localStorage.getItem('cache_staff_v1')); if(c&&(Date.now()-c.ts)<30*60*1000) return c.data; } catch(e){} return null;
+}
+function setCachedStaff(data) { try { localStorage.setItem('cache_staff_v1',JSON.stringify({ts:Date.now(),data})); }catch(e){} }
+
+async function loadTracking() {
+  const r=await fetch(`${WEB_APP_URL}?file=tracking`); const raw=await r.json();
+  tracking=(Array.isArray(raw)?raw:[]).map(row=>{
+    const rawGroup=row.GRUPO||row.grupo||row.Grupo||''; const group=normalizeGroup(rawGroup);
+    return { id:row.ID_PEDIDO||'---', unidad:row.UNIDAD_EJECUTORA||'Sin UE', group, rawGroup:String(rawGroup||'').trim(),
+      tipo:String(row.TIPO||group).toUpperCase().includes('URG')?'URGENCIA':'MENSUAL',
+      estado:normalizeState(row.ESTADO||'ASIGNADA') };
+  }).filter(i=>i.id&&i.id!=='---');
+}
+
+async function loadStaff() {
+  const cached=getCachedStaff(); if(cached){STAFF=cached;return;}
+  try { const r=await fetch(`${WEB_APP_URL}?file=personal`); const d=await r.json(); if(Array.isArray(d)&&d.length>0){STAFF=d;setCachedStaff(d);return;} }catch(e){}
+  const r=await fetch(`${WEB_APP_URL}?file=staff`); const d=await r.json(); if(Array.isArray(d)&&d.length>0){STAFF=d;setCachedStaff(d);}
+}
+
+async function loadRouteAssignments() {
+  try {
+    const r=await fetch(`${WEB_APP_URL}?file=asignacion_rutas`); const data=await r.json();
+    if(Array.isArray(data)&&data.length>0){
+      _routeAssignments=data.map(row=>({
+        pedidoId:row.PEDIDO_ID||row.pedidoId||'', almacenista:row.ALMACENISTA||row.almacenista||'',
+        fechaSalida:row.FECHA_SALIDA||row.fechaSalida||'', fechaAsignacion:row.FECHA_ASIGNACION||row.fechaAsignacion||''
+      })).filter(a=>a.pedidoId&&a.almacenista); return;
     }
-    const normalizeState = (s = '') => {
-      const up = String(s).trim().toUpperCase();
-      if (up === 'ASIGNADO' || up === 'ASIGNADA') return 'ASIGNADA';
-      if (up === 'FACTURADO' || up === 'FACTURACION' || up === 'FACTURACIÓN') return 'FACTURACIÓN';
-      if (up === 'EMPACANDO') return 'EMPACADO';
-      if (up === 'DISTRIBUCION' || up === 'DISTRIBUCIÓN') return 'DISTRIBUCIÓN';
-      return up || 'ASIGNADA';
-    };
-    const STATE_COLORS = {
-      'ASIGNADA': '#546e7a', 'PICKING': '#f9a825', 'FACTURACIÓN': '#ef6c00',
-      'EMPACADO': '#6d4c41', 'DISTRIBUCIÓN': '#7b1fa2', 'DESPACHADO': '#2e7d32',
-      'ENTREGADO': '#1b5e20'
-    };
-    const GROUP_COLORS = {
-      'GRUPO 1': '#1565c0', 'GRUPO 2': '#2e7d32', 'GRUPO 3': '#6a1b9a',
-      'GRUPO 4-5-11': '#e65100', 'GRUPO 4': '#bf360c', 'FRÍO': '#0277bd',
-      'EMPAQUE': '#4e342e', 'URGENCIAS': '#b71c1c', 'MÓDULO': '#37474f',
-      'VENCIDOS': '#558b2f', 'KARDEX': '#5d4037'
-    };
+  }catch(e){}
+  const saved=readLS(ROUTE_ASSIGNMENTS_KEY,{});
+  if(Array.isArray(saved?.asignaciones)){ _routeAssignments=saved.asignaciones.map(a=>({...a})); }
+  else if(saved?.porPersona){ _routeAssignments=[]; Object.entries(saved.porPersona).forEach(([person,ids])=>{ ids.forEach(id=>{ if(!_routeAssignments.find(a=>a.pedidoId===id)) _routeAssignments.push({pedidoId:id,almacenista:person,fechaSalida:saved.fecha||null}); }); }); }
+  else { _routeAssignments=[]; }
+}
 
-    function showToast(msg, duration = 2800) {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.style.display = 'block';
-      clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => t.style.display = 'none', duration);
+// ═══════════════════════════════════════════════════════════════════════════════
+//  STAFF HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+const getActiveStaff = () => STAFF.filter(s=>String(s.activo??'').trim().toUpperCase()!=='NO');
+function getStaffDisplayGroup(s){ if(s.grupos&&s.grupos.length>0) return normalizeGroup(s.grupos[0]); return s.rol||'SIN ROL'; }
+function getAbsencesThisMonth(nombre){
+  const history=readLS(ATTENDANCE_HISTORY_KEY,{}); const now=new Date();
+  const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  let count=0; Object.entries(history).forEach(([date,dayData])=>{ if(!date.startsWith(ym)) return; const st=dayData[nombre]; if(st==='ausente'||st==='baja-medica') count++; }); return count;
+}
+function buildStaffLabel(s){
+  const abs=getAbsencesThisMonth(s.nombre); const grupo=getStaffDisplayGroup(s)||'SIN GRUPO';
+  const asignados=_routeAssignments.filter(a=>a.almacenista===s.nombre).length;
+  return `${s.nombre} — ${grupo} · ${abs} ausencia${abs!==1?'s':''} ${asignados>0?`· ${asignados} asignado${asignados>1?'s':''}`:''} `;
+}
+function buildStaffSelectHtml(pedidoId, currentAlmacenista){
+  const options=getActiveStaff().map(s=>{
+    const selected=currentAlmacenista&&normalizeText(currentAlmacenista)===normalizeText(s.nombre)?'selected':'';
+    return `<option value="${esc(s.nombre)}" ${selected}>${esc(buildStaffLabel(s))}</option>`;
+  }).join('');
+  return `<option value="">— Sin asignar —</option>${options}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  MINI DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderMiniDashboard(){
+  const el=document.getElementById('miniDash'); if(!el) return;
+  const today=isoToday(); const byPerson={};
+  _routeAssignments.forEach(a=>{
+    if(!a.pedidoId||!a.almacenista) return;
+    if(!byPerson[a.almacenista]) byPerson[a.almacenista]={count:0,hasToday:false};
+    byPerson[a.almacenista].count++;
+    if(a.fechaSalida&&a.fechaSalida===today) byPerson[a.almacenista].hasToday=true;
+  });
+  const entries=Object.entries(byPerson).filter(([,v])=>v.count>0).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(!entries.length){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML=`<span class="mini-dash-label">🗺️ Almacenistas asignados:</span>`+
+    entries.map(([nombre,{count,hasToday}])=>`<span class="mini-dash-chip">${hasToday?'📅 ':''}${esc(nombre)}<span class="chip-count">${count} pedido${count>1?'s':''}</span></span>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  FILTER & PAGINATION (Tab A)
+// ═══════════════════════════════════════════════════════════════════════════════
+function getFilteredRows(){
+  let rows=tracking.filter(t=>t.estado!=='ENTREGADO');
+  if(_filterSearch.trim()){ const q=normalizeText(_filterSearch.trim()); rows=rows.filter(t=>normalizeText(t.id).includes(q)||normalizeText(t.unidad).includes(q)); }
+  if(_filterGroup)  rows=rows.filter(t=>normalizeText(t.group)===normalizeText(_filterGroup));
+  if(_filterState)  rows=rows.filter(t=>normalizeText(t.estado)===normalizeText(_filterState));
+  if(_filterPerson) rows=rows.filter(t=>{ const entry=_routeAssignments.find(a=>a.pedidoId===t.id); return entry&&normalizeText(entry.almacenista)===normalizeText(_filterPerson); });
+  return rows;
+}
+function collectCurrentPageState(){
+  document.querySelectorAll('.route-staff-select').forEach(sel=>{
+    const id=sel.dataset.id; const almacenista=sel.value;
+    const dateInput=document.querySelector(`.route-date-input[data-id="${id}"]`);
+    const fechaSalida=dateInput?.value||null; const idx=_routeAssignments.findIndex(a=>a.pedidoId===id);
+    if(!almacenista){ if(idx>=0) _routeAssignments.splice(idx,1); }
+    else {
+      const fechaAsignacion=isoToday();
+      if(idx>=0){ _routeAssignments[idx].almacenista=almacenista; _routeAssignments[idx].fechaSalida=fechaSalida||null; _routeAssignments[idx].fechaAsignacion=_routeAssignments[idx].fechaAsignacion||fechaAsignacion; }
+      else _routeAssignments.push({pedidoId:id,almacenista,fechaSalida:fechaSalida||null,fechaAsignacion});
     }
+  });
+}
+function renderTabA(){
+  const filtered=getFilteredRows(); const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  if(_currentPage>totalPages) _currentPage=totalPages;
+  const start=(_currentPage-1)*PAGE_SIZE; const pageRows=filtered.slice(start,start+PAGE_SIZE);
+  const tbody=document.getElementById('routeTableBody');
+  if(!pageRows.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">${filtered.length===0?'No hay pedidos disponibles.':'Sin coincidencias.'}</td></tr>`;
+  } else {
+    tbody.innerHTML=pageRows.map(t=>{
+      const entry=_routeAssignments.find(a=>a.pedidoId===t.id);
+      const asigName=entry?.almacenista||''; const fechaSalida=entry?.fechaSalida||'';
+      const gc=GROUP_COLORS[t.group]||'#607d8b'; const sc=STATE_COLORS[t.estado]||'#607d8b';
+      return `<tr>
+        <td style="font-weight:700;white-space:nowrap;">${esc(t.id)}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(t.unidad)}">${esc(t.unidad)}</td>
+        <td><span class="badge" style="background:${gc}">${esc(t.group)}</span></td>
+        <td><span class="badge" style="background:${sc}">${esc(t.estado)}</span></td>
+        <td><input type="date" class="route-date-input" data-id="${esc(t.id)}" value="${esc(fechaSalida)}" /></td>
+        <td><select class="route-staff-select" data-id="${esc(t.id)}">${buildStaffSelectHtml(t.id,asigName)}</select></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('prevPageBtn').disabled=_currentPage<=1;
+  document.getElementById('nextPageBtn').disabled=_currentPage>=totalPages;
+  document.getElementById('pageInfo').textContent=`Página ${_currentPage} de ${totalPages}`;
+  document.getElementById('totalInfo').textContent=`${filtered.length} pedido${filtered.length!==1?'s':''}`;
+}
 
-    // ─── DATA LOADING ────────────────────────────────────────────────────────────
-    function getCachedStaff() {
-      try {
-        const cached = JSON.parse(localStorage.getItem('cache_staff_v1'));
-        if (cached && (Date.now() - cached.ts) < 30 * 60 * 1000) return cached.data;
-      } catch(e) {}
-      return null;
-    }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TAB B
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderTabB(){
+  const body=document.getElementById('tabBBody'); const active=getActiveStaff();
+  if(!_routeAssignments.length){ body.innerHTML='<div style="padding:14px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">ℹ️ No hay asignaciones. Ve a "Por Pedido" para asignar.</div>'; return; }
+  const byPerson={}; active.forEach(s=>{byPerson[s.nombre]=[];});
+  _routeAssignments.forEach(a=>{ if(!byPerson[a.almacenista]) byPerson[a.almacenista]=[]; byPerson[a.almacenista].push(a); });
+  const html=Object.entries(byPerson).filter(([,list])=>list.length>0).sort((a,b)=>a[0].localeCompare(b[0])).map(([nombre,list])=>{
+    const person=STAFF.find(s=>normalizeText(s.nombre)===normalizeText(nombre));
+    const grupo=person?getStaffDisplayGroup(person):'';
+    const rows=list.map(a=>{
+      const order=tracking.find(t=>t.id===a.pedidoId);
+      const gc=order?(GROUP_COLORS[order.group]||'#607d8b'):'#607d8b';
+      const sc=order?(STATE_COLORS[order.estado]||'#607d8b'):'#607d8b';
+      return `<div class="person-block-row">
+        <span style="font-weight:700;white-space:nowrap;min-width:80px;">${esc(a.pedidoId)}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4b5563;">${esc(order?.unidad||'—')}</span>
+        <span class="badge" style="background:${gc}">${esc(order?.group||'—')}</span>
+        <span class="badge" style="background:${sc}">${esc(order?.estado||'—')}</span>
+        <span style="color:#1565c0;white-space:nowrap;font-size:11px;">${a.fechaSalida?`📅 ${a.fechaSalida}`:'Sin fecha'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="person-block"><div class="person-block-title">🚚 ${esc(nombre)} ${grupo?`<span style="font-size:12px;font-weight:400;color:#6b7280;">· ${esc(grupo)}</span>`:''} <span style="font-size:12px;font-weight:400;color:#6b7280;">(${list.length} pedido${list.length>1?'s':''})</span></div>${rows}</div>`;
+  }).join('');
+  body.innerHTML=html||'<div style="padding:12px;color:#6b7280;">Sin asignaciones.</div>';
+}
 
-    function setCachedStaff(data) {
-      try {
-        localStorage.setItem('cache_staff_v1', JSON.stringify({ ts: Date.now(), data }));
-      } catch(e) {}
-    }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  POPULATE FILTERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function populateFilters(){
+  const groups=[...new Set(tracking.map(t=>t.group).filter(Boolean))].sort();
+  document.getElementById('filterGroup').innerHTML='<option value="">Grupo: TODOS</option>'+groups.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  const personSel=document.getElementById('filterPerson');
+  const mapPersonSel=document.getElementById('mapFilterPerson');
+  const staffOpts=getActiveStaff().map(s=>`<option value="${esc(s.nombre)}">${esc(s.nombre)}</option>`).join('');
+  personSel.innerHTML='<option value="">Almacenista: TODOS</option>'+staffOpts;
+  mapPersonSel.innerHTML='<option value="">👤 Almacenista: TODOS</option>'+staffOpts;
+}
 
-    async function loadTracking() {
-      const r = await fetch(`${WEB_APP_URL}?file=tracking`);
-      const raw = await r.json();
-      tracking = (Array.isArray(raw) ? raw : []).map(row => {
-        const rawGroup = row.GRUPO || row.grupo || row.Grupo || '';
-        const group = normalizeGroup(rawGroup);
-        return {
-          id: row.ID_PEDIDO || '---',
-          unidad: row.UNIDAD_EJECUTORA || 'Sin UE',
-          group,
-          rawGroup: String(rawGroup || '').trim(),
-          tipo: String(row.TIPO || group).toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
-          estado: normalizeState(row.ESTADO || 'ASIGNADA'),
-        };
-      }).filter(i => i.id && i.id !== '---');
-    }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SAVE ASSIGNMENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+async function saveAssignments(){
+  if(_currentTab==='A') collectCurrentPageState();
+  const valid=_routeAssignments.filter(a=>a.pedidoId&&a.almacenista);
+  const porPersona={}; const porPedido={};
+  valid.forEach(a=>{
+    if(!porPersona[a.almacenista]) porPersona[a.almacenista]=[];
+    if(!porPersona[a.almacenista].includes(a.pedidoId)) porPersona[a.almacenista].push(a.pedidoId);
+    porPedido[a.pedidoId]=a.almacenista;
+  });
+  writeLS(ROUTE_ASSIGNMENTS_KEY,{asignaciones:valid,porPersona,porPedido});
+  showToast('⏳ Enviando al servidor...', 3000);
+  try {
+    await fetch(WEB_APP_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({ action:'saveRouteAssignments', asignaciones:valid.map(a=>({pedidoId:a.pedidoId,almacenista:a.almacenista,fechaSalida:a.fechaSalida||'',fechaAsignacion:a.fechaAsignacion||isoToday()})) }) });
+    showToast(`✅ Guardado · ${valid.length} pedido${valid.length!==1?'s':''} (local + servidor)`);
+  } catch(e) {
+    showToast(`✅ Guardado localmente · ${valid.length} pedido${valid.length!==1?'s':''} (sin conexión al servidor)`);
+  }
+  renderMiniDashboard();
+  if(_currentTab==='A') renderTabA();
+  if(_currentTab==='B') renderTabB();
+}
 
-    async function loadStaff() {
-      // Use cached staff if available (30-minute TTL)
-      const cached = getCachedStaff();
-      if (cached) { STAFF = cached; return; }
-      // Try ?file=personal first (returns all roles including DISTRIBUCIÓN)
-      try {
-        const r = await fetch(`${WEB_APP_URL}?file=personal`);
-        const data = await r.json();
-        if (Array.isArray(data) && data.length > 0) { STAFF = data; setCachedStaff(data); return; }
-      } catch (e) { /* fall through */ }
-      // Fallback to ?file=staff
-      const r = await fetch(`${WEB_APP_URL}?file=staff`);
-      const data = await r.json();
-      if (Array.isArray(data) && data.length > 0) { STAFF = data; setCachedStaff(data); }
-    }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TAB C – MAP
+// ═══════════════════════════════════════════════════════════════════════════════
+function initMap(){
+  if(_leafletMap) return;
+  _leafletMap = L.map('routeMap').setView([9.0, -79.5], 9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:18
+  }).addTo(_leafletMap);
+}
 
-    async function loadRouteAssignments() {
-      // Try backend first, fall back to localStorage
-      try {
-        const r = await fetch(`${WEB_APP_URL}?file=asignacion_rutas`);
-        const data = await r.json();
-        if (Array.isArray(data) && data.length > 0) {
-          // Backend returns [{PEDIDO_ID, ALMACENISTA, FECHA_SALIDA, FECHA_ASIGNACION}]
-          _routeAssignments = data.map(row => ({
-            pedidoId: row.PEDIDO_ID || row.pedidoId || '',
-            almacenista: row.ALMACENISTA || row.almacenista || '',
-            fechaSalida: row.FECHA_SALIDA || row.fechaSalida || '',
-            fechaAsignacion: row.FECHA_ASIGNACION || row.fechaAsignacion || ''
-          })).filter(a => a.pedidoId && a.almacenista);
-          return;
+function clearMapLayers(){
+  _mapLayers.forEach(l=>_leafletMap.removeLayer(l));
+  _mapLayers=[];
+}
+
+function createCircleMarker(centro, color, radius=9){
+  return L.circleMarker([centro.lat, centro.lng],{
+    radius, fillColor:color, color:'#fff', weight:2, opacity:1, fillOpacity:0.9
+  }).bindPopup(`<strong>${centro.nombre}</strong><br><em>${centro.categ}</em><br>📅 ${centro.dias}`);
+}
+
+function renderMapAllCentros(){
+  clearMapLayers();
+  const dayFilter = document.getElementById('mapFilterDay').value;
+  const categFilter = document.getElementById('mapFilterCateg').value;
+
+  // Almacén central marker
+  const warehouseIcon = L.divIcon({ html:`<div style="background:#f9a825;border:3px solid #333;border-radius:50%;width:18px;height:18px;"></div>`, className:'', iconSize:[18,18] });
+  const wm = L.marker([ALMACEN_CENTRAL.lat, ALMACEN_CENTRAL.lng], {icon:warehouseIcon})
+    .bindPopup(`<strong>📦 ${ALMACEN_CENTRAL.nombre}</strong><br>Punto de origen de todas las rutas`);
+  wm.addTo(_leafletMap); _mapLayers.push(wm);
+
+  CENTROS_SALUD.filter(c => {
+    if(dayFilter && !c.dias.toUpperCase().includes(dayFilter)) return false;
+    if(categFilter && c.categ !== categFilter) return false;
+    return true;
+  }).forEach(c=>{
+    const color = CATEG_COLORS[c.categ] || '#607d8b';
+    // Check if has pending orders
+    const hasPedido = tracking.some(t => normalizeText(t.unidad).includes(normalizeText(c.nombre.split('(')[0].trim())) && t.estado !== 'ENTREGADO');
+    const marker = createCircleMarker(c, color, hasPedido ? 12 : 8);
+    if(hasPedido){ marker.bindPopup(marker.getPopup().getContent() + '<br><span style="color:#e53935;font-weight:bold;">⚠️ Tiene pedidos pendientes</span>'); }
+    marker.addTo(_leafletMap); _mapLayers.push(marker);
+  });
+}
+
+// ── NEAREST NEIGHBOR TSP heuristic ──────────────────────────────────────────
+function nearestNeighborRoute(origin, stops){
+  if(!stops.length) return [];
+  const remaining=[...stops]; const route=[]; let current=origin;
+  while(remaining.length){
+    let bestIdx=0; let bestDist=Infinity;
+    remaining.forEach((s,i)=>{ const d=haversine(current,s); if(d<bestDist){bestDist=d;bestIdx=i;} });
+    route.push(remaining[bestIdx]); current=remaining[bestIdx]; remaining.splice(bestIdx,1);
+  }
+  return route;
+}
+
+function totalRouteDistance(origin, stops){
+  if(!stops.length) return 0;
+  let total=haversine(origin,stops[0]);
+  for(let i=1;i<stops.length;i++) total+=haversine(stops[i-1],stops[i]);
+  total+=haversine(stops[stops.length-1],origin); // return
+  return total;
+}
+
+function proposeRoutes(){
+  clearMapLayers();
+  _proposedRoutes=[];
+
+  const dayFilter   = document.getElementById('mapFilterDay').value;
+  const categFilter = document.getElementById('mapFilterCateg').value;
+  const personFilter= document.getElementById('mapFilterPerson').value;
+  const maxStops    = parseInt(document.getElementById('mapMaxStops').value)||6;
+
+  // Almacén marker
+  const warehouseIcon=L.divIcon({html:`<div style="background:#f9a825;border:3px solid #333;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;">📦</div>`,className:'',iconSize:[20,20]});
+  const wm=L.marker([ALMACEN_CENTRAL.lat,ALMACEN_CENTRAL.lng],{icon:warehouseIcon}).bindPopup(`<strong>📦 ${ALMACEN_CENTRAL.nombre}</strong>`);
+  wm.addTo(_leafletMap); _mapLayers.push(wm);
+
+  // Filter candidates: only centros with assignments OR with pedidos
+  let candidates=CENTROS_SALUD.filter(c=>{
+    if(dayFilter&&!c.dias.toUpperCase().includes(dayFilter)) return false;
+    if(categFilter&&c.categ!==categFilter) return false;
+    return true;
+  });
+
+  // If filtering by person, match their assigned pedidos → unidades → centros
+  if(personFilter){
+    const assignedUnidades=_routeAssignments.filter(a=>normalizeText(a.almacenista)===normalizeText(personFilter)).map(a=>{
+      const t=tracking.find(tr=>tr.id===a.pedidoId); return t?normalizeText(t.unidad.split('(')[0].trim()):'';
+    }).filter(Boolean);
+    candidates=candidates.filter(c=>assignedUnidades.some(u=>u.includes(normalizeText(c.nombre.split('(')[0].trim()))||normalizeText(c.nombre.split('(')[0].trim()).includes(u)));
+    if(!candidates.length){ showToast('ℹ️ No hay centros con pedidos asignados para ese almacenista'); return; }
+  }
+
+  // Group by almacenista if assignments exist; else cluster geographically
+  if(_routeAssignments.length>0 && !personFilter){
+    // Build per-person candidate lists
+    const staffRoutes={};
+    _routeAssignments.forEach(a=>{
+      if(!a.almacenista) return;
+      const t=tracking.find(tr=>tr.id===a.pedidoId); if(!t) return;
+      const tNorm=normalizeText(t.unidad.split('(')[0].trim());
+      const centro=candidates.find(c=>normalizeText(c.nombre.split('(')[0].trim())===tNorm||tNorm.includes(normalizeText(c.nombre.split('(')[0].trim()))||normalizeText(c.nombre.split('(')[0].trim()).includes(tNorm));
+      if(!centro) return;
+      if(!staffRoutes[a.almacenista]) staffRoutes[a.almacenista]=new Map();
+      staffRoutes[a.almacenista].set(centro.nombre,centro);
+    });
+    const staffNames=Object.keys(staffRoutes);
+    if(staffNames.length>0){
+      staffNames.forEach((nombre,idx)=>{
+        const stops=Array.from(staffRoutes[nombre].values());
+        if(!stops.length) return;
+        // Chunk stops into maxStops-sized routes
+        for(let chunk=0,rIdx=0;chunk<stops.length;chunk+=maxStops,rIdx++){
+          const slc=stops.slice(chunk,chunk+maxStops);
+          const ordered=nearestNeighborRoute(ALMACEN_CENTRAL,slc);
+          const color=ROUTE_PALETTE[(idx*3+rIdx)%ROUTE_PALETTE.length];
+          drawRoute(ordered,color,`${nombre} – Ruta ${rIdx+1}`,idx*10+rIdx);
         }
-      } catch (e) { /* fall through to localStorage */ }
-      // localStorage fallback
-      const saved = readLS(ROUTE_ASSIGNMENTS_KEY, {});
-      if (Array.isArray(saved?.asignaciones)) {
-        _routeAssignments = saved.asignaciones.map(a => ({ ...a }));
-      } else if (saved?.porPersona) {
-        // migrate old format
-        _routeAssignments = [];
-        Object.entries(saved.porPersona).forEach(([person, ids]) => {
-          ids.forEach(id => {
-            if (!_routeAssignments.find(a => a.pedidoId === id)) {
-              _routeAssignments.push({ pedidoId: id, almacenista: person, fechaSalida: saved.fecha || null });
-            }
-          });
-        });
-      } else {
-        _routeAssignments = [];
-      }
+      });
+      renderRouteCards(); renderBudgetFromRoutes(); return;
     }
+  }
 
-    // ─── STAFF HELPERS ────────────────────────────────────────────────────────────
-    function getActiveStaff() {
-      return STAFF.filter(s => String(s.activo ?? '').trim().toUpperCase() !== 'NO');
-    }
-    function getStaffDisplayGroup(s) {
-      if (s.grupos && s.grupos.length > 0) return normalizeGroup(s.grupos[0]);
-      return s.rol || 'SIN ROL';
-    }
-    function getAbsencesThisMonth(nombre) {
-      const history = readLS(ATTENDANCE_HISTORY_KEY, {});
-      const now = new Date();
-      const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      let count = 0;
-      Object.entries(history).forEach(([date, dayData]) => {
-        if (!date.startsWith(ym)) return;
-        const st = dayData[nombre];
-        if (st === 'ausente' || st === 'baja-medica') count++;
-      });
-      return count;
-    }
-    function buildStaffLabel(s) {
-      const abs = getAbsencesThisMonth(s.nombre);
-      const grupo = getStaffDisplayGroup(s) || 'SIN GRUPO';
-      const asignados = _routeAssignments.filter(a => a.almacenista === s.nombre).length;
-      const asigTxt = asignados > 0 ? ` · ${asignados} asignado${asignados > 1 ? 's' : ''}` : '';
-      return `${s.nombre} — ${grupo} · ${abs} ausencia${abs !== 1 ? 's' : ''}${asigTxt}`;
-    }
-    function buildStaffSelectHtml(pedidoId, currentAlmacenista) {
-      const active = getActiveStaff();
-      const options = active.map(s => {
-        const selected = currentAlmacenista && normalizeText(currentAlmacenista) === normalizeText(s.nombre) ? 'selected' : '';
-        return `<option value="${esc(s.nombre)}" ${selected}>${esc(buildStaffLabel(s))}</option>`;
-      }).join('');
-      return `<option value="">— Sin asignar —</option>${options}`;
-    }
+  // Fallback: geographic clustering (k-means simplified: nearest-neighbor partitioning)
+  // Sort candidates by longitude (East→West) then group into buckets
+  const sorted=[...candidates].sort((a,b)=>b.lat-a.lat||a.lng-b.lng);
+  for(let i=0,rIdx=0;i<sorted.length;i+=maxStops,rIdx++){
+    const slc=sorted.slice(i,i+maxStops);
+    const ordered=nearestNeighborRoute(ALMACEN_CENTRAL,slc);
+    const color=ROUTE_PALETTE[rIdx%ROUTE_PALETTE.length];
+    drawRoute(ordered,color,`Ruta ${rIdx+1} (${slc[0].nombre.split(' ')[0]}…)`,rIdx);
+  }
+  renderRouteCards(); renderBudgetFromRoutes();
+}
 
-    // ─── MINI-DASHBOARD ──────────────────────────────────────────────────────────
-    function renderMiniDashboard() {
-      const el = document.getElementById('miniDash');
-      if (!el) return;
-      const today = isoToday();
-      const byPerson = {};
-      _routeAssignments.forEach(a => {
-        if (!a.pedidoId || !a.almacenista) return;
-        if (!byPerson[a.almacenista]) byPerson[a.almacenista] = { count: 0, hasToday: false };
-        byPerson[a.almacenista].count++;
-        if (a.fechaSalida && a.fechaSalida === today) byPerson[a.almacenista].hasToday = true;
-      });
-      const entries = Object.entries(byPerson).filter(([, v]) => v.count > 0).sort((a, b) => a[0].localeCompare(b[0]));
-      if (!entries.length) { el.style.display = 'none'; return; }
-      el.style.display = 'flex';
-      el.innerHTML = `<span class="mini-dash-label">🗺️ Almacenistas asignados:</span>` +
-        entries.map(([nombre, { count, hasToday }]) =>
-          `<span class="mini-dash-chip">${hasToday ? '📅 ' : ''}${esc(nombre)}<span class="chip-count">${count} pedido${count > 1 ? 's' : ''}</span></span>`
-        ).join('');
-    }
+function drawRoute(stops, color, label, idx){
+  const latlngs=[[ALMACEN_CENTRAL.lat,ALMACEN_CENTRAL.lng],...stops.map(s=>[s.lat,s.lng]),[ALMACEN_CENTRAL.lat,ALMACEN_CENTRAL.lng]];
+  const poly=L.polyline(latlngs,{color,weight:3.5,opacity:0.8,dashArray:'6,4'}).addTo(_leafletMap);
+  _mapLayers.push(poly);
+  stops.forEach((s,i)=>{
+    const num=i+1; const color2=CATEG_COLORS[s.categ]||'#607d8b';
+    const icon=L.divIcon({html:`<div style="background:${color2};color:#fff;border:2px solid ${color};border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${num}</div>`,className:'',iconSize:[22,22]});
+    const mk=L.marker([s.lat,s.lng],{icon}).bindPopup(`<strong>${num}. ${s.nombre}</strong><br><em>${s.categ}</em><br>📅 ${s.dias}<br><span style="color:${color};font-weight:bold;">🛣️ ${label}</span>`);
+    mk.addTo(_leafletMap); _mapLayers.push(mk);
+  });
+  const dist=totalRouteDistance(ALMACEN_CENTRAL,stops);
+  _proposedRoutes.push({label,color,stops,dist:Math.round(dist),idx});
+}
 
-    // ─── FILTER & PAGINATION ─────────────────────────────────────────────────────
-    function getFilteredRows() {
-      let rows = tracking.filter(t => t.estado !== 'ENTREGADO');
-      if (_filterSearch.trim()) {
-        const q = normalizeText(_filterSearch.trim());
-        rows = rows.filter(t => normalizeText(t.id).includes(q) || normalizeText(t.unidad).includes(q));
-      }
-      if (_filterGroup) {
-        rows = rows.filter(t => normalizeText(t.group) === normalizeText(_filterGroup));
-      }
-      if (_filterState) {
-        rows = rows.filter(t => normalizeText(t.estado) === normalizeText(_filterState));
-      }
-      if (_filterPerson) {
-        rows = rows.filter(t => {
-          const entry = _routeAssignments.find(a => a.pedidoId === t.id);
-          return entry && normalizeText(entry.almacenista) === normalizeText(_filterPerson);
-        });
-      }
-      return rows;
-    }
+function renderRouteCards(){
+  const container=document.getElementById('routeCards');
+  if(!_proposedRoutes.length){container.innerHTML='';return;}
+  container.innerHTML=_proposedRoutes.map(r=>`
+    <div class="route-card" style="border-color:${r.color};background:${r.color}11;">
+      <div class="route-card-header">
+        <span style="color:${r.color};">🛣️ ${esc(r.label)}</span>
+        <span class="badge" style="background:${r.color};">${r.stops.length} paradas · ${r.dist} km</span>
+      </div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:6px;">📦 Almacén Central → … → regresa al almacén</div>
+      ${r.stops.map((s,i)=>`<div class="route-card-stop"><span class="stop-num" style="background:${r.color};">${i+1}</span><div><div style="font-weight:600;font-size:12px;">${esc(s.nombre)}</div><div style="font-size:11px;color:#6b7280;">${esc(s.categ)} · ${esc(s.dias)}</div></div></div>`).join('')}
+      <div class="route-card-meta">Distancia estimada (ida+vuelta): ~${r.dist} km</div>
+    </div>
+  `).join('');
+}
 
-    // ─── COLLECT CURRENT PAGE STATE ──────────────────────────────────────────────
-    function collectCurrentPageState() {
-      document.querySelectorAll('.route-staff-select').forEach(sel => {
-        const id = sel.dataset.id;
-        const almacenista = sel.value;
-        const dateInput = document.querySelector(`.route-date-input[data-id="${id}"]`);
-        const fechaSalida = dateInput?.value || null;
-        const idx = _routeAssignments.findIndex(a => a.pedidoId === id);
-        if (!almacenista) {
-          if (idx >= 0) _routeAssignments.splice(idx, 1);
-        } else {
-          const fechaAsignacion = isoToday();
-          if (idx >= 0) {
-            _routeAssignments[idx].almacenista = almacenista;
-            _routeAssignments[idx].fechaSalida = fechaSalida || null;
-            _routeAssignments[idx].fechaAsignacion = _routeAssignments[idx].fechaAsignacion || fechaAsignacion;
-          } else {
-            _routeAssignments.push({ pedidoId: id, almacenista, fechaSalida: fechaSalida || null, fechaAsignacion });
-          }
-        }
-      });
-    }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TAB D – BUDGET
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderBudgetFromRoutes(){
+  _budgetData = readLS(BUDGET_KEY, {});
+  const tbody = document.getElementById('budgetTableBody');
+  const routes = _proposedRoutes.length ? _proposedRoutes : buildDefaultBudgetRoutes();
+  if(!routes.length){ tbody.innerHTML='<tr><td colspan="9" style="padding:14px;color:#6b7280;text-align:center;">Genere rutas primero en el tab 🗺️ Mapa de Rutas.</td></tr>'; updateBudgetTotals(); return; }
 
-    // ─── RENDER TAB A ────────────────────────────────────────────────────────────
-    function renderTabA() {
-      const filtered = getFilteredRows();
-      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-      if (_currentPage > totalPages) _currentPage = totalPages;
-      const start = (_currentPage - 1) * PAGE_SIZE;
-      const pageRows = filtered.slice(start, start + PAGE_SIZE);
+  tbody.innerHTML = routes.map(r=>{
+    const key = r.label;
+    const saved = _budgetData[key] || {};
+    const kmEst = r.dist || 0;
+    return `<tr data-route="${esc(key)}">
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color||'#607d8b'};margin-right:6px;"></span><strong>${esc(key)}</strong></td>
+      <td>${r.stops ? r.stops.length : '—'}</td>
+      <td><input type="number" class="bud-km" min="0" step="1" value="${saved.km||kmEst}" data-key="${esc(key)}" /></td>
+      <td><input type="number" class="bud-comb" min="0" step="0.01" value="${saved.combustible||''}" placeholder="0.00" data-key="${esc(key)}" /></td>
+      <td><input type="number" class="bud-viat" min="0" step="0.01" value="${saved.viaticos||''}" placeholder="0.00" data-key="${esc(key)}" /></td>
+      <td><input type="number" class="bud-peaj" min="0" step="0.01" value="${saved.peajes||''}" placeholder="0.00" data-key="${esc(key)}" /></td>
+      <td><input type="number" class="bud-otro" min="0" step="0.01" value="${saved.otros||''}" placeholder="0.00" data-key="${esc(key)}" /></td>
+      <td class="total-cell bud-total-cell">$0.00</td>
+      <td><input type="text" style="border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;width:120px;font-size:12px;" class="bud-nota" placeholder="Nota…" value="${esc(saved.nota||'')}" data-key="${esc(key)}" /></td>
+    </tr>`;
+  }).join('');
 
-      const tbody = document.getElementById('routeTableBody');
-      if (!pageRows.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="padding:14px;text-align:center;color:#6b7280;">
-          ${filtered.length === 0 ? 'No hay pedidos disponibles o todos están entregados.' : 'No coinciden con el filtro aplicado.'}
-        </td></tr>`;
-      } else {
-        tbody.innerHTML = pageRows.map(t => {
-          const entry = _routeAssignments.find(a => a.pedidoId === t.id);
-          const asigName = entry?.almacenista || '';
-          const fechaSalida = entry?.fechaSalida || '';
-          const groupColor = GROUP_COLORS[t.group] || '#607d8b';
-          const stateColor = STATE_COLORS[t.estado] || '#607d8b';
-          return `<tr>
-            <td style="font-weight:700;white-space:nowrap;">${esc(t.id)}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(t.unidad)}">${esc(t.unidad)}</td>
-            <td><span class="badge" style="background:${groupColor}">${esc(t.group)}</span></td>
-            <td><span class="badge" style="background:${stateColor}">${esc(t.estado)}</span></td>
-            <td style="min-width:120px;"><input type="date" class="route-date-input" data-id="${esc(t.id)}" value="${esc(fechaSalida)}" /></td>
-            <td style="min-width:240px;"><select class="route-staff-select" data-id="${esc(t.id)}">${buildStaffSelectHtml(t.id, asigName)}</select></td>
-          </tr>`;
-        }).join('');
-      }
+  // Row totals
+  document.querySelectorAll('#budgetTableBody tr').forEach(tr => recalcRowTotal(tr));
+  updateBudgetTotals();
 
-      // Pagination
-      document.getElementById('prevPageBtn').disabled = _currentPage <= 1;
-      document.getElementById('nextPageBtn').disabled = _currentPage >= totalPages;
-      document.getElementById('pageInfo').textContent = `Página ${_currentPage} de ${totalPages}`;
-      document.getElementById('totalInfo').textContent = `${filtered.length} pedido${filtered.length !== 1 ? 's' : ''}`;
-    }
+  // Live recalc on input
+  document.getElementById('budgetTableBody').addEventListener('input', e=>{
+    const tr=e.target.closest('tr'); if(tr) recalcRowTotal(tr);
+    updateBudgetTotals();
+  });
 
-    // ─── RENDER TAB B ────────────────────────────────────────────────────────────
-    function renderTabB() {
-      const body = document.getElementById('tabBBody');
-      const active = getActiveStaff();
-      if (!_routeAssignments.length) {
-        body.innerHTML = '<div style="padding:14px;background:#fff8e1;border:1px solid #f9a825;border-radius:8px;">ℹ️ No hay asignaciones de ruta aún. Ve a la pestaña "Por Pedido" para asignar.</div>';
-        return;
-      }
-      const byPerson = {};
-      active.forEach(s => { byPerson[s.nombre] = []; });
-      _routeAssignments.forEach(a => {
-        if (!byPerson[a.almacenista]) byPerson[a.almacenista] = [];
-        byPerson[a.almacenista].push(a);
-      });
-      const html = Object.entries(byPerson)
-        .filter(([, list]) => list.length > 0)
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([nombre, list]) => {
-          const person = STAFF.find(s => normalizeText(s.nombre) === normalizeText(nombre));
-          const grupo = person ? getStaffDisplayGroup(person) : '';
-          const rows = list.map(a => {
-            const order = tracking.find(t => t.id === a.pedidoId);
-            const groupColor = order ? (GROUP_COLORS[order.group] || '#607d8b') : '#607d8b';
-            const stateColor = order ? (STATE_COLORS[order.estado] || '#607d8b') : '#607d8b';
-            return `<div class="person-block-row">
-              <span style="font-weight:700;white-space:nowrap;min-width:80px;">${esc(a.pedidoId)}</span>
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4b5563;">${esc(order?.unidad || '—')}</span>
-              <span class="badge" style="background:${groupColor}">${esc(order?.group || '—')}</span>
-              <span class="badge" style="background:${stateColor}">${esc(order?.estado || '—')}</span>
-              <span style="color:#1565c0;white-space:nowrap;font-size:11px;">${a.fechaSalida ? `📅 ${a.fechaSalida}` : 'Sin fecha'}</span>
-            </div>`;
-          }).join('');
-          return `<div class="person-block">
-            <div class="person-block-title">🚚 ${esc(nombre)} ${grupo ? `<span style="font-size:12px;font-weight:400;color:#6b7280;">· ${esc(grupo)}</span>` : ''}
-              <span style="font-size:12px;font-weight:400;color:#6b7280;">(${list.length} pedido${list.length > 1 ? 's' : ''})</span>
-            </div>
-            ${rows}
-          </div>`;
-        }).join('');
-      body.innerHTML = html || '<div style="padding:12px;color:#6b7280;">No hay almacenistas con pedidos asignados.</div>';
-    }
+  renderBudgetKPIs(routes);
+}
 
-    // ─── POPULATE FILTER OPTIONS ─────────────────────────────────────────────────
-    function populateFilters() {
-      const groups = [...new Set(tracking.map(t => t.group).filter(Boolean))].sort();
-      const groupSel = document.getElementById('filterGroup');
-      groupSel.innerHTML = '<option value="">Grupo: TODOS</option>' +
-        groups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+function buildDefaultBudgetRoutes(){
+  // If no routes proposed yet, show one placeholder per active person with assignments
+  const byPerson={};
+  _routeAssignments.forEach(a=>{ if(!byPerson[a.almacenista]) byPerson[a.almacenista]=0; byPerson[a.almacenista]++; });
+  return Object.entries(byPerson).map(([nombre,count],i)=>({label:nombre+' – Ruta 1',color:ROUTE_PALETTE[i%ROUTE_PALETTE.length],stops:new Array(count).fill({}),dist:0}));
+}
 
-      const personSel = document.getElementById('filterPerson');
-      personSel.innerHTML = '<option value="">Almacenista: TODOS</option>' +
-        getActiveStaff().map(s => `<option value="${esc(s.nombre)}">${esc(s.nombre)}</option>`).join('');
-    }
+function recalcRowTotal(tr){
+  const get = cls => parseFloat(tr.querySelector('.'+cls)?.value||0)||0;
+  const total = get('bud-comb')+get('bud-viat')+get('bud-peaj')+get('bud-otro');
+  const cell = tr.querySelector('.bud-total-cell');
+  if(cell) cell.textContent = fmt$(total);
+}
 
-    // ─── SAVE ASSIGNMENTS ────────────────────────────────────────────────────────
-    async function saveAssignments() {
-      if (_currentTab === 'A') collectCurrentPageState();
+function updateBudgetTotals(){
+  let tc=0,tv=0,tp=0,to=0;
+  document.querySelectorAll('#budgetTableBody tr').forEach(tr=>{
+    tc+=parseFloat(tr.querySelector('.bud-comb')?.value||0)||0;
+    tv+=parseFloat(tr.querySelector('.bud-viat')?.value||0)||0;
+    tp+=parseFloat(tr.querySelector('.bud-peaj')?.value||0)||0;
+    to+=parseFloat(tr.querySelector('.bud-otro')?.value||0)||0;
+  });
+  document.getElementById('totCombustible').textContent=fmt$(tc);
+  document.getElementById('totViaticos').textContent=fmt$(tv);
+  document.getElementById('totPeajes').textContent=fmt$(tp);
+  document.getElementById('totOtros').textContent=fmt$(to);
+  document.getElementById('totTotal').textContent=fmt$(tc+tv+tp+to);
+  // KPIs
+  renderBudgetKPIs(null, tc,tv,tp,to);
+}
 
-      const valid = _routeAssignments.filter(a => a.pedidoId && a.almacenista);
+function renderBudgetKPIs(routes, tc, tv, tp, to){
+  const el=document.getElementById('budgetKPIs'); if(!el) return;
+  const totalRoutes=routes?routes.length:_proposedRoutes.length||document.querySelectorAll('#budgetTableBody tr').length;
+  const totalStops=routes?routes.reduce((s,r)=>s+(r.stops?.length||0),0):0;
+  const totalKm=routes?routes.reduce((s,r)=>s+(r.dist||0),0):0;
+  if(tc===undefined){
+    let _tc=0,_tv=0,_tp=0,_to=0;
+    document.querySelectorAll('#budgetTableBody tr').forEach(tr=>{_tc+=parseFloat(tr.querySelector('.bud-comb')?.value||0)||0;_tv+=parseFloat(tr.querySelector('.bud-viat')?.value||0)||0;_tp+=parseFloat(tr.querySelector('.bud-peaj')?.value||0)||0;_to+=parseFloat(tr.querySelector('.bud-otro')?.value||0)||0;});
+    tc=_tc;tv=_tv;tp=_tp;to=_to;
+  }
+  el.innerHTML=`
+    <div class="budget-kpi"><div class="budget-kpi-value">${totalRoutes}</div><div class="budget-kpi-label">Rutas Propuestas</div></div>
+    <div class="budget-kpi"><div class="budget-kpi-value">${totalStops||'—'}</div><div class="budget-kpi-label">Total Paradas</div></div>
+    <div class="budget-kpi"><div class="budget-kpi-value">${totalKm||'—'} km</div><div class="budget-kpi-label">Distancia Estimada</div></div>
+    <div class="budget-kpi"><div class="budget-kpi-value">${fmt$(tc)}</div><div class="budget-kpi-label">Combustible</div></div>
+    <div class="budget-kpi"><div class="budget-kpi-value">${fmt$(tv)}</div><div class="budget-kpi-label">Viáticos</div></div>
+    <div class="budget-kpi"><div class="budget-kpi-value">${fmt$(tc+tv+tp+to)}</div><div class="budget-kpi-label">TOTAL ESTIMADO</div></div>
+  `;
+}
 
-      // Build legacy maps for backwards compatibility
-      const porPersona = {};
-      const porPedido = {};
-      valid.forEach(a => {
-        if (!porPersona[a.almacenista]) porPersona[a.almacenista] = [];
-        if (!porPersona[a.almacenista].includes(a.pedidoId)) porPersona[a.almacenista].push(a.pedidoId);
-        porPedido[a.pedidoId] = a.almacenista;
-      });
+function saveBudget(){
+  const data={};
+  document.querySelectorAll('#budgetTableBody tr').forEach(tr=>{
+    const key=tr.dataset.route; if(!key) return;
+    data[key]={
+      km:parseFloat(tr.querySelector('.bud-km')?.value||0)||0,
+      combustible:parseFloat(tr.querySelector('.bud-comb')?.value||0)||0,
+      viaticos:parseFloat(tr.querySelector('.bud-viat')?.value||0)||0,
+      peajes:parseFloat(tr.querySelector('.bud-peaj')?.value||0)||0,
+      otros:parseFloat(tr.querySelector('.bud-otro')?.value||0)||0,
+      nota:tr.querySelector('.bud-nota')?.value||''
+    };
+  });
+  writeLS(BUDGET_KEY, data);
+  _budgetData=data;
+  showToast('✅ Presupuesto guardado localmente');
+}
 
-      // 1) Always save to localStorage (immediate, cross-page within same device)
-      writeLS(ROUTE_ASSIGNMENTS_KEY, { asignaciones: valid, porPersona, porPedido });
+function exportBudgetCSV(){
+  const rows=[['Ruta','Paradas','KM Est.','Combustible','Viáticos','Peajes','Otros','Total','Nota']];
+  document.querySelectorAll('#budgetTableBody tr').forEach(tr=>{
+    const cells=[...tr.querySelectorAll('td')];
+    if(!cells.length) return;
+    const get=cls=>tr.querySelector('.'+cls)?.value||'0';
+    rows.push([
+      tr.dataset.route||cells[0]?.textContent?.trim()||'',
+      cells[1]?.textContent?.trim()||'',
+      get('bud-km'),get('bud-comb'),get('bud-viat'),get('bud-peaj'),get('bud-otro'),
+      tr.querySelector('.bud-total-cell')?.textContent||'',
+      get('bud-nota')
+    ]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=`presupuesto_rutas_${isoToday()}.csv`; a.click(); URL.revokeObjectURL(url);
+  showToast('📥 CSV exportado');
+}
 
-      // 2) Persist to backend so other devices (e.g. almacenista tablets) can read it.
-      //    Uses no-cors mode (same pattern as all other backend calls in this app) — the
-      //    request is sent but we cannot read the response body; catch only fires on network error.
-      //    Apps Script handler needed: action='saveRouteAssignments'
-      //    Sheet: ASIGNACION_RUTAS
-      //    Columns: PEDIDO_ID | ALMACENISTA | FECHA_SALIDA | FECHA_ASIGNACION | TIMESTAMP_REGISTRO
-      showToast('⏳ Enviando al servidor...', 3000);
-      try {
-        await fetch(WEB_APP_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'saveRouteAssignments',
-            asignaciones: valid.map(a => ({
-              pedidoId: a.pedidoId,
-              almacenista: a.almacenista,
-              fechaSalida: a.fechaSalida || '',
-              fechaAsignacion: a.fechaAsignacion || isoToday()
-            }))
-          })
-        });
-        // Request was sent successfully (no network error). no-cors prevents reading the
-        // response body, so persistence is not confirmed here — the backend must handle it.
-        showToast(`✅ Guardado · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} asignados (local + enviado al servidor)`);
-      } catch (e) {
-        // Network error — only localStorage was updated
-        showToast(`✅ Guardado localmente · ${valid.length} pedido${valid.length !== 1 ? 's' : ''} (sin conexión al servidor)`);
-      }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════════════════
+function switchTab(tab){
+  if(_currentTab==='A') collectCurrentPageState();
+  _currentTab=tab;
+  const tabs={A:'tabAContent',B:'tabBContent',C:'mapSection',D:'budgetSection'};
+  const btns={A:'tabABtn',B:'tabBBtn',C:'tabCBtn',D:'tabDBtn'};
+  Object.keys(tabs).forEach(k=>{
+    document.getElementById(tabs[k]).style.display=k===tab?'':'none';
+    document.getElementById(btns[k]).classList.toggle('active',k===tab);
+  });
+  document.getElementById('saveRowTop').style.display=tab==='A'?'':'none';
+  document.getElementById('saveRowBottom').style.display=tab==='A'||tab==='B'?'':'none';
 
-      // Rebuild staff labels so counters update
-      renderMiniDashboard();
-      if (_currentTab === 'A') renderTabA();
-      if (_currentTab === 'B') renderTabB();
-    }
+  if(tab==='C'){
+    if(!_leafletMap){ initMap(); renderMapAllCentros(); }
+    setTimeout(()=>_leafletMap.invalidateSize(),200);
+  }
+  if(tab==='D'){
+    renderBudgetFromRoutes();
+  }
+  if(tab==='B') renderTabB();
+  if(tab==='A'){ _currentPage=1; renderTabA(); }
+}
 
-    // ─── INIT & EVENTS ───────────────────────────────────────────────────────────
-    async function init() {
-      try {
-        document.getElementById('loadingMsg').textContent = 'Cargando pedidos...';
-        await loadTracking();
-        document.getElementById('loadingMsg').textContent = 'Cargando personal...';
-        await loadStaff();
-        document.getElementById('loadingMsg').textContent = 'Cargando asignaciones previas...';
-        await loadRouteAssignments();
+// ═══════════════════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+async function init(){
+  try {
+    document.getElementById('loadingMsg').textContent='Cargando pedidos...';
+    await loadTracking();
+    document.getElementById('loadingMsg').textContent='Cargando personal...';
+    await loadStaff();
+    document.getElementById('loadingMsg').textContent='Cargando asignaciones...';
+    await loadRouteAssignments();
 
-        document.getElementById('loadingBanner').style.display = 'none';
-        document.getElementById('mainContent').style.display = '';
-        setInterval(() => { fetch(WEB_APP_URL + '?file=params').catch(() => {}); }, 4 * 60 * 1000);
+    document.getElementById('loadingBanner').style.display='none';
+    document.getElementById('mainContent').style.display='';
 
-        const today = new Date().toLocaleDateString('es-PA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        document.getElementById('pageSubtitle').innerHTML = `${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span>`;
+    setInterval(()=>{ fetch(WEB_APP_URL+'?file=params').catch(()=>{}); }, 4*60*1000);
 
-        populateFilters();
-        renderMiniDashboard();
-        renderTabA();
-      } catch (e) {
-        console.error(e);
-        document.getElementById('loadingBanner').style.display = 'none';
-        const err = document.getElementById('errorBanner');
-        err.textContent = '⚠️ Error al cargar los datos. Verifique la conexión e intente de nuevo.';
-        err.style.display = 'block';
-        // Still try to show page with cached data
-        const saved = readLS(ROUTE_ASSIGNMENTS_KEY, {});
-        if (Array.isArray(saved?.asignaciones)) _routeAssignments = saved.asignaciones;
-        if (tracking.length || STAFF.length) {
-          document.getElementById('mainContent').style.display = '';
-          populateFilters();
-          renderMiniDashboard();
-          renderTabA();
-        }
-      }
+    const today=new Date().toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('pageSubtitle').innerHTML=`${today} · ${tracking.length} pedidos · ${getActiveStaff().length} activos · <span style="color:#fbbf24;">Jefa: PAOLA MORENO</span>`;
 
-      // ── Tab buttons ──
-      document.getElementById('tabABtn').addEventListener('click', () => {
-        if (_currentTab === 'A') return;
-        _currentTab = 'A';
-        document.getElementById('tabABtn').classList.add('active');
-        document.getElementById('tabBBtn').classList.remove('active');
-        document.getElementById('tabAContent').style.display = '';
-        document.getElementById('tabBContent').style.display = 'none';
-        document.getElementById('saveRowTop').style.display = '';
-        document.getElementById('saveRowBottom').style.display = '';
-        _currentPage = 1;
-        renderTabA();
-      });
+    populateFilters(); renderMiniDashboard(); renderTabA();
+  } catch(e){
+    console.error(e);
+    document.getElementById('loadingBanner').style.display='none';
+    const err=document.getElementById('errorBanner');
+    err.textContent='⚠️ Error al cargar los datos. Verifique la conexión e intente de nuevo.'; err.style.display='block';
+    const saved=readLS(ROUTE_ASSIGNMENTS_KEY,{});
+    if(Array.isArray(saved?.asignaciones)) _routeAssignments=saved.asignaciones;
+    if(tracking.length||STAFF.length){ document.getElementById('mainContent').style.display=''; populateFilters(); renderMiniDashboard(); renderTabA(); }
+  }
 
-      document.getElementById('tabBBtn').addEventListener('click', () => {
-        if (_currentTab === 'B') return;
-        if (_currentTab === 'A') collectCurrentPageState();
-        _currentTab = 'B';
-        document.getElementById('tabBBtn').classList.add('active');
-        document.getElementById('tabABtn').classList.remove('active');
-        document.getElementById('tabBContent').style.display = '';
-        document.getElementById('tabAContent').style.display = 'none';
-        document.getElementById('saveRowTop').style.display = 'none';
-        document.getElementById('saveRowBottom').style.display = '';
-        renderMiniDashboard();
-        renderTabB();
-      });
+  // ── Tab buttons ──
+  document.getElementById('tabABtn').addEventListener('click',()=>switchTab('A'));
+  document.getElementById('tabBBtn').addEventListener('click',()=>switchTab('B'));
+  document.getElementById('tabCBtn').addEventListener('click',()=>switchTab('C'));
+  document.getElementById('tabDBtn').addEventListener('click',()=>switchTab('D'));
 
-      // ── Pagination ──
-      document.getElementById('prevPageBtn').addEventListener('click', () => {
-        if (_currentPage <= 1) return;
-        collectCurrentPageState();
-        _currentPage--;
-        renderTabA();
-      });
-      document.getElementById('nextPageBtn').addEventListener('click', () => {
-        const filtered = getFilteredRows();
-        const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-        if (_currentPage >= totalPages) return;
-        collectCurrentPageState();
-        _currentPage++;
-        renderTabA();
-      });
+  // ── Pagination ──
+  document.getElementById('prevPageBtn').addEventListener('click',()=>{ if(_currentPage<=1) return; collectCurrentPageState(); _currentPage--; renderTabA(); });
+  document.getElementById('nextPageBtn').addEventListener('click',()=>{ const tot=Math.max(1,Math.ceil(getFilteredRows().length/PAGE_SIZE)); if(_currentPage>=tot) return; collectCurrentPageState(); _currentPage++; renderTabA(); });
 
-      // ── Filters ──
-      document.getElementById('filterSearch').addEventListener('input', e => {
-        collectCurrentPageState();
-        _filterSearch = e.target.value || '';
-        _currentPage = 1;
-        renderTabA();
-      });
-      document.getElementById('filterGroup').addEventListener('change', e => {
-        collectCurrentPageState();
-        _filterGroup = e.target.value || '';
-        _currentPage = 1;
-        renderTabA();
-      });
-      document.getElementById('filterState').addEventListener('change', e => {
-        collectCurrentPageState();
-        _filterState = e.target.value || '';
-        _currentPage = 1;
-        renderTabA();
-      });
-      document.getElementById('filterPerson').addEventListener('change', e => {
-        collectCurrentPageState();
-        _filterPerson = e.target.value || '';
-        _currentPage = 1;
-        renderTabA();
-      });
-      document.getElementById('clearFiltersBtn').addEventListener('click', () => {
-        collectCurrentPageState();
-        _filterSearch = ''; _filterGroup = ''; _filterState = ''; _filterPerson = '';
-        document.getElementById('filterSearch').value = '';
-        document.getElementById('filterGroup').value = '';
-        document.getElementById('filterState').value = '';
-        document.getElementById('filterPerson').value = '';
-        _currentPage = 1;
-        if (_currentTab === 'A') renderTabA();
-        else renderTabB();
-      });
+  // ── Filters ──
+  document.getElementById('filterSearch').addEventListener('input',e=>{ collectCurrentPageState(); _filterSearch=e.target.value||''; _currentPage=1; renderTabA(); });
+  document.getElementById('filterGroup').addEventListener('change',e=>{ collectCurrentPageState(); _filterGroup=e.target.value||''; _currentPage=1; renderTabA(); });
+  document.getElementById('filterState').addEventListener('change',e=>{ collectCurrentPageState(); _filterState=e.target.value||''; _currentPage=1; renderTabA(); });
+  document.getElementById('filterPerson').addEventListener('change',e=>{ collectCurrentPageState(); _filterPerson=e.target.value||''; _currentPage=1; renderTabA(); });
+  document.getElementById('clearFiltersBtn').addEventListener('click',()=>{
+    collectCurrentPageState(); _filterSearch=_filterGroup=_filterState=_filterPerson='';
+    ['filterSearch','filterGroup','filterState','filterPerson'].forEach(id=>document.getElementById(id).value='');
+    _currentPage=1; if(_currentTab==='A') renderTabA(); else renderTabB();
+  });
 
-      // ── Save / Cancel ──
-      ['saveBtnTop', 'saveBtnBottom'].forEach(id => {
-        document.getElementById(id).addEventListener('click', saveAssignments);
-      });
-      ['cancelBtnTop', 'cancelBtnBottom'].forEach(id => {
-        document.getElementById(id).addEventListener('click', () => { window.location.href = 'index.html'; });
-      });
-    }
+  // ── Save / Cancel ──
+  ['saveBtnTop','saveBtnBottom'].forEach(id=>document.getElementById(id).addEventListener('click',saveAssignments));
+  ['cancelBtnTop','cancelBtnBottom'].forEach(id=>document.getElementById(id).addEventListener('click',()=>window.location.href='index.html'));
 
-    init();
-  </script>
+  // ── Map controls ──
+  document.getElementById('btnProposeRoutes').addEventListener('click',()=>{ proposeRoutes(); });
+  document.getElementById('btnClearRoutes').addEventListener('click',()=>{
+    clearMapLayers(); _proposedRoutes=[]; renderMapAllCentros();
+    document.getElementById('routeCards').innerHTML='';
+    showToast('🗺️ Rutas borradas. Marcadores base restaurados.');
+  });
+  ['mapFilterDay','mapFilterCateg','mapFilterPerson'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>{ if(_leafletMap&&!_proposedRoutes.length) renderMapAllCentros(); });
+  });
+
+  // ── Budget ──
+  document.getElementById('btnSaveBudget').addEventListener('click', saveBudget);
+  document.getElementById('btnExportBudget').addEventListener('click', exportBudgetCSV);
+}
+
+init();
+</script>
 </body>
 </html>
