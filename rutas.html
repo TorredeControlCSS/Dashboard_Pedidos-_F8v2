@@ -1028,24 +1028,46 @@ function exportBudgetCSV(){
 function switchTab(tab){
   if(_currentTab==='A') collectCurrentPageState();
   _currentTab=tab;
-  const tabs={A:'tabAContent',B:'tabBContent',C:'mapSection',D:'budgetSection'};
-  const btns={A:'tabABtn',B:'tabBBtn',C:'tabCBtn',D:'tabDBtn'};
-  Object.keys(tabs).forEach(k=>{
-    document.getElementById(tabs[k]).style.display=k===tab?'':'none';
-    document.getElementById(btns[k]).classList.toggle('active',k===tab);
-  });
-  document.getElementById('saveRowTop').style.display=tab==='A'?'':'none';
-  document.getElementById('saveRowBottom').style.display=tab==='A'||tab==='B'?'':'none';
 
-  if(tab==='C'){
-    if(!_leafletMap){ initMap(); renderMapAllCentros(); }
-    setTimeout(()=>_leafletMap.invalidateSize(),200);
-  }
-  if(tab==='D'){
+  // 1. Hide ALL panels and deactivate ALL buttons
+  ['tabAContent','tabBContent','mapSection','budgetSection'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  ['tabABtn','tabBBtn','tabCBtn','tabDBtn'].forEach(id=>{
+    document.getElementById(id).classList.remove('active');
+  });
+
+  // 2. Save rows
+  document.getElementById('saveRowTop').style.display    = tab==='A' ? '' : 'none';
+  document.getElementById('saveRowBottom').style.display = (tab==='A'||tab==='B') ? '' : 'none';
+
+  // 3. Activate selected tab button
+  const btnMap={A:'tabABtn',B:'tabBBtn',C:'tabCBtn',D:'tabDBtn'};
+  document.getElementById(btnMap[tab]).classList.add('active');
+
+  // 4. Show panel + run tab logic
+  if(tab==='A'){
+    document.getElementById('tabAContent').style.display='';
+    _currentPage=1; renderTabA();
+  } else if(tab==='B'){
+    document.getElementById('tabBContent').style.display='';
+    renderTabB();
+  } else if(tab==='C'){
+    // Make panel visible BEFORE Leaflet init so it can measure dimensions
+    document.getElementById('mapSection').style.display='';
+    if(!_leafletMap){
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        initMap();
+        renderMapAllCentros();
+        setTimeout(()=>_leafletMap.invalidateSize(), 250);
+      }));
+    } else {
+      setTimeout(()=>_leafletMap.invalidateSize(), 150);
+    }
+  } else if(tab==='D'){
+    document.getElementById('budgetSection').style.display='';
     renderBudgetFromRoutes();
   }
-  if(tab==='B') renderTabB();
-  if(tab==='A'){ _currentPage=1; renderTabA(); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
