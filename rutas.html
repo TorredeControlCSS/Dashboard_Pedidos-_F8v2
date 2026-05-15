@@ -115,7 +115,10 @@
     select.route-staff-select, input.route-date-input { border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 7px; font-size: 12px; width: 100%; }
 
     /* ── MAP TAB (Tab C) ── */
-    #mapSection { display: none; }
+    #mapSection { display: none; min-height: 600px; }
+    #budgetSection { min-height: 400px; }
+    #tabAContent, #tabBContent { min-height: 200px; }
+    .wrap { min-height: 80vh; }
     #routeMap { height: 520px; border-radius: 10px; border: 1px solid var(--border); }
     .map-controls {
       display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
@@ -1056,25 +1059,28 @@ function switchTab(tab){
 
   // 4. Show panel + run tab logic
   if(tab==='A'){
-    document.getElementById('tabAContent').style.display='';
+    document.getElementById('tabAContent').style.display='block';
     _currentPage=1; renderTabA();
   } else if(tab==='B'){
-    document.getElementById('tabBContent').style.display='';
+    document.getElementById('tabBContent').style.display='block';
     renderTabB();
   } else if(tab==='C'){
     // Make panel visible BEFORE Leaflet init so it can measure dimensions
-    document.getElementById('mapSection').style.display='';
+    document.getElementById('mapSection').style.display='block';
     if(!_leafletMap){
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
         initMap();
         renderMapAllCentros();
-        setTimeout(()=>_leafletMap.invalidateSize(), 250);
+        setTimeout(()=>{ _leafletMap.invalidateSize(true); }, 100);
+        setTimeout(()=>{ _leafletMap.invalidateSize(true); }, 400);
+        setTimeout(()=>{ _leafletMap.invalidateSize(true); }, 900);
       }));
     } else {
-      setTimeout(()=>_leafletMap.invalidateSize(), 150);
+      setTimeout(()=>{ _leafletMap.invalidateSize(true); }, 100);
+      setTimeout(()=>{ _leafletMap.invalidateSize(true); }, 400);
     }
   } else if(tab==='D'){
-    document.getElementById('budgetSection').style.display='';
+    document.getElementById('budgetSection').style.display='block';
     renderBudgetFromRoutes();
   }
 }
@@ -1092,7 +1098,7 @@ async function init(){
     await loadRouteAssignments();
 
     document.getElementById('loadingBanner').style.display='none';
-    document.getElementById('mainContent').style.display='';
+    document.getElementById('mainContent').style.display='block';
 
     setInterval(()=>{ fetch(WEB_APP_URL+'?file=params').catch(()=>{}); }, 4*60*1000);
 
@@ -1107,7 +1113,7 @@ async function init(){
     err.textContent='⚠️ Error al cargar los datos. Verifique la conexión e intente de nuevo.'; err.style.display='block';
     const saved=readLS(ROUTE_ASSIGNMENTS_KEY,{});
     if(Array.isArray(saved?.asignaciones)) _routeAssignments=saved.asignaciones;
-    if(tracking.length||STAFF.length){ document.getElementById('mainContent').style.display=''; populateFilters(); renderMiniDashboard(); renderTabA(); }
+    if(tracking.length||STAFF.length){ document.getElementById('mainContent').style.display='block'; populateFilters(); renderMiniDashboard(); renderTabA(); }
   }
 
   // ── Tab buttons ──
