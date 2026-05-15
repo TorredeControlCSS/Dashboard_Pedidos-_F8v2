@@ -6,8 +6,8 @@
   <title>Asignación de Rutas · CEDIS PANAMA</title>
   <link rel="icon" href="./favicon.ico?v=1" />
   <!-- Leaflet.js – gratuito, sin API key, sin límite de uso -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     :root {
       --navy: #0b1f3a;
@@ -466,11 +466,20 @@ let _budgetData = {};
 // ═══════════════════════════════════════════════════════════════════════════════
 //  UTILS
 // ═══════════════════════════════════════════════════════════════════════════════
-const readLS  = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
-const writeLS = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const readLS  = (k, f) => { try { const v=localStorage.getItem(k); return v!==null ? JSON.parse(v) : f; } catch { return f; } };
+const writeLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) { console.warn('localStorage bloqueado:', e); } };
 const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const normalizeText = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
 const isoToday = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const toIsoDate = (v) => {
+  if(!v) return '';
+  // Already yyyy-MM-dd
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return String(v);
+  // Try parsing any date string
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
 const fmt$ = v => '$' + Number(v||0).toFixed(2);
 
 const GROUP_MAP = {
@@ -619,7 +628,7 @@ function collectCurrentPageState(){
   document.querySelectorAll('.route-staff-select').forEach(sel=>{
     const id=sel.dataset.id; const almacenista=sel.value;
     const dateInput=document.querySelector(`.route-date-input[data-id="${id}"]`);
-    const fechaSalida=dateInput?.value||null; const idx=_routeAssignments.findIndex(a=>a.pedidoId===id);
+    const fechaSalida=toIsoDate(dateInput?.value||'')||null; const idx=_routeAssignments.findIndex(a=>a.pedidoId===id);
     if(!almacenista){ if(idx>=0) _routeAssignments.splice(idx,1); }
     else {
       const fechaAsignacion=isoToday();
@@ -638,7 +647,7 @@ function renderTabA(){
   } else {
     tbody.innerHTML=pageRows.map(t=>{
       const entry=_routeAssignments.find(a=>a.pedidoId===t.id);
-      const asigName=entry?.almacenista||''; const fechaSalida=entry?.fechaSalida||'';
+      const asigName=entry?.almacenista||''; const fechaSalida=toIsoDate(entry?.fechaSalida||'')
       const gc=GROUP_COLORS[t.group]||'#607d8b'; const sc=STATE_COLORS[t.estado]||'#607d8b';
       return `<tr>
         <td style="font-weight:700;white-space:nowrap;">${esc(t.id)}</td>
