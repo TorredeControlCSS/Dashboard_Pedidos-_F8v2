@@ -1744,6 +1744,7 @@
 
       // Photo capture section
       const savedPhoto = readLS('asistencia_foto_' + today, null);
+      const savedUrl   = readLS('asistencia_foto_url_' + today, null);
       const photoSection = `
         <div class="photo-capture-box">
           <div class="photo-title">📋 Evidencia Lista Física CSS (Obligatoria por Norma)</div>
@@ -1756,11 +1757,15 @@
               📁 Cargar Imagen
               <input type="file" id="attendancePhotoFile" accept="image/*" style="display:none;" onchange="handleAttendancePhoto(this)" />
             </label>
-            ${savedPhoto ? `<button class="photo-btn clear" onclick="clearAttendancePhoto()">🗑️ Quitar foto</button>` : ''}
+            ${savedPhoto ? `<button class="photo-btn clear" onclick="clearAttendancePhoto()">🗑️ Quitar</button>` : ''}
+            ${savedUrl ? `<a href="${savedUrl}" target="_blank" class="photo-btn" style="background:#0277bd;text-decoration:none;">🔗 Ver en Drive</a>` : ''}
           </div>
           <div class="photo-preview" id="attendancePhotoPreview">
-            ${savedPhoto ? `<img src="${savedPhoto}" alt="Lista de asistencia" />
-            <div class="photo-status">✅ Lista física registrada — ${today}</div>` : `<div class="photo-status" style="color:#6b7280;">Sin foto cargada — toma foto de la lista CSS como evidencia</div>`}
+            ${savedPhoto
+              ? `<img src="${savedPhoto}" alt="Lista de asistencia" />
+                 <div class="photo-status">${savedUrl ? '✅ Guardada en Google Drive — ' + today : '⏳ Guardada localmente — enviando a Drive...'}</div>`
+              : `<div class="photo-status" style="color:#6b7280;">Sin foto cargada · Toma foto de la lista CSS como evidencia del pase de lista</div>`
+            }
           </div>
         </div>
       `;
@@ -2565,23 +2570,57 @@
     function handleAttendancePhoto(input) {
       const file = input.files[0];
       if (!file) return;
+      showToast('⏳ Procesando foto...', 6000);
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        const base64 = e.target.result;
-        const today = isoToday();
-        try {
-          writeLS('asistencia_foto_' + today, base64);
-          showToast('📋 Foto de lista física guardada');
-          renderAttendanceList();
-          // Sync photo reference to backend (without the image itself to avoid size issues)
+        const img = new Image();
+        img.onload = () => {
+          // Comprimir imagen: máx 1400px ancho, calidad 0.78 (~200-400KB)
+          const MAX_W = 1400;
+          const scale = Math.min(1, MAX_W / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width  = Math.round(img.width  * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.78);
+
+          const today = isoToday();
+
+          // Guardar localmente para preview inmediato
+          try { writeLS('asistencia_foto_' + today, compressed); } catch(storErr) {
+            console.warn('localStorage lleno, no se guarda localmente:', storErr);
+          }
+          renderAttendanceList(); // preview local inmediato
+
+          // Enviar a Google Drive via backend
           fetch(WEB_APP_URL, {
-            method: 'POST', mode: 'no-cors',
+            method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ action: 'saveAttendancePhotoRef', fecha: today, hasPhoto: true, timestamp: new Date().toISOString() })
-          }).catch(() => {});
-        } catch(e) {
-          showToast('⚠️ Foto muy grande — intenta con una resolución menor');
-        }
+            body: JSON.stringify({
+              action: 'saveAttendancePhoto',
+              fecha: today,
+              imageData: compressed
+            })
+          })
+          .then(r => r.json())
+          .then(resp => {
+            if (resp.result === 'success') {
+              // Guardar también la URL de Drive
+              try { writeLS('asistencia_foto_url_' + today, resp.url || ''); } catch(e) {}
+              showToast('📋 Lista física guardada en Google Drive ✓', 4000);
+              renderAttendanceList();
+            } else {
+              showToast('⚠️ Foto guardada localmente — error en Drive: ' + (resp.msg || ''), 4000);
+            }
+          })
+          .catch(() => {
+            // CORS/red fallida — igual queda localmente
+            showToast('📋 Foto guardada localmente (sin conexión a Drive)', 4000);
+          });
+        };
+        img.onerror = () => showToast('❌ No se pudo leer la imagen');
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
@@ -2589,6 +2628,7 @@
     function clearAttendancePhoto() {
       const today = isoToday();
       localStorage.removeItem('asistencia_foto_' + today);
+      localStorage.removeItem('asistencia_foto_url_' + today);
       showToast('🗑️ Foto eliminada');
       renderAttendanceList();
     }
