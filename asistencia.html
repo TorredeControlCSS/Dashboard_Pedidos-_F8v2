@@ -2,492 +2,422 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Centro de Mando — Asistencia · CEDIS PANAMÁ</title>
   <link rel="icon" href="./favicon.ico?v=1" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0b1f3a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Torre Control" />
+  <link rel="apple-touch-icon" href="./icons/icon-512.png" />
   <style>
     :root {
-      --navy:    #0b1f3a;
-      --navy2:   #133a74;
-      --panel:   #ffffff;
-      --bg:      #eef2f7;
-      --border:  #e5e7eb;
-      --text:    #1f2937;
-      --muted:   #6b7280;
-      --ok:      #2e7d32;
-      --warn:    #f57f17;
-      --danger:  #b71c1c;
-      --info:    #0277bd;
-      --vac:     #2e7d32;
+      --navy:   #0b1f3a;
+      --navy2:  #133a74;
+      --panel:  #ffffff;
+      --bg:     #eef2f7;
+      --border: #e5e7eb;
+      --text:   #1f2937;
+      --muted:  #6b7280;
+      --ok:     #2e7d32;
+      --warn:   #f57f17;
+      --danger: #b71c1c;
+      --info:   #0277bd;
+      --touch:  48px; /* minimum touch target */
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
 
     /* ── TOPBAR ── */
     .topbar {
       position: sticky; top: 0; z-index: 100;
       background: linear-gradient(90deg, var(--navy), var(--navy2));
-      color: #fff; padding: 10px 14px;
+      color: #fff; padding: 12px 16px;
       display: flex; align-items: center; gap: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,.22);
     }
     .topbar img { width: 44px; height: 44px; object-fit: contain; }
     .topbar-title { flex: 1; min-width: 0; }
     .topbar-title h1 { font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .topbar-title p  { font-size: 11px; color: #cbd5e1; margin: 2px 0 0; }
+    .topbar-title p  { font-size: 12px; color: #cbd5e1; margin: 3px 0 0; }
     .btn-back {
       background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
-      color: #fff; border-radius: 8px; padding: 7px 12px;
-      font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none;
-      white-space: nowrap;
+      color: #fff; border-radius: 10px; padding: 10px 16px;
+      font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none;
+      white-space: nowrap; min-height: var(--touch); display: flex; align-items: center;
     }
-    .btn-back:hover { background: rgba(255,255,255,.25); }
 
     /* ── LAYOUT ── */
-    .wrap { padding: 14px; max-width: 1400px; margin: 0 auto; }
+    .wrap { padding: 14px; max-width: 1440px; margin: 0 auto; }
     .grid-main {
       display: grid;
-      grid-template-columns: 420px 1fr;
+      grid-template-columns: 460px 1fr;
       gap: 14px;
       align-items: start;
     }
-    @media (max-width: 900px) {
-      .grid-main { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 960px) { .grid-main { grid-template-columns: 1fr; } }
 
     /* ── CARDS ── */
-    .card {
-      background: var(--panel);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
+    .card { background: var(--panel); border-radius: 14px; border: 1px solid var(--border); overflow: hidden; }
     .card-head {
-      padding: 11px 14px;
-      font-weight: 800;
-      font-size: 13px;
+      padding: 13px 16px; font-weight: 800; font-size: 14px;
       border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: flex; justify-content: space-between; align-items: center;
       background: #f8fafc;
     }
-    .card-body { padding: 14px; }
+    .card-body { padding: 14px 16px; }
 
     /* ── KPI STRIP ── */
-    .kpi-strip {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    @media (max-width: 700px) {
-      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
-    }
+    .kpi-strip { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 14px; }
+    @media (max-width: 700px) { .kpi-strip { grid-template-columns: repeat(3,1fr); } }
     .kpi-box {
-      background: var(--panel);
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      border-top: 4px solid #9ca3af;
-      padding: 10px 12px;
-      text-align: center;
+      background: var(--panel); border-radius: 12px;
+      border: 1px solid var(--border); border-top: 5px solid #9ca3af;
+      padding: 12px; text-align: center;
     }
-    .kpi-box .kv { font-size: 2rem; font-weight: 900; line-height: 1; margin-top: 4px; }
-    .kpi-box .kl { font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-    .kpi-box .ks { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .kpi-box .kv { font-size: 2.2rem; font-weight: 900; line-height: 1; margin-top: 4px; }
+    .kpi-box .kl { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 
-    /* ── SEMÁFORO BANNER ── */
+    /* ── SEMÁFORO ── */
     .semaforo {
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 700;
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 14px;
     }
-    .semaforo .sem-icon { font-size: 2rem; line-height: 1; }
-    .semaforo .sem-text { flex: 1; }
-    .semaforo .sem-pct  { font-size: 2.2rem; font-weight: 900; }
+    .semaforo .sem-icon { font-size: 2rem; flex-shrink: 0; }
+    .semaforo .sem-text { flex: 1; line-height: 1.4; }
+    .semaforo .sem-pct  { font-size: 2.4rem; font-weight: 900; flex-shrink: 0; }
 
-    /* ── ATTENDANCE LIST ── */
+    /* ── LOCK BANNER ── */
+    .lock-banner {
+      border-radius: 12px; padding: 13px 16px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 14px;
+    }
+    .lock-banner.locked  { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+    .lock-banner.warning { background: #fef9c3; color: #713f12; border: 1px solid #fde68a; }
+    .lock-banner.open    { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .lock-banner .lb-icon { font-size: 1.8rem; flex-shrink: 0; }
+    .lock-banner .lb-text { flex: 1; line-height: 1.4; }
+    .btn-lock   { background: #b71c1c; color:#fff; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:800; cursor:pointer; min-height:var(--touch); }
+    .btn-unlock { background: var(--navy); color:#fff; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:800; cursor:pointer; min-height:var(--touch); }
+
+    /* ── PERSON LIST ── */
     .group-label {
-      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      font-size: 12px; font-weight: 800; text-transform: uppercase;
       color: var(--muted); letter-spacing: .06em;
-      padding: 8px 0 4px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 6px;
+      padding: 10px 0 5px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
     }
     .person-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px solid #f3f4f6;
+      display: flex; flex-direction: column;
+      padding: 10px 0; border-bottom: 1px solid #f3f4f6;
       gap: 8px;
-      flex-wrap: wrap;
     }
     .person-row:last-child { border-bottom: none; }
-    .person-name { font-weight: 700; font-size: 13px; min-width: 120px; }
-    .person-sub  { font-size: 11px; color: var(--muted); }
-    .status-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+    .person-name { font-weight: 800; font-size: 15px; }
+    .person-sub  { font-size: 12px; color: var(--muted); }
+    .status-btns { display: flex; gap: 6px; flex-wrap: wrap; }
     .st-btn {
-      border: 1px solid var(--border);
-      background: #f9fafb;
-      border-radius: 6px;
-      padding: 4px 7px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all .15s;
+      border: 1.5px solid var(--border); background: #f9fafb;
+      border-radius: 8px; padding: 9px 12px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      min-height: var(--touch); white-space: nowrap; transition: all .15s;
     }
-    .st-btn:hover { filter: brightness(.95); }
-    .st-btn.active-presente    { background: #2e7d32; border-color: #2e7d32; color: #fff; }
-    .st-btn.active-en-ruta     { background: #1565c0; border-color: #1565c0; color: #fff; }
-    .st-btn.active-baja-medica { background: #e65100; border-color: #e65100; color: #fff; }
-    .st-btn.active-capacitacion{ background: #7b1fa2; border-color: #7b1fa2; color: #fff; }
-    .st-btn.active-vacaciones  { background: #2e7d32; border-color: #2e7d32; color: #fff; }
-    .st-btn.active-ausente     { background: #b71c1c; border-color: #b71c1c; color: #fff; }
+    .st-btn:active { transform: scale(.96); }
+    .st-btn.active-presente    { background:#2e7d32; border-color:#2e7d32; color:#fff; }
+    .st-btn.active-en-ruta     { background:#1565c0; border-color:#1565c0; color:#fff; }
+    .st-btn.active-baja-medica { background:#e65100; border-color:#e65100; color:#fff; }
+    .st-btn.active-capacitacion{ background:#7b1fa2; border-color:#7b1fa2; color:#fff; }
+    .st-btn.active-vacaciones  { background:#00796b; border-color:#00796b; color:#fff; }
+    .st-btn.active-ausente     { background:#b71c1c; border-color:#b71c1c; color:#fff; }
+    .list-locked .st-btn { pointer-events:none; opacity:.45; }
 
-    /* ── FOTO EVIDENCIA ── */
+    /* ── MULTI-PHOTO SECTION ── */
     .foto-box {
-      background: #f0f9ff;
-      border: 1px solid #bae6fd;
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 14px;
+      background: #f0f9ff; border: 1px solid #bae6fd;
+      border-radius: 12px; padding: 14px; margin-bottom: 14px;
     }
-    .foto-box h3 { font-size: 13px; font-weight: 800; color: #0369a1; margin-bottom: 8px; }
-    .foto-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .foto-box h3 { font-size: 14px; font-weight: 800; color: #0369a1; margin-bottom: 10px; }
+    .foto-add-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .foto-btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
-      cursor: pointer; border: none; color: #fff;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;
+      cursor: pointer; border: none; color: #fff; min-height: var(--touch);
     }
     .foto-btn.cam  { background: #0b1f3a; }
     .foto-btn.file { background: #6b7280; }
-    .foto-btn.del  { background: #b71c1c; }
-    .foto-btn.link { background: #0277bd; text-decoration: none; }
-    .foto-preview img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; border: 2px solid #bae6fd; }
-    .foto-status { font-size: 11px; margin-top: 6px; font-weight: 600; color: #0369a1; }
+    .foto-gallery { display: flex; flex-direction: column; gap: 10px; }
+    .foto-item {
+      background: #fff; border: 1px solid #bae6fd; border-radius: 10px;
+      padding: 10px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .foto-thumb { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; flex-shrink: 0; cursor: pointer; }
+    .foto-info  { flex: 1; min-width: 0; }
+    .foto-label-input {
+      width: 100%; border: 1px solid #cbd5e1; border-radius: 8px;
+      padding: 7px 10px; font-size: 13px; margin-bottom: 6px;
+    }
+    .foto-status-text { font-size: 11px; color: #0369a1; font-weight: 600; }
+    .foto-del {
+      background: #fee2e2; color: #7f1d1d; border: none;
+      border-radius: 8px; padding: 6px 10px; font-size: 12px;
+      font-weight: 700; cursor: pointer; min-height: 36px;
+    }
+    .foto-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 14px 0; }
 
     /* ── SAVE BAR ── */
     .save-bar {
-      position: sticky; bottom: 0;
-      background: var(--panel);
-      border-top: 1px solid var(--border);
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      z-index: 10;
-      box-shadow: 0 -2px 8px rgba(0,0,0,.06);
+      position: sticky; bottom: 0; background: var(--panel);
+      border-top: 1px solid var(--border); padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; z-index: 10; box-shadow: 0 -2px 8px rgba(0,0,0,.06);
     }
-    .save-bar .save-summary { font-size: 12px; color: var(--muted); }
-    .btn-save {
-      background: var(--navy); color: #fff; border: none;
-      border-radius: 8px; padding: 10px 20px;
-      font-weight: 800; font-size: 13px; cursor: pointer;
-    }
-    .btn-save:hover { background: var(--navy2); }
-    .btn-export {
-      background: #fff; color: var(--text);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 9px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
-    }
-
-    /* ── HISTORICO / CHARTS ── */
-    .hist-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    @media (max-width: 600px) { .hist-grid { grid-template-columns: 1fr; } }
-    .mini-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 0;
-      border-bottom: 1px solid #f3f4f6;
-      font-size: 12px;
-    }
-    .mini-bar-row:last-child { border-bottom: none; }
-    .mini-bar-name { min-width: 120px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mini-bar-track { flex: 1; background: #e5e7eb; border-radius: 999px; height: 8px; overflow: hidden; }
-    .mini-bar-fill  { height: 100%; border-radius: 999px; background: var(--ok); }
-    .mini-bar-pct   { min-width: 36px; text-align: right; font-weight: 700; }
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 3px;
-    }
-    .cal-day {
-      aspect-ratio: 1;
-      border-radius: 4px;
-      font-size: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      cursor: default;
-      background: #e5e7eb;
-      color: var(--muted);
-    }
-    .cal-day.ok    { background: #bbf7d0; color: #166534; }
-    .cal-day.warn  { background: #fef08a; color: #713f12; }
-    .cal-day.bad   { background: #fecaca; color: #7f1d1d; }
-    .cal-day.today { outline: 2px solid var(--navy); }
-    .cal-day.future{ background: #f3f4f6; color: #d1d5db; }
+    .save-bar .save-summary { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .btn-save { background: var(--navy); color:#fff; border:none; border-radius:10px; padding:12px 22px; font-weight:800; font-size:14px; cursor:pointer; min-height:var(--touch); }
+    .btn-export { background:#fff; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:11px 16px; font-size:13px; font-weight:700; cursor:pointer; min-height:var(--touch); }
 
     /* ── GROUP CAPACITY ── */
-    .group-cap-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
-    }
-    .group-cap-card {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      border-left: 4px solid #9ca3af;
-    }
-    .group-cap-card .gc-name { font-size: 11px; font-weight: 800; text-transform: uppercase; }
-    .group-cap-card .gc-ratio { font-size: 1.4rem; font-weight: 900; margin-top: 4px; }
-    .group-cap-card .gc-sub { font-size: 11px; color: var(--muted); }
-    .group-cap-card .gc-bar { height: 5px; background: #e5e7eb; border-radius: 999px; margin-top: 6px; overflow: hidden; }
-    .group-cap-card .gc-fill { height: 100%; border-radius: 999px; }
+    .group-cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; }
+    .group-cap-card { border:1px solid var(--border); border-radius:10px; padding:12px; border-left:4px solid #9ca3af; }
+    .group-cap-card .gc-name  { font-size:11px; font-weight:800; text-transform:uppercase; }
+    .group-cap-card .gc-ratio { font-size:1.5rem; font-weight:900; margin-top:4px; }
+    .group-cap-card .gc-sub   { font-size:11px; color:var(--muted); line-height:1.4; }
+    .group-cap-card .gc-bar   { height:5px; background:#e5e7eb; border-radius:999px; margin-top:8px; overflow:hidden; }
+    .group-cap-card .gc-fill  { height:100%; border-radius:999px; }
 
-    /* ── SPINNER / OVERLAY ── */
-    #loadOverlay {
-      position: fixed; inset: 0; background: var(--navy);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 9999; color: #fff; gap: 16px;
+    /* ── CALENDAR (month view) ── */
+    .cal-month-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 800; font-size: 14px; margin-bottom: 10px;
     }
-    .spinner {
-      width: 44px; height: 44px;
-      border: 5px solid rgba(255,255,255,.2);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
+    .cal-dow-row {
+      display: grid; grid-template-columns: repeat(7,1fr);
+      gap: 3px; margin-bottom: 4px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #toast {
-      position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
-      background: #1f2937; color: #fff;
-      border-radius: 999px; padding: 8px 16px;
-      font-size: 13px; display: none; z-index: 200;
-      white-space: nowrap;
+    .cal-dow { text-align:center; font-size:11px; font-weight:700; color:var(--muted); padding:4px 0; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+    .cal-day {
+      border-radius: 8px; min-height: 52px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: default; background: #f3f4f6; padding: 4px 2px;
     }
-    .tag {
-      display: inline-block; border-radius: 999px;
-      padding: 2px 8px; font-size: 10px; font-weight: 700;
-      background: #e5e7eb; color: #374151;
-    }
+    .cal-day.empty   { background: transparent; }
+    .cal-day.ok      { background: #bbf7d0; }
+    .cal-day.warn    { background: #fef08a; }
+    .cal-day.bad     { background: #fecaca; }
+    .cal-day.nodata  { background: #f3f4f6; }
+    .cal-day.future  { background: #f9fafb; }
+    .cal-day.today   { outline: 2.5px solid var(--navy); outline-offset: -1px; }
+    .cal-num  { font-size: 12px; font-weight: 800; line-height: 1; }
+    .cal-day.ok   .cal-num { color: #166534; }
+    .cal-day.warn .cal-num { color: #713f12; }
+    .cal-day.bad  .cal-num { color: #7f1d1d; }
+    .cal-pct  { font-size: 11px; font-weight: 800; margin-top: 2px; line-height: 1; }
+    .cal-day.ok   .cal-pct { color: #166534; }
+    .cal-day.warn .cal-pct { color: #713f12; }
+    .cal-day.bad  .cal-pct { color: #7f1d1d; }
+    .cal-day.nodata .cal-pct,
+    .cal-day.future .cal-pct { color: #d1d5db; font-size:10px; }
 
-    /* ── LOCK SYSTEM ── */
-    .lock-banner {
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 700;
-      font-size: 13px;
-    }
-    .lock-banner.locked   { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
-    .lock-banner.warning  { background: #fef9c3; color: #713f12; border: 1px solid #fde68a; }
-    .lock-banner.open     { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-    .lock-banner .lb-icon { font-size: 1.6rem; }
-    .lock-banner .lb-text { flex: 1; }
-    .lock-banner .lb-time { font-size: 1.1rem; font-weight: 900; }
-    .btn-lock {
-      background: #b71c1c; color: #fff;
-      border: none; border-radius: 8px;
-      padding: 8px 14px; font-size: 12px; font-weight: 800;
-      cursor: pointer;
-    }
-    .btn-unlock {
-      background: #0b1f3a; color: #fff;
-      border: none; border-radius: 8px;
-      padding: 8px 14px; font-size: 12px; font-weight: 800;
-      cursor: pointer;
-    }
-    .list-locked .st-btn { pointer-events: none; opacity: .5; }
-    .list-locked .foto-btn.cam,
-    .list-locked .foto-btn.file { pointer-events: none; opacity: .5; }
+    /* ── RANK BARS ── */
+    .mini-bar-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f3f4f6; font-size:13px; }
+    .mini-bar-row:last-child { border-bottom:none; }
+    .mini-bar-name { min-width:130px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mini-bar-track { flex:1; background:#e5e7eb; border-radius:999px; height:9px; overflow:hidden; }
+    .mini-bar-fill  { height:100%; border-radius:999px; }
+    .mini-bar-pct   { min-width:40px; text-align:right; font-weight:800; }
+    .tag { display:inline-block; border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; background:#e5e7eb; color:#374151; }
 
-    /* PIN modal */
+    /* ── EN RUTA INFO BOX ── */
+    .ruta-info {
+      background: #e3f2fd; border: 1px solid #90caf9; border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #0d47a1;
+    }
+    .ruta-info strong { display: block; font-size: 14px; margin-bottom: 4px; }
+
+    /* ── PIN MODAL ── */
     #pinOverlay {
       position: fixed; inset: 0; background: rgba(0,0,0,.5);
       display: none; align-items: center; justify-content: center; z-index: 500;
     }
     #pinOverlay .pin-box {
-      background: #fff; border-radius: 14px;
-      padding: 32px; text-align: center;
-      max-width: 320px; width: 90%;
-      box-shadow: 0 8px 32px rgba(0,0,0,.25);
+      background: #fff; border-radius: 16px; padding: 36px;
+      text-align: center; max-width: 340px; width: 90%;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
     }
-    #pinOverlay h3 { margin: 0 0 6px; color: #0b1f3a; }
-    #pinOverlay p  { font-size: 13px; color: #6b7280; margin: 0 0 20px; }
-    #pinInput2 {
-      width: 120px; font-size: 2rem; text-align: center;
-      letter-spacing: 8px; border: 2px solid #e5e7eb;
-      border-radius: 8px; padding: 8px; outline: none;
-    }
-    #pinInput2:focus { border-color: #0b1f3a; }
-    #pinError2 { color: #b71c1c; font-size: 12px; min-height: 18px; margin: 8px 0 0; }
-    .pin-confirm {
-      background: #0b1f3a; color: #fff; border: none;
-      border-radius: 8px; padding: 10px 28px;
-      font-size: 14px; font-weight: 700; cursor: pointer;
-      margin-top: 14px; width: 100%;
-    }
+    #pinOverlay h3 { margin: 0 0 8px; color: var(--navy); font-size: 18px; }
+    #pinOverlay p  { font-size: 14px; color: var(--muted); margin: 0 0 22px; }
+    #pinInput2 { width:130px; font-size:2.2rem; text-align:center; letter-spacing:8px; border:2px solid #e5e7eb; border-radius:10px; padding:10px; outline:none; }
+    #pinInput2:focus { border-color: var(--navy); }
+    #pinError2 { color: var(--danger); font-size:13px; min-height:20px; margin:10px 0 0; }
+    .pin-confirm { background: var(--navy); color:#fff; border:none; border-radius:10px; padding:13px 32px; font-size:15px; font-weight:800; cursor:pointer; margin-top:16px; width:100%; min-height:var(--touch); }
+
+    /* ── PHOTO LIGHTBOX ── */
+    #lightbox { position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:600; }
+    #lightbox img { max-width:95vw; max-height:92vh; border-radius:10px; }
+    #lightbox button { position:absolute; top:16px; right:16px; background:#fff; border:none; border-radius:50%; width:40px; height:40px; font-size:18px; cursor:pointer; }
+
+    /* ── SPINNER ── */
+    #loadOverlay { position:fixed; inset:0; background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; color:#fff; gap:18px; }
+    .spinner { width:48px; height:48px; border:5px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; border-radius:999px; padding:10px 20px; font-size:14px; display:none; z-index:200; white-space:nowrap; max-width:90vw; text-align:center; }
   </style>
 </head>
 <body>
 
 <div id="loadOverlay">
   <div class="spinner"></div>
-  <div style="font-size:14px;color:#cbd5e1;">Cargando personal y asistencia...</div>
+  <div style="font-size:15px;color:#cbd5e1;">Cargando personal y asistencia...</div>
 </div>
-
 <div id="toast"></div>
 
-<!-- ── TOPBAR ── -->
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="" />
+  <button onclick="closeLightbox()">✕</button>
+</div>
+
+<!-- PIN MODAL -->
+<div id="pinOverlay">
+  <div class="pin-box">
+    <div style="font-size:2.4rem;margin-bottom:10px">🔐</div>
+    <h3>Autorización de Jefatura</h3>
+    <p id="pinOverlayMsg">Ingresa el PIN de Jefatura</p>
+    <input id="pinInput2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+    <div id="pinError2"></div>
+    <button class="pin-confirm" onclick="confirmUnlockPin()">Autorizar acceso</button>
+    <br/>
+    <button onclick="closePinOverlay()" style="margin-top:12px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:8px;">Cancelar</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
 <div class="topbar">
   <img src="icons/icon-512.png" onerror="this.style.display='none'" />
   <div class="topbar-title">
     <h1>CENTRO DE MANDO — ASISTENCIA Y CAPACIDAD OPERATIVA</h1>
     <p id="clockBar">CEDIS PANAMÁ · Torre de Control</p>
   </div>
-  <a class="btn-back" href="index.html">← Volver al Kanban</a>
+  <a class="btn-back" href="index.html">← Kanban</a>
+  <button id="installBtn" onclick="installApp()" style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;align-items:center;gap:6px;min-height:48px;">
+    📲 Instalar App
+  </button>
 </div>
 
 <div class="wrap">
 
-  <!-- ── LOCK BANNER ── -->
+  <!-- LOCK BANNER -->
   <div id="lockBanner"></div>
 
-  <!-- ── PIN MODAL (unlock) ── -->
-  <div id="pinOverlay">
-    <div class="pin-box">
-      <div style="font-size:2rem;margin-bottom:8px">🔐</div>
-      <h3>Autorización de Jefatura</h3>
-      <p id="pinOverlayMsg">Ingresa el PIN de Jefatura para autorizar el cambio</p>
-      <input id="pinInput2" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
-      <div id="pinError2"></div>
-      <button class="pin-confirm" onclick="confirmUnlockPin()">Autorizar</button>
-      <br/>
-      <button onclick="closePinOverlay()" style="margin-top:10px;border:none;background:none;color:#6b7280;cursor:pointer;font-size:13px;">Cancelar</button>
-    </div>
-  </div>
-  <div id="semaforoEl" class="semaforo" style="background:#e5e7eb;margin-bottom:14px;">
-    <span class="sem-icon">⏳</span>
-    <span class="sem-text">Cargando capacidad operativa...</span>
-    <span class="sem-pct" id="semPct">--</span>
+  <!-- EN RUTA INFO -->
+  <div class="ruta-info" id="rutaInfoBox" style="display:none;">
+    <strong>🚚 Personal en Ruta — Operativos fuera del almacén</strong>
+    <span id="rutaInfoText"></span>
+    El personal en ruta NO recibirá nuevas F8s automáticamente. Sus F8s ya asignadas permanecen activas.
   </div>
 
-  <div class="kpi-strip" id="kpiStrip">
+  <!-- KPIs -->
+  <div class="kpi-strip">
     <div class="kpi-box" style="border-top-color:#0b1f3a"><div class="kl">Total plantel</div><div class="kv" id="kTotal">--</div></div>
     <div class="kpi-box" style="border-top-color:#2e7d32"><div class="kl">✅ Presentes</div><div class="kv" id="kPresentes">--</div></div>
     <div class="kpi-box" style="border-top-color:#1565c0"><div class="kl">🚚 En Ruta</div><div class="kv" id="kEnRuta">--</div></div>
-    <div class="kpi-box" style="border-top-color:#2e7d32"><div class="kl">🏖️ Vacaciones</div><div class="kv" id="kVacaciones">--</div></div>
-    <div class="kpi-box" style="border-top-color:#e65100"><div class="kl">🏥 Baja / Cap.</div><div class="kv" id="kBajas">--</div></div>
+    <div class="kpi-box" style="border-top-color:#00796b"><div class="kl">🏖️ Vacaciones</div><div class="kv" id="kVacaciones">--</div></div>
+    <div class="kpi-box" style="border-top-color:#e65100"><div class="kl">🏥 Baja/Cap.</div><div class="kv" id="kBajas">--</div></div>
     <div class="kpi-box" style="border-top-color:#b71c1c"><div class="kl">❌ Ausentes</div><div class="kv" id="kAusentes">--</div></div>
+  </div>
+
+  <!-- SEMÁFORO -->
+  <div id="semaforoEl" class="semaforo" style="background:#e5e7eb;">
+    <span class="sem-icon">⏳</span>
+    <span class="sem-text">Cargando...</span>
+    <span class="sem-pct" id="semPct">--</span>
   </div>
 
   <div class="grid-main">
 
-    <!-- ══════════════════════════════════
-         COLUMNA IZQUIERDA: Pase de Lista
-         ══════════════════════════════════ -->
+    <!-- ══ COLUMNA IZQUIERDA ══ -->
     <div>
 
-      <!-- Foto evidencia -->
+      <!-- MULTI-PHOTO SECTION -->
       <div class="foto-box" id="fotoBox">
         <h3>📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
-        <div class="foto-actions" id="fotoActions">
+        <div class="foto-add-bar">
           <label class="foto-btn cam">
             📷 Capturar con cámara
-            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)" />
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAdd(this,'Cámara')" />
           </label>
           <label class="foto-btn file">
             📁 Cargar archivo
-            <input type="file" accept="image/*" style="display:none" onchange="handlePhoto(this)" />
+            <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotoAddMultiple(this)" />
           </label>
         </div>
-        <div id="fotoPreview" class="foto-preview"></div>
-        <div id="fotoStatus" class="foto-status">Sin foto cargada — toma foto de la lista CSS como evidencia del pase de lista</div>
+        <div class="foto-gallery" id="fotoGallery">
+          <div class="foto-empty">Sin fotos — toma foto de cada lista de área como evidencia</div>
+        </div>
       </div>
 
-      <!-- Lista de personal -->
+      <!-- PASE DE LISTA -->
       <div class="card">
         <div class="card-head">
           <span>👥 PASE DE LISTA — <span id="fechaLabel">hoy</span></span>
-          <span id="conteoLabel" style="font-size:11px;color:var(--muted);">...</span>
+          <span id="conteoLabel" style="font-size:12px;color:var(--muted);">...</span>
         </div>
-        <div class="card-body" id="listaPersonal" style="max-height:55vh;overflow-y:auto;padding:10px 14px;">
-          <div style="color:var(--muted);font-size:13px;">Cargando personal...</div>
+        <div class="card-body" id="listaPersonal" style="max-height:58vh;overflow-y:auto;">
+          <div style="color:var(--muted)">Cargando personal...</div>
         </div>
       </div>
 
-      <!-- Save bar (sticky dentro de la columna) -->
+      <!-- SAVE BAR -->
       <div class="save-bar">
         <div>
           <div class="save-summary" id="saveSummary">—</div>
           <div style="font-size:11px;color:var(--muted)" id="lastSaveLabel"></div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn-export" onclick="exportHistorial()">📊 Exportar Excel</button>
-          <button class="btn-save" onclick="guardarAsistencia()">💾 Guardar Asistencia</button>
+          <button class="btn-export" onclick="exportHistorial()">📊 Excel</button>
+          <button class="btn-save" onclick="guardarAsistencia()">💾 Guardar</button>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════
-         COLUMNA DERECHA: Métricas e Histórico
-         ══════════════════════════════════ -->
+    <!-- ══ COLUMNA DERECHA ══ -->
     <div style="display:flex;flex-direction:column;gap:14px;">
 
-      <!-- Capacidad por grupo -->
+      <!-- CAPACIDAD POR GRUPO -->
       <div class="card">
-        <div class="card-head">📊 Capacidad por Grupo</div>
+        <div class="card-head">📊 Capacidad por Grupo — Fisicamente en almacén</div>
         <div class="card-body">
           <div class="group-cap-grid" id="groupCapGrid">
-            <div style="color:var(--muted);font-size:13px;">Cargando...</div>
+            <div style="color:var(--muted)">Cargando...</div>
           </div>
         </div>
       </div>
 
-      <!-- Calendario de los últimos 30 días -->
+      <!-- CALENDARIO MES ACTUAL -->
       <div class="card">
         <div class="card-head">
-          📅 Índice de Asistencia — Últimos 30 días
-          <span style="font-size:11px;color:var(--muted);">Verde ≥80% · Amarillo ≥60% · Rojo &lt;60%</span>
+          <div>
+            <div>📅 Índice de Asistencia — <span id="calMonthTitle"></span></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">🟢 ≥80% · 🟡 60–79% · 🔴 &lt;60% · % = operativos/plantel</div>
+          </div>
         </div>
         <div class="card-body">
-          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;font-size:10px;color:var(--muted);">
-            <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
-          </div>
-          <div class="calendar-grid" id="calGrid"></div>
-          <div style="margin-top:10px;font-size:11px;color:var(--muted);display:flex;gap:12px;">
-            <span>🟢 ≥80%</span><span>🟡 60–79%</span><span>🔴 &lt;60%</span>
-          </div>
+          <div class="cal-dow-row" id="calDowRow"></div>
+          <div class="cal-grid" id="calGrid"></div>
         </div>
       </div>
 
-      <!-- Ranking asistencia por persona -->
+      <!-- RANKING ASISTENCIA -->
       <div class="card">
         <div class="card-head">
-          🏆 Asistencia por Persona — Últimos 30 días
+          <span>🏆 Asistencia por Persona — Mes actual</span>
           <span id="rankPeriodLabel" style="font-size:11px;color:var(--muted);"></span>
         </div>
-        <div class="card-body" id="rankGrid" style="max-height:320px;overflow-y:auto;">
-          <div style="color:var(--muted);font-size:13px;">Sin historial registrado aún.</div>
+        <div class="card-body" id="rankGrid" style="max-height:340px;overflow-y:auto;">
+          <div style="color:var(--muted)">Sin historial aún.</div>
         </div>
       </div>
 
@@ -498,84 +428,178 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
-
-  const ATTENDANCE_KEY         = 'pase_lista';
-  const ATTENDANCE_HISTORY_KEY = 'historial_asistencia';
-  const LOCK_KEY               = 'asistencia_lock_v1';
-  const PIN_KEY                = 'jefatura_pin';
-
-  // ── Hora de cierre: 7:45 AM ──
-  const CUTOFF_H = 7;
-  const CUTOFF_M = 45;
+  const ATTENDANCE_KEY  = 'pase_lista';
+  const HISTORY_KEY     = 'historial_asistencia';
+  const LOCK_KEY        = 'asistencia_lock_v1';
+  const PIN_KEY         = 'jefatura_pin';
+  const PHOTOS_KEY      = 'asistencia_fotos_';   // + isoToday()
+  const CUTOFF_H = 7, CUTOFF_M = 45;
 
   const GROUP_COLORS = {
-    "GRUPO 1": "#1565c0", "GRUPO 2": "#2e7d32", "GRUPO 3": "#6a1b9a",
-    "GRUPO 4-5-11": "#e65100", "FRÍO": "#0277bd", "EMPAQUE": "#4e342e",
-    "URGENCIAS": "#b71c1c", "MÓDULO": "#37474f", "VENCIDOS": "#558b2f",
-    "KARDEX": "#5d4037", "DISTRIBUCION": "#00796b"
+    'GRUPO 1':'#1565c0','GRUPO 2':'#2e7d32','GRUPO 3':'#6a1b9a',
+    'GRUPO 4-5-11':'#e65100','FRÍO':'#0277bd','EMPAQUE':'#4e342e',
+    'URGENCIAS':'#b71c1c','MÓDULO':'#37474f','VENCIDOS':'#558b2f',
+    'KARDEX':'#5d4037','DISTRIBUCION':'#00796b'
   };
 
-  const BLOCKED = ['ausente', 'baja-medica', 'capacitacion', 'vacaciones'];
-
-  // ── Lock helpers ──
-  function getLock() {
-    const s = readLS(LOCK_KEY, {});
-    return s.fecha === isoToday() ? s : { locked: false };
-  }
-  function isAfterCutoff() {
-    const n = new Date();
-    return n.getHours() > CUTOFF_H || (n.getHours() === CUTOFF_H && n.getMinutes() >= CUTOFF_M);
-  }
-  function cutoffLabel() {
-    return `${String(CUTOFF_H).padStart(2,'0')}:${String(CUTOFF_M).padStart(2,'0')} a.m.`;
-  }
-  function doLock(by = 'Sistema', reason = '') {
-    const ts = new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
-    const lock = { fecha: isoToday(), locked: true, lockedAt: ts, lockedBy: by, reason };
-    writeLS(LOCK_KEY, lock);
-    return lock;
-  }
-  function doUnlock() {
-    const lock = getLock();
-    lock.locked = false;
-    lock.unlockedAt = new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
-    writeLS(LOCK_KEY, lock);
-  }
-
   let STAFF = [];
-  let draft = {};   // { nombre: estado }
+  let draft = {};
+  let _unlockPurpose = '';
 
   // ── Utils ──
-  const readLS  = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
-  const writeLS = (k, v)  => localStorage.setItem(k, JSON.stringify(v));
-  const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-  const toast = (msg, ms = 3000) => {
+  const readLS  = (k,fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
+  const writeLS = (k,v)  => localStorage.setItem(k, JSON.stringify(v));
+  const isoToday = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const toast = (msg, ms=3000) => {
     const el = document.getElementById('toast');
     el.textContent = msg; el.style.display = 'block';
     clearTimeout(window._toastT);
-    window._toastT = setTimeout(() => el.style.display = 'none', ms);
+    window._toastT = setTimeout(() => el.style.display='none', ms);
   };
 
   function normalizeGroup(raw) {
-    const MAP = {
-      'G1-TABLETAS':'GRUPO 1','GRUPO 1':'GRUPO 1',
-      'G2-SOLUCION':'GRUPO 2','GRUPO 2':'GRUPO 2',
-      'G3-JARABE':'GRUPO 3','GRUPO 3':'GRUPO 3',
-      'G4-CREMAS':'GRUPO 4-5-11','G5-OVULOS':'GRUPO 4-5-11','G5-ÓVULOS':'GRUPO 4-5-11',
-      'G11-ODONTOLOGIA':'GRUPO 4-5-11','G-11-ODONTOLOGIA':'GRUPO 4-5-11','GRUPO 4-5-11':'GRUPO 4-5-11',
-      'G9-MQ':'MÓDULO','MODULO':'MÓDULO','MÓDULO':'MÓDULO',
+    const M = {'G1-TABLETAS':'GRUPO 1','GRUPO 1':'GRUPO 1','G2-SOLUCION':'GRUPO 2','GRUPO 2':'GRUPO 2',
+      'G3-JARABE':'GRUPO 3','GRUPO 3':'GRUPO 3','G4-CREMAS':'GRUPO 4-5-11','G5-OVULOS':'GRUPO 4-5-11',
+      'G5-ÓVULOS':'GRUPO 4-5-11','G11-ODONTOLOGIA':'GRUPO 4-5-11','G-11-ODONTOLOGIA':'GRUPO 4-5-11',
+      'GRUPO 4-5-11':'GRUPO 4-5-11','G9-MQ':'MÓDULO','MODULO':'MÓDULO','MÓDULO':'MÓDULO',
       'FRÍO':'FRÍO','FRIO':'FRÍO','EMPAQUE':'EMPAQUE','URGENCIAS':'URGENCIAS',
-      'VENCIDOS':'VENCIDOS','KARDEX':'KARDEX','DISTRIBUCION':'DISTRIBUCION','DISTRIBUCIÓN':'DISTRIBUCION'
-    };
+      'VENCIDOS':'VENCIDOS','KARDEX':'KARDEX','DISTRIBUCION':'DISTRIBUCION','DISTRIBUCIÓN':'DISTRIBUCION'};
     if (!raw) return 'SIN GRUPO';
-    const up = String(raw).toUpperCase().trim();
-    return MAP[up] || raw;
+    return M[String(raw).toUpperCase().trim()] || raw;
   }
-
   function getStaffGroup(s) {
-    if (s.grupos && s.grupos.length > 0) return normalizeGroup(s.grupos[0]);
+    if (s.grupos && s.grupos.length) return normalizeGroup(s.grupos[0]);
     return normalizeGroup(s.rol) || s.rol || 'SIN ROL';
   }
+
+  // ── Lock ──
+  function getLock() { const s=readLS(LOCK_KEY,{}); return s.fecha===isoToday()?s:{locked:false}; }
+  function isAfterCutoff() { const n=new Date(); return n.getHours()>CUTOFF_H||(n.getHours()===CUTOFF_H&&n.getMinutes()>=CUTOFF_M); }
+  function cutoffLabel() { return `${String(CUTOFF_H).padStart(2,'0')}:${String(CUTOFF_M).padStart(2,'0')} a.m.`; }
+  function doLock(by='Sistema', reason='') {
+    const ts = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+    writeLS(LOCK_KEY,{fecha:isoToday(),locked:true,lockedAt:ts,lockedBy:by,reason});
+  }
+  function doUnlock() { const s=getLock(); s.locked=false; writeLS(LOCK_KEY,s); }
+
+  // ── Photos (multi) ──
+  function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
+  function savePhotos(photos, date=isoToday()) { try { writeLS(PHOTOS_KEY+date,photos); return true; } catch(e){ return false; } }
+
+  function handlePhotoAdd(input, defaultLabel) {
+    const file = input.files[0]; if (!file) return;
+    compressAndAdd(file, defaultLabel);
+    input.value = '';
+  }
+  function handlePhotoAddMultiple(input) {
+    const files = Array.from(input.files); if (!files.length) return;
+    files.forEach((f, i) => compressAndAdd(f, `Lista ${getPhotos().length + i + 1}`));
+    input.value = '';
+  }
+
+  function compressAndAdd(file, label='') {
+    toast('⏳ Procesando foto...', 5000);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_W = 1400;
+        const scale = Math.min(1, MAX_W/img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width*scale);
+        canvas.height = Math.round(img.height*scale);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        const compressed = canvas.toDataURL('image/jpeg',0.78);
+        const today = isoToday();
+        const photos = getPhotos(today);
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+        photos.push({ id, label: label || `Lista ${photos.length+1}`, base64: compressed, driveUrl: null, ts: new Date().toISOString() });
+        if (!savePhotos(photos, today)) {
+          toast('⚠️ Foto muy grande para almacenar — intenta con resolución menor');
+          return;
+        }
+        renderFotoGallery();
+        uploadPhotoToDrive(id, compressed, label, today, photos.length);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function uploadPhotoToDrive(id, compressed, label, date, idx) {
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'saveAttendancePhoto',
+        fecha: date,
+        imageData: compressed,
+        photoId: id,
+        photoLabel: label,
+        photoIndex: idx
+      })
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.result === 'success') {
+        const photos = getPhotos(date);
+        const p = photos.find(p => p.id === id);
+        if (p) { p.driveUrl = resp.url; savePhotos(photos, date); }
+        renderFotoGallery();
+        toast('📋 Foto guardada en Google Drive ✓', 3000);
+      } else {
+        toast('📋 Foto guardada localmente — ' + (resp.msg || 'verificar permisos Drive'), 4000);
+      }
+    })
+    .catch(() => toast('📋 Foto guardada localmente (sin conexión)', 3000));
+  }
+
+  function removePhoto(id) {
+    const today = isoToday();
+    const photos = getPhotos(today).filter(p => p.id !== id);
+    savePhotos(photos, today);
+    renderFotoGallery();
+  }
+
+  function updatePhotoLabel(id, newLabel) {
+    const today = isoToday();
+    const photos = getPhotos(today);
+    const p = photos.find(p => p.id === id);
+    if (p) { p.label = newLabel; savePhotos(photos, today); }
+  }
+
+  function renderFotoGallery() {
+    const today = isoToday();
+    const photos = getPhotos(today);
+    const el = document.getElementById('fotoGallery');
+    if (!photos.length) {
+      el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
+      return;
+    }
+    el.innerHTML = photos.map(p => `
+      <div class="foto-item">
+        <img class="foto-thumb" src="${p.base64}" onclick="openLightbox('${p.id}')" title="Ampliar" />
+        <div class="foto-info">
+          <input class="foto-label-input" value="${p.label || ''}" placeholder="Etiqueta (ej: Grupo 1, G2-Solución...)"
+            onchange="updatePhotoLabel('${p.id}', this.value)" />
+          <div class="foto-status-text">${p.driveUrl
+            ? `✅ <a href="${p.driveUrl}" target="_blank" style="color:#0369a1;">Ver en Drive</a>`
+            : '⏳ Guardada localmente — enviando a Drive...'
+          }</div>
+        </div>
+        <button class="foto-del" onclick="removePhoto('${p.id}')">🗑️</button>
+      </div>
+    `).join('');
+  }
+
+  // ── Lightbox ──
+  function openLightbox(id) {
+    const p = getPhotos().find(p => p.id === id);
+    if (!p) return;
+    document.getElementById('lightboxImg').src = p.base64;
+    document.getElementById('lightbox').style.display = 'flex';
+  }
+  function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
 
   // ── Clock ──
   setInterval(() => {
@@ -588,53 +612,81 @@
   async function init() {
     try {
       const [staffResp, attendResp] = await Promise.all([
-        fetch(`${WEB_APP_URL}?file=staff`).then(r => r.json()),
-        fetch(`${WEB_APP_URL}?file=attendance`).then(r => r.json()).catch(() => null)
+        fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
+        fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null)
       ]);
+      if (Array.isArray(staffResp) && staffResp.length) STAFF = staffResp;
+      else toast('⚠️ No se pudo cargar el personal del servidor');
 
-      if (Array.isArray(staffResp) && staffResp.length) {
-        STAFF = staffResp;
-      } else {
-        toast('⚠️ No se pudo cargar el personal del servidor');
-      }
-
-      // Inicializar draft desde backend o localStorage
       const today = isoToday();
-      const localAtt = readLS(ATTENDANCE_KEY, {});
-      const baseLocal = localAtt?.fecha === today ? (localAtt.personal || {}) : {};
-      const baseBackend = (attendResp?.fecha === today) ? (attendResp.personal || {}) : {};
-
-      STAFF.forEach(s => {
-        draft[s.nombre] = baseBackend[s.nombre] || baseLocal[s.nombre] || 'presente';
-      });
+      const localAtt = readLS(ATTENDANCE_KEY,{});
+      const baseLocal   = localAtt?.fecha===today ? (localAtt.personal||{}) : {};
+      const baseBackend = attendResp?.fecha===today ? (attendResp.personal||{}) : {};
+      STAFF.forEach(s => { draft[s.nombre] = baseBackend[s.nombre] || baseLocal[s.nombre] || 'presente'; });
 
       renderAll();
       renderHistorico();
       document.getElementById('loadOverlay').style.display = 'none';
     } catch(e) {
       console.error(e);
-      // Fallback a localStorage
-      const localAtt = readLS(ATTENDANCE_KEY, {});
+      const localAtt = readLS(ATTENDANCE_KEY,{});
       const today = isoToday();
-      const base = localAtt?.fecha === today ? (localAtt.personal || {}) : {};
+      const base = localAtt?.fecha===today?(localAtt.personal||{}):{};
       STAFF.forEach(s => { draft[s.nombre] = base[s.nombre] || 'presente'; });
       renderAll();
       renderHistorico();
       document.getElementById('loadOverlay').style.display = 'none';
       toast('⚠️ Sin conexión — mostrando datos locales');
     }
+
+    // Auto-lock check each minute
+    setInterval(() => {
+      if (!getLock().locked && isAfterCutoff()) {
+        const att = readLS(ATTENDANCE_KEY,{});
+        if (att?.fecha===isoToday() && Object.keys(att.personal||{}).length>0) {
+          const l = getLock();
+          if (!l.autoLocked) {
+            const ts = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+            writeLS(LOCK_KEY,{fecha:isoToday(),locked:true,lockedAt:ts,lockedBy:'Sistema (auto-cierre)',autoLocked:true});
+            toast('🔒 Lista cerrada automáticamente a las '+ts, 4000);
+          }
+        }
+        renderLockBanner();
+      }
+    }, 60000);
   }
 
-  // ── Render principal ──
+  // ── Conteos ──
+  function conteos() {
+    let presentes=0, enRuta=0, vacaciones=0, bajas=0, ausentes=0;
+    STAFF.forEach(s => {
+      const st = draft[s.nombre] || 'presente';
+      if      (st==='presente')                          presentes++;
+      else if (st==='en-ruta')                           enRuta++;
+      else if (st==='vacaciones')                        vacaciones++;
+      else if (st==='baja-medica'||st==='capacitacion')  bajas++;
+      else if (st==='ausente')                           ausentes++;
+    });
+    const total = STAFF.length;
+    // Fisicamente disponibles = solo presentes (en-ruta está fuera del almacén)
+    const fisicos = presentes;
+    // Operativos totales = presentes + en ruta (están trabajando)
+    const operativos = presentes + enRuta;
+    const pctFisico  = total>0 ? Math.round((fisicos/total)*100)    : 0;
+    const pctOp      = total>0 ? Math.round((operativos/total)*100) : 0;
+    return { total, presentes, enRuta, vacaciones, bajas, ausentes, fisicos, operativos, pctFisico, pctOp };
+  }
+
+  // ── Render all ──
   function renderAll() {
     renderLockBanner();
     renderSemaforo();
     renderLista();
     renderGroupCap();
-    renderFoto();
+    renderFotoGallery();
     updateSaveSummary();
     document.getElementById('fechaLabel').textContent =
-      new Date().toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long' });
+      new Date().toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
   }
 
   function renderLockBanner() {
@@ -642,537 +694,381 @@
     const after = isAfterCutoff();
     const el = document.getElementById('lockBanner');
     const lista = document.getElementById('listaPersonal');
-
     if (lock.locked) {
-      el.innerHTML = `
-        <div class="lock-banner locked">
-          <span class="lb-icon">🔒</span>
-          <div class="lb-text">
-            <div>LISTA CERRADA — Pase de lista bloqueado a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}</div>
-            ${lock.reason ? `<div style="font-size:11px;margin-top:2px;opacity:.8;">Motivo: ${lock.reason}</div>` : ''}
-            <div style="font-size:11px;margin-top:2px;opacity:.8;">Los datos están guardados. Las métricas del Kanban reflejan esta lista.</div>
-          </div>
-          <button class="btn-unlock" onclick="openUnlockModal('tardanza')">🔓 Autorizar tardanza</button>
-        </div>`;
+      el.innerHTML = `<div class="lock-banner locked">
+        <span class="lb-icon">🔒</span>
+        <div class="lb-text">
+          <div>LISTA CERRADA — Bloqueada a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}</div>
+          ${lock.reason?`<div style="font-size:12px;margin-top:3px;opacity:.8">Motivo: ${lock.reason}</div>`:''}
+          <div style="font-size:12px;margin-top:3px;opacity:.8">Las métricas del Kanban reflejan esta lista.</div>
+        </div>
+        <button class="btn-unlock" onclick="openUnlockModal('tardanza')">🔓 Autorizar tardanza</button>
+      </div>`;
       if (lista) lista.classList.add('list-locked');
     } else if (after) {
-      el.innerHTML = `
-        <div class="lock-banner warning">
-          <span class="lb-icon">⚠️</span>
-          <div class="lb-text">
-            <div>CIERRE PENDIENTE — Ya son más de las ${cutoffLabel()}. Guarda y cierra la lista.</div>
-            <div style="font-size:11px;margin-top:2px;">La redistribución de F8s usará la lista al momento del cierre.</div>
-          </div>
-          <button class="btn-lock" onclick="cerrarLista()">🔒 Cerrar Lista Ahora</button>
-        </div>`;
+      el.innerHTML = `<div class="lock-banner warning">
+        <span class="lb-icon">⚠️</span>
+        <div class="lb-text">
+          <div>CIERRE PENDIENTE — Ya son más de las ${cutoffLabel()}</div>
+          <div style="font-size:12px;margin-top:3px;">Guarda y cierra la lista para congelar las métricas.</div>
+        </div>
+        <button class="btn-lock" onclick="cerrarLista()">🔒 Cerrar Lista</button>
+      </div>`;
       if (lista) lista.classList.remove('list-locked');
     } else {
       const now = new Date();
-      const minLeft = (CUTOFF_H * 60 + CUTOFF_M) - (now.getHours() * 60 + now.getMinutes());
-      el.innerHTML = `
-        <div class="lock-banner open">
-          <span class="lb-icon">📋</span>
-          <div class="lb-text">
-            <div>LISTA ABIERTA — Cierre automático a las ${cutoffLabel()} (en ${minLeft} min)</div>
-            <div style="font-size:11px;margin-top:2px;">Marca la asistencia, toma foto de la lista CSS y guarda antes del cierre.</div>
-          </div>
-          <button class="btn-lock" style="background:#6b7280;" onclick="cerrarLista()">🔒 Cerrar anticipado</button>
-        </div>`;
+      const minLeft = (CUTOFF_H*60+CUTOFF_M)-(now.getHours()*60+now.getMinutes());
+      el.innerHTML = `<div class="lock-banner open">
+        <span class="lb-icon">📋</span>
+        <div class="lb-text">
+          <div>LISTA ABIERTA — Cierre a las ${cutoffLabel()} (${minLeft} min)</div>
+          <div style="font-size:12px;margin-top:3px;">Marca la asistencia, sube las fotos de las listas CSS y guarda.</div>
+        </div>
+        <button class="btn-lock" style="background:#6b7280;" onclick="cerrarLista()">🔒 Cerrar anticipado</button>
+      </div>`;
       if (lista) lista.classList.remove('list-locked');
     }
   }
 
-  function conteos() {
-    const today = isoToday();
-    const att = readLS(ATTENDANCE_KEY, {});
-    const base = att?.fecha === today ? att.personal || {} : {};
-    // Merge draft
-    const merged = { ...base, ...draft };
-    let presentes = 0, enRuta = 0, vacaciones = 0, bajas = 0, ausentes = 0;
-    STAFF.forEach(s => {
-      const st = merged[s.nombre] || 'presente';
-      if (st === 'presente')      presentes++;
-      else if (st === 'en-ruta')  enRuta++;
-      else if (st === 'vacaciones') vacaciones++;
-      else if (st === 'baja-medica' || st === 'capacitacion') bajas++;
-      else if (st === 'ausente')  ausentes++;
-    });
-    const total      = STAFF.length;
-    const operativos = presentes + enRuta;
-    const pct        = total > 0 ? Math.round((operativos / total) * 100) : 0;
-    return { total, presentes, enRuta, vacaciones, bajas, ausentes, operativos, pct };
-  }
-
   function renderSemaforo() {
-    const { total, presentes, enRuta, vacaciones, bajas, ausentes, operativos, pct } = conteos();
-    const el  = document.getElementById('semaforoEl');
-    const pEl = document.getElementById('semPct');
+    const { total, presentes, enRuta, vacaciones, bajas, ausentes, fisicos, operativos, pctFisico, pctOp } = conteos();
+    document.getElementById('kTotal').textContent      = total;
+    document.getElementById('kPresentes').textContent  = presentes;
+    document.getElementById('kEnRuta').textContent     = enRuta;
+    document.getElementById('kVacaciones').textContent = vacaciones;
+    document.getElementById('kBajas').textContent      = bajas;
+    document.getElementById('kAusentes').textContent   = ausentes;
 
-    let icon, msg, bg, color;
-    if (pct >= 80) {
-      icon = '🟢'; msg = `Capacidad operativa NORMAL — ${operativos} de ${total} personas disponibles`; bg = '#dcfce7'; color = '#166534';
-    } else if (pct >= 60) {
-      icon = '🟡'; msg = `Capacidad REDUCIDA — verificar distribución de carga`; bg = '#fef9c3'; color = '#713f12';
+    // En Ruta info box
+    const rutaBox = document.getElementById('rutaInfoBox');
+    if (enRuta > 0) {
+      const enRutaNames = STAFF.filter(s => (draft[s.nombre]||'presente')==='en-ruta').map(s=>s.nombre).join(', ');
+      document.getElementById('rutaInfoText').textContent = `${enRutaNames}. `;
+      rutaBox.style.display = 'block';
     } else {
-      icon = '🔴'; msg = `ALERTA — Capacidad crítica, menos del 60% del plantel disponible`; bg = '#fee2e2'; color = '#7f1d1d';
+      rutaBox.style.display = 'none';
     }
 
-    el.style.background = bg;
-    el.style.color = color;
-    el.innerHTML = `<span class="sem-icon">${icon}</span><span class="sem-text">${msg}</span><span class="sem-pct" style="color:${color}">${pct}%</span>`;
-
-    document.getElementById('kTotal').textContent     = total;
-    document.getElementById('kPresentes').textContent = presentes;
-    document.getElementById('kEnRuta').textContent    = enRuta;
-    document.getElementById('kVacaciones').textContent= vacaciones;
-    document.getElementById('kBajas').textContent     = bajas;
-    document.getElementById('kAusentes').textContent  = ausentes;
+    const el = document.getElementById('semaforoEl');
+    let icon, msg, bg, color;
+    // Semáforo basado en fisicamente presentes
+    if (pctFisico >= 80) {
+      icon='🟢'; msg=`Capacidad NORMAL — ${fisicos} de ${total} personas físicamente en almacén (${enRuta} en ruta)`; bg='#dcfce7'; color='#166534';
+    } else if (pctFisico >= 60) {
+      icon='🟡'; msg=`Capacidad REDUCIDA — ${fisicos} en almacén + ${enRuta} en ruta = ${operativos} operativos totales`; bg='#fef9c3'; color='#713f12';
+    } else {
+      icon='🔴'; msg=`ALERTA — Solo ${fisicos} personas físicamente en almacén. Capacidad crítica.`; bg='#fee2e2'; color='#7f1d1d';
+    }
+    el.style.background = bg; el.style.color = color;
+    el.innerHTML = `<span class="sem-icon">${icon}</span>
+      <span class="sem-text">${msg}</span>
+      <span class="sem-pct" style="color:${color}">${pctFisico}%<div style="font-size:11px;font-weight:700;margin-top:2px;">físicos</div></span>`;
   }
 
   function renderLista() {
     const grouped = {};
-    STAFF.forEach(s => {
-      const g = getStaffGroup(s);
-      if (!grouped[g]) grouped[g] = [];
-      grouped[g].push(s);
-    });
-
-    const keys = Object.keys(grouped).sort();
-    let total = 0, present = 0;
-
-    const html = keys.map(group => {
+    STAFF.forEach(s => { const g=getStaffGroup(s); if (!grouped[g]) grouped[g]=[]; grouped[g].push(s); });
+    const lock = getLock();
+    let totalOp=0, total=0;
+    const html = Object.keys(grouped).sort().map(group => {
       const members = grouped[group];
       const rows = members.map(s => {
         const val = draft[s.nombre] || 'presente';
         total++;
-        if (val === 'presente' || val === 'en-ruta') present++;
+        if (val==='presente'||val==='en-ruta') totalOp++;
         const btns = [
-          ['presente',     '✅ Presente'],
-          ['en-ruta',      '🚚 En Ruta'],
-          ['baja-medica',  '🏥 Baja'],
-          ['capacitacion', '📚 Cap.'],
-          ['vacaciones',   '🏖️ Vac.'],
-          ['ausente',      '❌ Ausente']
-        ].map(([v, lbl]) =>
-          `<button class="st-btn ${val === v ? 'active-'+v : ''}" data-name="${s.nombre}" data-val="${v}">${lbl}</button>`
+          ['presente','✅ Presente'],['en-ruta','🚚 En Ruta'],
+          ['baja-medica','🏥 Baja'],['capacitacion','📚 Cap.'],
+          ['vacaciones','🏖️ Vac.'],['ausente','❌ Ausente']
+        ].map(([v,lbl]) =>
+          `<button class="st-btn ${val===v?'active-'+v:''}" data-name="${s.nombre}" data-val="${v}">${lbl}</button>`
         ).join('');
         return `<div class="person-row">
-          <div><div class="person-name">${s.nombre}</div><div class="person-sub">${s.rol || ''}</div></div>
+          <div><div class="person-name">${s.nombre}</div><div class="person-sub">${s.rol||''}</div></div>
           <div class="status-btns">${btns}</div>
         </div>`;
       }).join('');
-
-      const pCount = members.filter(s => ['presente','en-ruta'].includes(draft[s.nombre] || 'presente')).length;
+      const op = members.filter(s=>['presente','en-ruta'].includes(draft[s.nombre]||'presente')).length;
       return `<div>
         <div class="group-label" style="color:${GROUP_COLORS[group]||'var(--muted)'}">
-          ${group} &nbsp;·&nbsp; ${pCount}/${members.length} operativos
-        </div>
-        ${rows}
+          ${group} &nbsp;·&nbsp; ${op}/${members.length} operativos
+        </div>${rows}
       </div>`;
     }).join('');
-
     document.getElementById('listaPersonal').innerHTML = html || '<div style="color:var(--muted)">Sin personal cargado.</div>';
-    document.getElementById('conteoLabel').textContent = `${present} / ${total} operativos hoy`;
+    document.getElementById('conteoLabel').textContent = `${totalOp} / ${total} operativos`;
 
-    // Bind buttons
-    document.getElementById('listaPersonal').querySelectorAll('.st-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const nombre = btn.dataset.name;
-        const val    = btn.dataset.val;
-        draft[nombre] = val;
-        renderAll();
+    if (!lock.locked) {
+      document.getElementById('listaPersonal').querySelectorAll('.st-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          draft[btn.dataset.name] = btn.dataset.val;
+          renderAll();
+        });
       });
-    });
+    }
   }
 
   function renderGroupCap() {
     const grouped = {};
     STAFF.forEach(s => {
       const g = getStaffGroup(s);
-      if (!grouped[g]) grouped[g] = { total: 0, op: 0 };
+      if (!grouped[g]) grouped[g]={ total:0, fisicos:0, enRuta:0 };
       grouped[g].total++;
-      const st = draft[s.nombre] || 'presente';
-      if (st === 'presente' || st === 'en-ruta') grouped[g].op++;
+      const st = draft[s.nombre]||'presente';
+      if (st==='presente')  grouped[g].fisicos++;
+      if (st==='en-ruta')   grouped[g].enRuta++;
     });
-
-    const html = Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0])).map(([g, d]) => {
-      const pct   = d.total > 0 ? Math.round((d.op / d.total) * 100) : 0;
-      const color = pct >= 80 ? 'var(--ok)' : pct >= 60 ? '#f59e0b' : 'var(--danger)';
-      const bColor= GROUP_COLORS[g] || '#9ca3af';
+    const html = Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).map(([g,d]) => {
+      const pct   = d.total>0 ? Math.round((d.fisicos/d.total)*100) : 0;
+      const color = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
+      const bColor = GROUP_COLORS[g]||'#9ca3af';
+      const rutaNote = d.enRuta>0 ? `<div style="color:#1565c0;font-size:11px;">+${d.enRuta} en ruta</div>` : '';
       return `<div class="group-cap-card" style="border-left-color:${bColor}">
         <div class="gc-name">${g}</div>
         <div class="gc-ratio" style="color:${color}">${pct}%</div>
-        <div class="gc-sub">${d.op} de ${d.total} disponibles</div>
+        <div class="gc-sub">${d.fisicos} de ${d.total} en almacén${rutaNote?'':''}</div>
+        ${rutaNote}
         <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${color}"></div></div>
       </div>`;
     }).join('');
-
     document.getElementById('groupCapGrid').innerHTML = html || '<div style="color:var(--muted)">Sin grupos.</div>';
   }
 
-  // ── Foto ──
-  function renderFoto() {
-    const today    = isoToday();
-    const photo    = readLS('asistencia_foto_'    + today, null);
-    const driveUrl = readLS('asistencia_foto_url_'+ today, null);
-
-    const actions = document.getElementById('fotoActions');
-    const preview = document.getElementById('fotoPreview');
-    const status  = document.getElementById('fotoStatus');
-
-    // Rebuild action buttons to include delete/drive link if photo exists
-    let extraBtns = '';
-    if (photo) {
-      extraBtns += `<button class="foto-btn del" onclick="clearFoto()">🗑️ Quitar</button>`;
-      if (driveUrl) {
-        extraBtns += `<a class="foto-btn link" href="${driveUrl}" target="_blank">🔗 Ver en Drive</a>`;
-      }
-    }
-
-    actions.innerHTML = `
-      <label class="foto-btn cam">
-        📷 Capturar con cámara
-        <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)" />
-      </label>
-      <label class="foto-btn file">
-        📁 Cargar archivo
-        <input type="file" accept="image/*" style="display:none" onchange="handlePhoto(this)" />
-      </label>
-      ${extraBtns}
-    `;
-
-    if (photo) {
-      preview.innerHTML = `<img src="${photo}" alt="Lista CSS" />`;
-      status.style.color = '#0369a1';
-      status.textContent = driveUrl
-        ? `✅ Lista física registrada y guardada en Google Drive — ${today}`
-        : `⏳ Lista guardada localmente — enviando a Drive...`;
-    } else {
-      preview.innerHTML = '';
-      status.style.color = 'var(--muted)';
-      status.textContent = 'Sin foto cargada · Toma foto de la lista CSS como evidencia del pase de lista';
-    }
-  }
-
-  function handlePhoto(input) {
-    const file = input.files[0];
-    if (!file) return;
-    toast('⏳ Procesando foto...', 6000);
-
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX_W = 1400;
-        const scale = Math.min(1, MAX_W / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width  = Math.round(img.width  * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL('image/jpeg', 0.78);
-        const today = isoToday();
-        try { writeLS('asistencia_foto_' + today, compressed); } catch(e) {}
-        renderFoto();
-
-        fetch(WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'saveAttendancePhoto', fecha: today, imageData: compressed })
-        })
-        .then(r => r.json())
-        .then(resp => {
-          if (resp.result === 'success') {
-            try { writeLS('asistencia_foto_url_' + today, resp.url || ''); } catch(e) {}
-            toast('📋 Lista física guardada en Google Drive ✓', 4000);
-          } else {
-            toast('📋 Foto guardada localmente — ' + (resp.msg || 'error Drive'), 4000);
-          }
-          renderFoto();
-        })
-        .catch(() => toast('📋 Foto guardada localmente (sin conexión a Drive)', 4000));
-      };
-      img.onerror = () => toast('❌ No se pudo leer la imagen');
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function clearFoto() {
-    const today = isoToday();
-    localStorage.removeItem('asistencia_foto_'     + today);
-    localStorage.removeItem('asistencia_foto_url_' + today);
-    toast('🗑️ Foto eliminada');
-    renderFoto();
-  }
-
-  // ── Cierre de lista ──
-  async function cerrarLista() {
-    const att = readLS(ATTENDANCE_KEY, {});
-    if (att?.fecha !== isoToday() || !Object.keys(att.personal || {}).length) {
-      toast('⚠️ Debes guardar la asistencia antes de cerrar la lista', 4000);
-      return;
-    }
-    if (!confirm(`¿Cerrar el pase de lista? Quedará bloqueado. Solo Paola Moreno (con PIN) podrá autorizar cambios.`)) return;
-    doLock('PAOLA MORENO');
-    toast('🔒 Lista de asistencia cerrada', 3000);
-    renderAll();
-  }
-
-  let _unlockPurpose = '';
-  function openUnlockModal(purpose = 'general') {
-    _unlockPurpose = purpose;
-    const msgs = {
-      tardanza: 'Autorizar entrada tardía — ingresa el PIN de Jefatura para desbloquear temporalmente',
-      general:  'Autorización de Jefatura requerida'
-    };
-    document.getElementById('pinOverlayMsg').textContent = msgs[purpose] || msgs.general;
-    document.getElementById('pinInput2').value = '';
-    document.getElementById('pinError2').textContent = '';
-    document.getElementById('pinOverlay').style.display = 'flex';
-    setTimeout(() => document.getElementById('pinInput2').focus(), 50);
-  }
-
-  function closePinOverlay() {
-    document.getElementById('pinOverlay').style.display = 'none';
-    document.getElementById('pinError2').textContent = '';
-  }
-
-  function confirmUnlockPin() {
-    const pin      = document.getElementById('pinInput2').value.trim();
-    const expected = localStorage.getItem(PIN_KEY) || '';
-    if (!expected) {
-      document.getElementById('pinError2').textContent = 'PIN de Jefatura no configurado — ve al Kanban y configura tu PIN primero';
-      return;
-    }
-    if (pin !== expected) {
-      document.getElementById('pinError2').textContent = 'PIN incorrecto';
-      document.getElementById('pinInput2').value = '';
-      document.getElementById('pinInput2').focus();
-      return;
-    }
-    closePinOverlay();
-    doUnlock();
-
-    if (_unlockPurpose === 'tardanza') {
-      toast('🔓 Lista desbloqueada — marca la tardanza y guarda. Se volverá a cerrar automáticamente.', 5000);
-      // Auto re-lock en 5 minutos si no se cierra manualmente
-      window._autoReLockTimer = setTimeout(() => {
-        const lock = getLock();
-        if (!lock.locked) {
-          doLock('Sistema (auto-cierre)', 'Re-cierre automático post tardanza');
-          toast('🔒 Lista cerrada automáticamente', 3000);
-          renderAll();
-        }
-      }, 5 * 60 * 1000);
-    }
-    renderAll();
-  }
-
-  // Enter en el PIN input
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('pinInput2').addEventListener('keydown', e => {
-      if (e.key === 'Enter') confirmUnlockPin();
-    });
-    // Click fuera del modal lo cierra
-    document.getElementById('pinOverlay').addEventListener('click', e => {
-      if (e.target.id === 'pinOverlay') closePinOverlay();
-    });
-  });
-
-  // Auto-lock check cada minuto
-  setInterval(() => {
-    const lock = getLock();
-    if (!lock.locked && isAfterCutoff()) {
-      const att = readLS(ATTENDANCE_KEY, {});
-      // Auto-lock solo si ya se guardó la asistencia de hoy
-      if (att?.fecha === isoToday() && Object.keys(att.personal || {}).length > 0) {
-        const existing = getLock();
-        if (!existing.autoLocked) {
-          const newLock = { fecha: isoToday(), locked: true, lockedAt: new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'}), lockedBy: 'Sistema (auto-cierre)', autoLocked: true };
-          writeLS(LOCK_KEY, newLock);
-          toast('🔒 Lista cerrada automáticamente a las ' + newLock.lockedAt, 4000);
-        }
-      }
-      renderAll();
-    }
-  }, 60 * 1000);
+  // ── Guardar ──
   async function guardarAsistencia() {
-    const lock = getLock();
-    if (lock.locked) {
-      toast('🔒 Lista cerrada — solicita autorización a Jefatura para hacer cambios', 4000);
-      return;
-    }
-
-    const today   = isoToday();
+    if (getLock().locked) { toast('🔒 Lista cerrada — solicita autorización a Jefatura', 4000); return; }
+    const today = isoToday();
     const payload = { fecha: today, personal: { ...draft } };
     writeLS(ATTENDANCE_KEY, payload);
 
-    // ── Sincronizar con almacen_personal (que lee index.html para métricas) ──
-    const personalLocal = readLS('almacen_personal', {});
-    Object.entries(draft).forEach(([nombre, val]) => {
-      if (!personalLocal[nombre]) personalLocal[nombre] = {};
-      if (val === 'presente') {
-        if (['AUSENTE','BAJA MÉDICA','CAPACITACIÓN','VACACIONES'].includes(personalLocal[nombre].status)) {
-          personalLocal[nombre].status = 'DISPONIBLE';
-        } else if (!personalLocal[nombre].status) {
-          personalLocal[nombre].status = 'DISPONIBLE';
-        }
-      } else if (val === 'en-ruta') {
-        personalLocal[nombre].status = 'EN RUTA';
-      } else {
-        personalLocal[nombre].status = 'AUSENTE';
-      }
+    // Sync almacen_personal para métricas del Kanban
+    const personalLocal = readLS('almacen_personal',{});
+    Object.entries(draft).forEach(([nombre,val]) => {
+      if (!personalLocal[nombre]) personalLocal[nombre]={};
+      personalLocal[nombre].status = val==='en-ruta' ? 'EN RUTA' : val==='presente' ? 'DISPONIBLE' : 'AUSENTE';
     });
     writeLS('almacen_personal', personalLocal);
 
     // Historial
-    let hist = readLS(ATTENDANCE_HISTORY_KEY, {});
-    if (Array.isArray(hist)) hist = {};
-    hist[today] = { ...draft };
-    writeLS(ATTENDANCE_HISTORY_KEY, hist);
+    let hist = readLS(HISTORY_KEY,{}); if (Array.isArray(hist)) hist={};
+    hist[today] = { ...draft }; writeLS(HISTORY_KEY, hist);
 
-    const { presentes, enRuta, vacaciones, bajas, ausentes, pct } = conteos();
-    const tieneFoto = !!readLS('asistencia_foto_' + today, null);
+    const { presentes, enRuta, vacaciones, bajas, ausentes, pctFisico } = conteos();
+    const fotos = getPhotos(today);
 
-    // Backend
     try {
-      await fetch(WEB_APP_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'saveAttendance', fecha: today, personal: draft })
-      });
+      await fetch(WEB_APP_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({ action:'saveAttendance', fecha:today, personal:draft }) });
     } catch(e) {}
 
-    // ── Auto-cerrar si ya pasó la hora de corte ──
     if (isAfterCutoff()) {
       doLock('PAOLA MORENO');
-      toast(`✅ Asistencia guardada y lista CERRADA automáticamente · ${pct}% capacidad${tieneFoto ? ' · 📋 Lista física ✓' : ''}`, 5000);
+      toast(`✅ Guardado y lista CERRADA · ${pctFisico}% fisicamente · ${fotos.length} foto(s) de lista`, 5000);
     } else {
-      toast(`✅ Asistencia guardada · ${presentes} presentes · ${enRuta} en ruta · ${vacaciones} vac · ${bajas} bajas/cap · ${ausentes} ausentes · ${pct}% capacidad${tieneFoto ? ' · 📋 Lista física ✓' : ''}`, 5000);
+      toast(`✅ Guardado · ${presentes} presentes · ${enRuta} en ruta · ${vacaciones} vac · ${bajas} bajas · ${ausentes} ausentes · ${fotos.length} foto(s)`, 5000);
     }
-    document.getElementById('lastSaveLabel').textContent = `Último guardado: ${new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})}`;
+    document.getElementById('lastSaveLabel').textContent =
+      `Último guardado: ${new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})}`;
     renderAll();
     renderHistorico();
   }
 
   function updateSaveSummary() {
-    const { presentes, enRuta, vacaciones, bajas, ausentes, pct } = conteos();
+    const { presentes, enRuta, vacaciones, bajas, ausentes, pctFisico } = conteos();
+    const fotos = getPhotos().length;
     document.getElementById('saveSummary').textContent =
-      `${presentes} presentes · ${enRuta} en ruta · ${vacaciones} vac · ${bajas} bajas/cap · ${ausentes} ausentes · ${pct}% capacidad`;
+      `${presentes} presentes · ${enRuta} en ruta · ${vacaciones} vac · ${bajas} bajas · ${ausentes} ausentes · ${pctFisico}% físicos · ${fotos} foto(s)`;
+  }
+
+  // ── Cierre de lista ──
+  async function cerrarLista() {
+    const att = readLS(ATTENDANCE_KEY,{});
+    if (att?.fecha!==isoToday() || !Object.keys(att.personal||{}).length) {
+      toast('⚠️ Guarda la asistencia antes de cerrar la lista', 4000); return;
+    }
+    if (!confirm(`¿Cerrar el pase de lista? Solo Paola Moreno puede autorizar cambios posteriores.`)) return;
+    doLock('PAOLA MORENO');
+    toast('🔒 Lista cerrada', 3000);
+    renderAll();
+  }
+
+  function openUnlockModal(purpose='general') {
+    _unlockPurpose = purpose;
+    document.getElementById('pinOverlayMsg').textContent =
+      purpose==='tardanza'
+        ? 'Autorizar entrada tardía — ingresa el PIN de Jefatura para desbloquear temporalmente'
+        : 'Autorización de Jefatura requerida';
+    document.getElementById('pinInput2').value = '';
+    document.getElementById('pinError2').textContent = '';
+    document.getElementById('pinOverlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('pinInput2').focus(), 50);
+  }
+  function closePinOverlay() { document.getElementById('pinOverlay').style.display='none'; }
+  function confirmUnlockPin() {
+    const pin = document.getElementById('pinInput2').value.trim();
+    const exp = localStorage.getItem(PIN_KEY)||'';
+    if (!exp) { document.getElementById('pinError2').textContent='PIN no configurado — configúralo primero en el Kanban'; return; }
+    if (pin!==exp) { document.getElementById('pinError2').textContent='PIN incorrecto'; document.getElementById('pinInput2').value=''; document.getElementById('pinInput2').focus(); return; }
+    closePinOverlay();
+    doUnlock();
+    toast('🔓 Lista desbloqueada — tienes 5 minutos para marcar la tardanza. Se re-cerrará automáticamente.', 5000);
+    window._autoReLockTimer = setTimeout(() => {
+      if (!getLock().locked) {
+        doLock('Sistema (auto-cierre tardanza)', 'Re-cierre automático tras tardanza autorizada');
+        toast('🔒 Lista re-cerrada automáticamente', 3000);
+        renderAll();
+      }
+    }, 5*60*1000);
+    renderAll();
   }
 
   // ── Histórico ──
   function renderHistorico() {
-    const hist  = readLS(ATTENDANCE_HISTORY_KEY, {});
+    const hist  = readLS(HISTORY_KEY,{});
     const today = isoToday();
+    const now   = new Date();
+    const year  = now.getFullYear();
+    const month = now.getMonth();
 
-    // Calendario 30 días
-    const cal = document.getElementById('calGrid');
-    const days30 = [];
-    for (let i = 29; i >= 0; i--) {
-      const d  = new Date();
-      d.setDate(d.getDate() - i);
-      const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      days30.push({ iso, d });
-    }
+    // Month title
+    document.getElementById('calMonthTitle').textContent =
+      now.toLocaleDateString('es-PA',{month:'long',year:'numeric'}).toUpperCase();
 
-    // Pad inicio a lunes
-    const firstDay = days30[0].d.getDay(); // 0=dom
-    const padDays  = (firstDay + 6) % 7;   // lunes=0
+    // Day-of-week headers (Mon=L, Tue=M, ...)
+    const dowNames = ['L','M','X','J','V','S','D'];
+    document.getElementById('calDowRow').innerHTML =
+      dowNames.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+    // Month calendar
+    const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+    const padDays  = (firstDay + 6) % 7;               // Mon=0
+    const lastDate = new Date(year, month+1, 0).getDate();
     let calHtml = '';
-    for (let p = 0; p < padDays; p++) calHtml += '<div class="cal-day"></div>';
+    for (let p=0; p<padDays; p++) calHtml += '<div class="cal-day empty"></div>';
+    for (let d=1; d<=lastDate; d++) {
+      const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = iso===today;
+      const isFuture = iso>today;
+      let cls='future', pct=null;
+      if (!isFuture && hist[iso]) {
+        const dd = hist[iso];
+        const tot = STAFF.length || Object.keys(dd).length;
+        const op  = Object.values(dd).filter(v=>v==='presente'||v==='en-ruta').length;
+        pct = tot>0 ? Math.round((op/tot)*100) : 0;
+        cls = pct>=80?'ok':pct>=60?'warn':'bad';
+      } else if (!isFuture) { cls='nodata'; }
+      const todayCls = isToday?' today':'';
+      const pctHtml  = pct!==null ? `<div class="cal-pct">${pct}%</div>` : (cls==='nodata'&&!isFuture?`<div class="cal-pct">—</div>`:'');
+      calHtml += `<div class="cal-day ${cls}${todayCls}" title="${iso}${pct!==null?': '+pct+'%':''}">
+        <div class="cal-num">${d}</div>${pctHtml}
+      </div>`;
+    }
+    document.getElementById('calGrid').innerHTML = calHtml;
 
-    days30.forEach(({ iso, d }) => {
-      const dayData = hist[iso];
-      let cls = 'future', title = 'Sin registro';
-      if (dayData) {
-        const total   = STAFF.length || Object.keys(dayData).length;
-        const operativos = Object.values(dayData).filter(v => v === 'presente' || v === 'en-ruta').length;
-        const pct = total > 0 ? Math.round((operativos / total) * 100) : 0;
-        cls   = pct >= 80 ? 'ok' : pct >= 60 ? 'warn' : 'bad';
-        title = `${iso}: ${pct}% (${operativos}/${total})`;
-      } else if (iso <= today) {
-        cls = 'future'; title = 'Sin registro';
-      }
-      const todayCls = iso === today ? ' today' : '';
-      calHtml += `<div class="cal-day ${cls}${todayCls}" title="${title}">${d.getDate()}</div>`;
-    });
-    cal.innerHTML = calHtml;
-
-    // Ranking por persona
-    const histDays  = Object.keys(hist).sort();
-    const last30    = histDays.filter(d => d >= days30[0].iso);
-    if (!last30.length || !STAFF.length) {
-      document.getElementById('rankGrid').innerHTML = '<div style="color:var(--muted);font-size:13px;">Sin historial registrado aún.</div>';
+    // Rank — current month days only
+    const monthDays = Object.keys(hist).filter(d => d.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).sort();
+    if (!monthDays.length || !STAFF.length) {
+      document.getElementById('rankGrid').innerHTML = '<div style="color:var(--muted)">Sin historial registrado este mes.</div>';
+      document.getElementById('rankPeriodLabel').textContent = '';
       return;
     }
-
-    document.getElementById('rankPeriodLabel').textContent = `(${last30.length} días con registro)`;
-
+    document.getElementById('rankPeriodLabel').textContent = `(${monthDays.length} días con registro)`;
     const stats = STAFF.map(s => {
-      let op = 0, total = 0;
-      last30.forEach(d => {
-        const dayData = hist[d];
-        if (!dayData) return;
-        total++;
-        const st = dayData[s.nombre];
-        if (st === 'presente' || st === 'en-ruta') op++;
-      });
-      const pct = total > 0 ? Math.round((op / total) * 100) : null;
-      return { nombre: s.nombre, grupo: getStaffGroup(s), op, total, pct };
-    }).filter(r => r.total > 0).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+      let op=0, tot=0;
+      monthDays.forEach(d => { const dd=hist[d]; if (!dd) return; tot++; const st=dd[s.nombre]; if (st==='presente'||st==='en-ruta') op++; });
+      return { nombre:s.nombre, grupo:getStaffGroup(s), op, tot, pct: tot>0?Math.round((op/tot)*100):null };
+    }).filter(r=>r.tot>0).sort((a,b)=>(b.pct??-1)-(a.pct??-1));
 
-    const rankHtml = stats.map(r => {
-      const color = r.pct >= 90 ? 'var(--ok)' : r.pct >= 75 ? '#f59e0b' : 'var(--danger)';
-      const bColor = GROUP_COLORS[r.grupo] || '#9ca3af';
+    document.getElementById('rankGrid').innerHTML = stats.map(r => {
+      const color = r.pct>=90?'var(--ok)':r.pct>=75?'#f59e0b':'var(--danger)';
+      const bColor = GROUP_COLORS[r.grupo]||'#9ca3af';
       return `<div class="mini-bar-row">
         <div class="mini-bar-name" title="${r.nombre}">${r.nombre}</div>
         <span class="tag" style="background:${bColor}18;color:${bColor};font-size:9px;">${r.grupo}</span>
         <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct}%;background:${color}"></div></div>
         <div class="mini-bar-pct" style="color:${color}">${r.pct}%</div>
       </div>`;
-    }).join('');
-
-    document.getElementById('rankGrid').innerHTML = rankHtml || '<div style="color:var(--muted)">Sin datos.</div>';
+    }).join('') || '<div style="color:var(--muted)">Sin datos.</div>';
   }
 
   // ── Export Excel ──
   function exportHistorial() {
-    if (typeof XLSX === 'undefined') { toast('❌ SheetJS no disponible'); return; }
-    const hist  = readLS(ATTENDANCE_HISTORY_KEY, {});
+    if (typeof XLSX==='undefined') { toast('❌ SheetJS no disponible'); return; }
+    const hist  = readLS(HISTORY_KEY,{});
     const today = isoToday();
-    const rows  = [['Fecha', 'Nombre', 'Grupo', 'Estado', 'Operativo', 'Foto Lista CSS']];
+    const rows  = [['Fecha','Nombre','Grupo','Estado','Operativo','Fotos Lista CSS']];
     Object.keys(hist).sort().reverse().forEach(fecha => {
-      const dayData  = hist[fecha];
-      const tieneFoto = !!readLS('asistencia_foto_' + fecha, null);
+      const dd = hist[fecha];
+      const nFotos = getPhotos(fecha).length;
       STAFF.forEach(s => {
-        const estado = dayData[s.nombre] || '--';
-        const op = (estado === 'presente' || estado === 'en-ruta') ? 'Sí' : 'No';
-        rows.push([fecha, s.nombre, getStaffGroup(s), estado, op, tieneFoto ? 'Sí' : 'No']);
+        const st = dd[s.nombre]||'--';
+        rows.push([fecha, s.nombre, getStaffGroup(s), st, (st==='presente'||st==='en-ruta')?'Sí':'No', nFotos]);
       });
     });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Historial Asistencia');
-
-    // Hoja de resumen
-    const last30Days = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      last30Days.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-    }
-    const resumen = [['Persona', 'Grupo', 'Días registrados', 'Días operativo', '% Asistencia']];
+    const now = new Date(); const month = now.getMonth(); const year = now.getFullYear();
+    const monthDays = Object.keys(hist).filter(d=>d.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).sort();
+    const resumen = [['Persona','Grupo','Días registrados','Días operativo','% Asistencia mes']];
     STAFF.forEach(s => {
-      let op = 0, tot = 0;
-      last30Days.forEach(d => {
-        const dd = hist[d];
-        if (!dd) return; tot++;
-        if (dd[s.nombre] === 'presente' || dd[s.nombre] === 'en-ruta') op++;
-      });
-      if (tot > 0) resumen.push([s.nombre, getStaffGroup(s), tot, op, Math.round(op/tot*100)+'%']);
+      let op=0, tot=0;
+      monthDays.forEach(d => { const dd=hist[d]; if (!dd) return; tot++; if (dd[s.nombre]==='presente'||dd[s.nombre]==='en-ruta') op++; });
+      if (tot>0) resumen.push([s.nombre, getStaffGroup(s), tot, op, Math.round(op/tot*100)+'%']);
     });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), 'Resumen 30 días');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), 'Resumen mes actual');
     XLSX.writeFile(wb, `Asistencia_CEDIS_${today}.xlsx`);
     toast('📊 Excel exportado');
+  }
+
+  // Events
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pinInput2').addEventListener('keydown', e => { if (e.key==='Enter') confirmUnlockPin(); });
+    document.getElementById('pinOverlay').addEventListener('click', e => { if (e.target.id==='pinOverlay') closePinOverlay(); });
+  });
+
+  // ── Service Worker + Install prompt ──────────────────────
+  let _installPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _installPrompt = e;
+    // Mostrar botón instalar en topbar si no está instalada
+    const installBtn = document.getElementById('installBtn');
+    if (installBtn) installBtn.style.display = 'flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    _installPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+    if (installBtn) installBtn.style.display = 'none';
+    toast('✅ App instalada — ya puedes abrirla desde la pantalla de inicio', 5000);
+  });
+
+  async function installApp() {
+    if (!_installPrompt) {
+      toast('ℹ️ Para instalar: menú del navegador → "Añadir a pantalla de inicio"', 5000);
+      return;
+    }
+    _installPrompt.prompt();
+    const { outcome } = await _installPrompt.userChoice;
+    if (outcome === 'accepted') toast('✅ Instalando la app...', 3000);
+    _installPrompt = null;
+    document.getElementById('installBtn').style.display = 'none';
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              toast('🔄 Nueva versión disponible — recarga para actualizar', 6000);
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('SW no disponible:', err));
   }
 
   init();

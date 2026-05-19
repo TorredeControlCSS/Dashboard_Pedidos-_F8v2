@@ -1,17 +1,44 @@
 {
-  "name": "Dashboard de Pedidos",
-  "short_name": "PedidosApp",
-  "description": "Sistema de gestión de pedidos de medicamentos",
-  "start_url": "./",
+  "name": "Torre de Control — CEDIS PANAMÁ",
+  "short_name": "Torre Control",
+  "description": "Centro de Mando Operativo · Jefatura de Almacén · CEDIS PANAMÁ",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#2c3e50",
-  "theme_color": "#2c3e50",
-  "orientation": "landscape",
+  "orientation": "any",
+  "background_color": "#0b1f3a",
+  "theme_color": "#0b1f3a",
+  "lang": "es",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMzQ5OGRiIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPue+juWbvTwvdGV4dD4KPC9zdmc+",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Asistencia y Capacidad",
+      "short_name": "Asistencia",
+      "description": "Pase de lista y métricas operativas",
+      "url": "./asistencia.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Asignación de Rutas",
+      "short_name": "Rutas",
+      "description": "Planificador de rutas de entrega",
+      "url": "./rutas.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

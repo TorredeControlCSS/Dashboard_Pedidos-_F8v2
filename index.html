@@ -6,6 +6,14 @@
   <title>TORRE DE CONTROL — Jefatura de Almacén</title>
   <link rel="icon" href="./favicon.ico?v=1" />
   <link rel="shortcut icon" href="./favicon.ico?v=1" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0b1f3a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Torre Control" />
+  <link rel="apple-touch-icon" href="./icons/icon-512.png" />
   <style>
     :root {
       --navy: #0b1f3a;
@@ -415,6 +423,7 @@
       <button class="btn" id="changePinBtn">🔐 Cambiar PIN</button>
       <a class="btn" href="almacenista.html">👤 Almacenista</a>
       <a class="btn" href="tracker.html">📡 Tracker UE</a>
+      <button id="installBtn" onclick="installApp()" style="display:none;" class="btn">📲 Instalar</button>
     </div>
   </header>
   <div class="offline-banner" id="offlineBanner">⚠️ Mostrando datos en caché. Última actualización: --:--</div>
@@ -735,7 +744,7 @@
     const STAFF_PINS_KEY = 'staff_pins';
     const PREV_STATE_KEY = 'almacen_prev_states';
     const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
-    const BLOCKED_ATTENDANCE_STATES = ['ausente', 'baja-medica', 'capacitacion', 'vacaciones'];
+    const BLOCKED_ATTENDANCE_STATES = ['ausente', 'baja-medica', 'capacitacion', 'vacaciones', 'en-ruta'];
     const ATTENDANCE_STATUS_MAP = {
       'presente': 'DISPONIBLE',
       'en-ruta': 'EN RUTA',
@@ -2778,6 +2787,44 @@
     }
 
     init();
+
+    // ── PWA: Service Worker + Install prompt ─────────────
+    let _installPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _installPrompt = e;
+      const btn = document.getElementById('installBtn');
+      if (btn) btn.style.display = 'inline-block';
+    });
+    window.addEventListener('appinstalled', () => {
+      _installPrompt = null;
+      const btn = document.getElementById('installBtn');
+      if (btn) btn.style.display = 'none';
+      showToast('✅ App instalada — ábrela desde la pantalla de inicio', 5000);
+    });
+    async function installApp() {
+      if (!_installPrompt) {
+        showToast('ℹ️ Menú del navegador → "Añadir a pantalla de inicio"', 5000);
+        return;
+      }
+      _installPrompt.prompt();
+      const { outcome } = await _installPrompt.userChoice;
+      if (outcome === 'accepted') showToast('✅ Instalando...', 3000);
+      _installPrompt = null;
+      document.getElementById('installBtn').style.display = 'none';
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              showToast('🔄 Nueva versión disponible — recarga para actualizar', 6000);
+            }
+          });
+        });
+      }).catch(() => {});
+    }
   </script>
 </body>
 </html>
