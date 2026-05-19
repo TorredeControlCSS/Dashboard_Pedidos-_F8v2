@@ -611,15 +611,25 @@
   // ── Load ──
   async function init() {
     try {
-      const [staffResp, attendResp] = await Promise.all([
+      const [staffResp, attendResp, histResp] = await Promise.all([
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
-        fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null)
+        fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
+        fetch(`${WEB_APP_URL}?file=attendance_history`).then(r=>r.json()).catch(()=>null)
       ]);
       if (Array.isArray(staffResp) && staffResp.length) STAFF = staffResp;
       else toast('⚠️ No se pudo cargar el personal del servidor');
 
+      // Historial: fusionar backend (fuente de verdad) con localStorage
+      if (histResp && typeof histResp === 'object' && Object.keys(histResp).length > 0) {
+        let localHist = readLS(HISTORY_KEY, {});
+        if (Array.isArray(localHist)) localHist = {};
+        // Backend tiene prioridad — sobreescribe días que ya tenga
+        const merged = { ...localHist, ...histResp };
+        writeLS(HISTORY_KEY, merged);
+      }
+
       const today = isoToday();
-      const localAtt = readLS(ATTENDANCE_KEY,{});
+      const localAtt   = readLS(ATTENDANCE_KEY, {});
       const baseLocal   = localAtt?.fecha===today ? (localAtt.personal||{}) : {};
       const baseBackend = attendResp?.fecha===today ? (attendResp.personal||{}) : {};
       STAFF.forEach(s => { draft[s.nombre] = baseBackend[s.nombre] || baseLocal[s.nombre] || 'presente'; });
@@ -629,7 +639,7 @@
       document.getElementById('loadOverlay').style.display = 'none';
     } catch(e) {
       console.error(e);
-      const localAtt = readLS(ATTENDANCE_KEY,{});
+      const localAtt = readLS(ATTENDANCE_KEY, {});
       const today = isoToday();
       const base = localAtt?.fecha===today?(localAtt.personal||{}):{};
       STAFF.forEach(s => { draft[s.nombre] = base[s.nombre] || 'presente'; });
@@ -837,6 +847,13 @@
   // ── Guardar ──
   async function guardarAsistencia() {
     if (getLock().locked) { toast('🔒 Lista cerrada — solicita autorización a Jefatura', 4000); return; }
+
+    // Feedback visual inmediato en el botón
+    const btnSave = document.querySelector('.btn-save');
+    const originalText = btnSave.textContent;
+    btnSave.textContent = '⏳ Guardando...';
+    btnSave.disabled = true;
+    btnSave.style.opacity = '0.7';
     const today = isoToday();
     const payload = { fecha: today, personal: { ...draft } };
     writeLS(ATTENDANCE_KEY, payload);
@@ -869,6 +886,17 @@
     }
     document.getElementById('lastSaveLabel').textContent =
       `Último guardado: ${new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})}`;
+
+    // Restaurar botón
+    btnSave.textContent = '✅ Guardado';
+    btnSave.style.background = '#2e7d32';
+    setTimeout(() => {
+      btnSave.textContent = originalText;
+      btnSave.disabled = false;
+      btnSave.style.opacity = '1';
+      btnSave.style.background = '';
+    }, 2500);
+
     renderAll();
     renderHistorico();
   }
