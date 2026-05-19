@@ -526,6 +526,10 @@ function showToast(msg, duration=2800) {
   window._toastTimer=setTimeout(()=>t.style.display='none', duration);
 }
 
+function getPedidosSource(){
+  return (pedidosRuta && pedidosRuta.length) ? pedidosRuta : tracking;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  DISTANCE (Haversine km)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1163,8 +1167,13 @@ async function init(){
   try {
     document.getElementById('loadingMsg').textContent='Cargando pedidos...';
     await loadTracking();
+    
+    document.getElementById('loadingMsg').textContent='Cargando pedidos de ruteo...';
+    await loadPedidosRuta();
+    
     document.getElementById('loadingMsg').textContent='Cargando personal...';
     await loadStaff();
+    
     document.getElementById('loadingMsg').textContent='Cargando asignaciones...';
     await loadRouteAssignments();
 
