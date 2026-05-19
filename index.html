@@ -2051,7 +2051,13 @@
             unidad: row.UNIDAD_EJECUTORA || 'Sin UE',
             group,
             rawGroup: String(rawGroup || '').trim(),
-            tipo: String(row.TIPO || group).toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL',
+            tipo: (() => {
+              const t = String(row.TIPO || '').trim().toUpperCase();
+              if (t.includes('URG') || t.includes('EXTRA')) return 'URGENCIA';
+              if (t === 'MENSUAL') return 'MENSUAL';
+              // fallback: si TIPO está vacío, revisar el nombre del grupo
+              return String(group || '').toUpperCase().includes('URG') ? 'URGENCIA' : 'MENSUAL';
+            })(),
             estado: normalizeState(row.ESTADO || 'ASIGNADA'),
             totalAsig,
             totalSolic,
