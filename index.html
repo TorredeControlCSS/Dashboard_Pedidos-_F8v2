@@ -2210,6 +2210,20 @@
         try {
           if (attendanceBackend && attendanceBackend.fecha === isoToday() && Object.keys(attendanceBackend.personal || {}).length > 0) {
             writeLS(ATTENDANCE_KEY, { fecha: isoToday(), personal: attendanceBackend.personal });
+
+            // CRÍTICO: sincronizar almacen_personal desde asistencia del backend
+            // Esto garantiza que las métricas del Kanban reflejen el pase de lista real del día
+            const personalLocal = readLS('almacen_personal', {});
+            let changed = false;
+            Object.entries(attendanceBackend.personal).forEach(([nombre, val]) => {
+              const nuevoStatus = val === 'en-ruta' ? 'EN RUTA' : val === 'presente' ? 'DISPONIBLE' : 'AUSENTE';
+              if (!personalLocal[nombre]) personalLocal[nombre] = {};
+              if (personalLocal[nombre].status !== nuevoStatus) {
+                personalLocal[nombre].status = nuevoStatus;
+                changed = true;
+              }
+            });
+            if (changed) writeLS('almacen_personal', personalLocal);
           }
         } catch(e) {}
 
@@ -2255,7 +2269,7 @@
           showToast('⚠️ Error al sincronizar. Intente de nuevo.', 4000);
         }
       });
-      document.getElementById('attendanceBtn').addEventListener('click', openAttendanceModal);
+      document.getElementById('attendanceBtn').addEventListener('click', () => { window.location.href = 'asistencia.html'; });
       document.getElementById('assignRoutesBtn').addEventListener('click', () => { window.location.href = 'rutas.html'; });
       document.getElementById('closeShiftBtn').addEventListener('click', openCloseShiftModal);
       document.getElementById('redistributeBtn').addEventListener('click', runRedistribucion);
