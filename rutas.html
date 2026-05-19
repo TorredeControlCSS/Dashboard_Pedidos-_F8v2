@@ -767,9 +767,7 @@ function renderTabB(){
 //  POPULATE FILTERS
 // ═══════════════════════════════════════════════════════════════════════════════
 function populateFilters(){
-  const source = (pedidosRuta && pedidosRuta.length) ? pedidosRuta : tracking;
-
-  const groups = [...new Set(source.map(t => t.group).filter(Boolean))].sort();
+  const groups = [...new Set(getPedidosSource().map(t => t.group).filter(Boolean))].sort();
   document.getElementById('filterGroup').innerHTML =
     '<option value="">Grupo: TODOS</option>' +
     groups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
@@ -777,7 +775,6 @@ function populateFilters(){
   const personSel = document.getElementById('filterPerson');
   const mapPersonSel = document.getElementById('mapFilterPerson');
   const staffOpts = getActiveStaff().map(s => `<option value="${esc(s.nombre)}">${esc(s.nombre)}</option>`).join('');
-
   personSel.innerHTML = '<option value="">Almacenista: TODOS</option>' + staffOpts;
   mapPersonSel.innerHTML = '<option value="">👤 Almacenista: TODOS</option>' + staffOpts;
 }
@@ -849,7 +846,7 @@ function renderMapAllCentros(){
   }).forEach(c=>{
     const color = CATEG_COLORS[c.categ] || '#607d8b';
     // Check if has pending orders
-    const hasPedido = tracking.some(t => normalizeText(t.unidad).includes(normalizeText(c.nombre.split('(')[0].trim())) && t.estado !== 'ENTREGADO');
+    const hasPedido = getPedidosSource().some(t => normalizeText(t.unidad).includes(normalizeText(c.nombre.split('(')[0].trim())) && t.estado !== 'ENTREGADO');
     const marker = createCircleMarker(c, color, hasPedido ? 12 : 8);
     if(hasPedido){ marker.bindPopup(marker.getPopup().getContent() + '<br><span style="color:#e53935;font-weight:bold;">⚠️ Tiene pedidos pendientes</span>'); }
     marker.addTo(_leafletMap); _mapLayers.push(marker);
