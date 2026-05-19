@@ -456,6 +456,7 @@ const ROUTE_PALETTE = ['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa','#00acc
 //  STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 let tracking = [];
+let pedidosRuta = [];
 let STAFF = [];
 let _routeAssignments = [];
 let _currentTab = 'A';
@@ -552,6 +553,40 @@ async function loadTracking() {
   }).filter(i=>i.id&&i.id!=='---');
 }
 
+  async function loadPedidosRuta() {
+  const r = await fetch(`${WEB_APP_URL}?file=pedidos_ruta`);
+  const raw = await r.json();
+
+  pedidosRuta = (Array.isArray(raw) ? raw : []).map(row => {
+    const id = String(row.PEDIDO_ID || '').trim();
+    const unidad = String(row.UNIDAD_EJECUTORA || '').trim();
+    const tipoRaw = String(row.TIPO_PEDIDO || '').toUpperCase();
+    const estadoRaw = String(row.ESTADO_KANBAN || '').trim();
+    const grupoRaw = String(row.GRUPO || row.GRUPO_PEDIDO || '').trim(); // si backend no lo manda, queda vacío
+
+    return {
+      id,
+      unidad: unidad || 'Sin UE',
+      group: normalizeGroup(grupoRaw || 'SIN GRUPO'),
+      rawGroup: grupoRaw,
+      tipo: tipoRaw.includes('URG') ? 'URGENCIA' : 'MENSUAL',
+      estado: normalizeState(estadoRaw || 'ASIGNADA'),
+
+      // NUEVOS CAMPOS OPERATIVOS
+      esRuteable: String(row.ES_RUTEABLE || '').toUpperCase() === 'SI',
+      prioridadRuta: Number(row.PRIORIDAD_RUTA || 0),
+      diasAntiguedad: Number(row.DIAS_ANTIGUEDAD || 0),
+      pallets: Number(row.PALLETS_ESTIMADOS || 0),
+      totalAsignado: Number(row.TOTAL_ASIGNADO_UNIDADES || 0),
+      skuCount: Number(row.SKU_COUNT || 0),
+      centroId: String(row.CENTRO_ID || '').trim(),
+      fechaCompromiso: String(row.FECHA_COMPROMISO || '').trim(),
+      fechaAsignacion: String(row.FECHA_ASIGNACION || '').trim(),
+      updatedAt: String(row.UPDATED_AT || '').trim()
+    };
+  }).filter(x => x.id);
+}
+
 async function loadStaff() {
   const cached=getCachedStaff(); if(cached){STAFF=cached;return;}
   try { const r=await fetch(`${WEB_APP_URL}?file=personal`); const d=await r.json(); if(Array.isArray(d)&&d.length>0){STAFF=d;setCachedStaff(d);return;} }catch(e){}
@@ -620,13 +655,44 @@ function renderMiniDashboard(){
 //  FILTER & PAGINATION (Tab A)
 // ═══════════════════════════════════════════════════════════════════════════════
 function getFilteredRows(){
-  let rows=tracking.filter(t=>t.estado!=='ENTREGADO');
-  if(_filterSearch.trim()){ const q=normalizeText(_filterSearch.trim()); rows=rows.filter(t=>normalizeText(t.id).includes(q)||normalizeText(t.unidad).includes(q)); }
-  if(_filterGroup)  rows=rows.filter(t=>normalizeText(t.group)===normalizeText(_filterGroup));
-  if(_filterState)  rows=rows.filter(t=>normalizeText(t.estado)===normalizeText(_filterState));
-  if(_filterPerson) rows=rows.filter(t=>{ const entry=_routeAssignments.find(a=>a.pedidoId===t.id); return entry&&normalizeText(entry.almacenista)===normalizeText(_filterPerson); });
+  // Fuente principal: PEDIDOS_RUTA
+  let rows = (pedidosRuta && pedidosRuta.length ? pedidosRuta : tracking).filter(t => t.estado !== 'ENTREGADO');
+
+  if (_filterSearch.trim()) {
+    const q = normalizeText(_filterSearch.trim());
+    rows = rows.filter(t =>
+      normalizeText(t.id).includes(q) ||
+      normalizeText(t.unidad).includes(q)
+    );
+  }
+
+  if (_filterGroup) {
+    rows = rows.filter(t => normalizeText(t.group) === normalizeText(_filterGroup));
+  }
+
+  if (_filterState) {
+    rows = rows.filter(t => normalizeText(t.estado) === normalizeText(_filterState));
+  }
+
+  if (_filterPerson) {
+    rows = rows.filter(t => {
+      const entry = _routeAssignments.find(a => a.pedidoId === t.id);
+      return entry && normalizeText(entry.almacenista) === normalizeText(_filterPerson);
+    });
+  }
+
+  // ORDEN OPERATIVO: ruteable primero, luego prioridad, luego antigüedad
+  rows.sort((a, b) => {
+    const rA = a.esRuteable ? 1 : 0;
+    const rB = b.esRuteable ? 1 : 0;
+    if (rB !== rA) return rB - rA;
+    if ((b.prioridadRuta || 0) !== (a.prioridadRuta || 0)) return (b.prioridadRuta || 0) - (a.prioridadRuta || 0);
+    return (b.diasAntiguedad || 0) - (a.diasAntiguedad || 0);
+  });
+
   return rows;
 }
+  
 function collectCurrentPageState(){
   document.querySelectorAll('.route-staff-select').forEach(sel=>{
     const id=sel.dataset.id; const almacenista=sel.value;
@@ -680,7 +746,8 @@ function renderTabB(){
     const person=STAFF.find(s=>normalizeText(s.nombre)===normalizeText(nombre));
     const grupo=person?getStaffDisplayGroup(person):'';
     const rows=list.map(a=>{
-      const order=tracking.find(t=>t.id===a.pedidoId);
+      const source = (pedidosRuta && pedidosRuta.length) ? pedidosRuta : tracking;
+      const order = source.find(t => t.id === a.pedidoId);
       const gc=order?(GROUP_COLORS[order.group]||'#607d8b'):'#607d8b';
       const sc=order?(STATE_COLORS[order.estado]||'#607d8b'):'#607d8b';
       return `<div class="person-block-row">
@@ -700,13 +767,19 @@ function renderTabB(){
 //  POPULATE FILTERS
 // ═══════════════════════════════════════════════════════════════════════════════
 function populateFilters(){
-  const groups=[...new Set(tracking.map(t=>t.group).filter(Boolean))].sort();
-  document.getElementById('filterGroup').innerHTML='<option value="">Grupo: TODOS</option>'+groups.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
-  const personSel=document.getElementById('filterPerson');
-  const mapPersonSel=document.getElementById('mapFilterPerson');
-  const staffOpts=getActiveStaff().map(s=>`<option value="${esc(s.nombre)}">${esc(s.nombre)}</option>`).join('');
-  personSel.innerHTML='<option value="">Almacenista: TODOS</option>'+staffOpts;
-  mapPersonSel.innerHTML='<option value="">👤 Almacenista: TODOS</option>'+staffOpts;
+  const source = (pedidosRuta && pedidosRuta.length) ? pedidosRuta : tracking;
+
+  const groups = [...new Set(source.map(t => t.group).filter(Boolean))].sort();
+  document.getElementById('filterGroup').innerHTML =
+    '<option value="">Grupo: TODOS</option>' +
+    groups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+
+  const personSel = document.getElementById('filterPerson');
+  const mapPersonSel = document.getElementById('mapFilterPerson');
+  const staffOpts = getActiveStaff().map(s => `<option value="${esc(s.nombre)}">${esc(s.nombre)}</option>`).join('');
+
+  personSel.innerHTML = '<option value="">Almacenista: TODOS</option>' + staffOpts;
+  mapPersonSel.innerHTML = '<option value="">👤 Almacenista: TODOS</option>' + staffOpts;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -811,6 +884,7 @@ function proposeRoutes(){
   const categFilter = document.getElementById('mapFilterCateg').value;
   const personFilter= document.getElementById('mapFilterPerson').value;
   const maxStops    = parseInt(document.getElementById('mapMaxStops').value)||6;
+  const source = (pedidosRuta && pedidosRuta.length) ? pedidosRuta : tracking;
 
   // Almacén marker
   const warehouseIcon=L.divIcon({html:`<div style="background:#f9a825;border:3px solid #333;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;">📦</div>`,className:'',iconSize:[20,20]});
@@ -827,7 +901,7 @@ function proposeRoutes(){
   // If filtering by person, match their assigned pedidos → unidades → centros
   if(personFilter){
     const assignedUnidades=_routeAssignments.filter(a=>normalizeText(a.almacenista)===normalizeText(personFilter)).map(a=>{
-      const t=tracking.find(tr=>tr.id===a.pedidoId); return t?normalizeText(t.unidad.split('(')[0].trim()):'';
+      const t = source.find(tr => tr.id === a.pedidoId); return t?normalizeText(t.unidad.split('(')[0].trim()):'';
     }).filter(Boolean);
     candidates=candidates.filter(c=>assignedUnidades.some(u=>u.includes(normalizeText(c.nombre.split('(')[0].trim()))||normalizeText(c.nombre.split('(')[0].trim()).includes(u)));
     if(!candidates.length){ showToast('ℹ️ No hay centros con pedidos asignados para ese almacenista'); return; }
@@ -839,7 +913,7 @@ function proposeRoutes(){
     const staffRoutes={};
     _routeAssignments.forEach(a=>{
       if(!a.almacenista) return;
-      const t=tracking.find(tr=>tr.id===a.pedidoId); if(!t) return;
+      const t = source.find(tr => tr.id === a.pedidoId); if(!t) return;
       const tNorm=normalizeText(t.unidad.split('(')[0].trim());
       const centro=candidates.find(c=>normalizeText(c.nombre.split('(')[0].trim())===tNorm||tNorm.includes(normalizeText(c.nombre.split('(')[0].trim()))||normalizeText(c.nombre.split('(')[0].trim()).includes(tNorm));
       if(!centro) return;
