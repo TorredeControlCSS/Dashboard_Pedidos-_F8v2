@@ -227,6 +227,39 @@
     .attendance-row.capacitacion { background: #f3e5f5; }
     .attendance-row.capacitacion .attendance-name { color: #7b1fa2; }
     .attendance-actions button.active-capacitacion { background: #7b1fa2; border-color: #7b1fa2; color: #fff; }
+    .attendance-row.vacaciones { background: #e8f5e9; }
+    .attendance-row.vacaciones .attendance-name { color: #2e7d32; }
+    .attendance-actions button.active-vacaciones { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+    .photo-capture-box {
+      margin-top: 12px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .photo-capture-box .photo-title { font-weight: 800; font-size: 13px; margin-bottom: 8px; color: #0369a1; }
+    .photo-capture-box .photo-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+    .photo-capture-box .photo-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none; color: #fff;
+    }
+    .photo-capture-box .photo-btn.cam { background: #0b1f3a; }
+    .photo-capture-box .photo-btn.file { background: #6b7280; }
+    .photo-capture-box .photo-btn.clear { background: #b71c1c; }
+    .photo-preview img { max-width: 100%; max-height: 200px; border-radius: 8px; border: 2px solid #bae6fd; margin-top: 6px; }
+    .photo-status { font-size: 11px; color: #0369a1; margin-top: 4px; font-weight: 600; }
+    .cap-index-widget {
+      margin-top: 10px;
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 10px;
+    }
+    .cap-index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-top: 8px; }
+    .cap-index-card { background: #f8fafc; border-radius: 8px; padding: 8px; text-align: center; border-top: 3px solid #e5e7eb; }
+    .cap-index-card .ci-val { font-size: 1.6rem; font-weight: 900; line-height: 1; }
+    .cap-index-card .ci-lbl { font-size: 10px; text-transform: uppercase; color: #6b7280; font-weight: 700; margin-top: 3px; }
     .btn-badge {
       background: #b71c1c;
       color: #fff;
@@ -702,13 +735,14 @@
     const STAFF_PINS_KEY = 'staff_pins';
     const PREV_STATE_KEY = 'almacen_prev_states';
     const ROUTE_ASSIGNMENTS_KEY = 'asignacion_rutas_diaria';
-    const BLOCKED_ATTENDANCE_STATES = ['ausente', 'baja-medica', 'capacitacion'];
+    const BLOCKED_ATTENDANCE_STATES = ['ausente', 'baja-medica', 'capacitacion', 'vacaciones'];
     const ATTENDANCE_STATUS_MAP = {
       'presente': 'DISPONIBLE',
       'en-ruta': 'EN RUTA',
       'baja-medica': 'BAJA MÉDICA',
       'capacitacion': 'CAPACITACIÓN',
-      'ausente': 'AUSENTE'
+      'ausente': 'AUSENTE',
+      'vacaciones': 'VACACIONES'
     };
 
     const readLS = (k, fallback) => {
@@ -1171,8 +1205,13 @@
     function applyFilters() {
       const asig = readLS('almacen_asignaciones', {});
       filteredTracking = tracking.filter(i => {
-        const q = filters.search;
-        const bySearch = !q || i.id.toUpperCase().includes(q) || i.unidad.toUpperCase().includes(q);
+        const q = normalizeText(filters.search);
+        const bySearch = !q ||
+          normalizeText(i.id).includes(q) ||
+          normalizeText(i.unidad).includes(q) ||
+          normalizeText(i.group).includes(q) ||
+          normalizeText(i.tipo).includes(q) ||
+          normalizeText(asig[i.id] || '').includes(q);
         const byGroup = !filters.group || normalizeGroup(i.rawGroup || i.group) === normalizeGroup(filters.group);
         const byType = !filters.tipo || i.tipo === filters.tipo;
         const byToday = !filters.todayOnly || i.deliveryToday;
@@ -1376,10 +1415,18 @@
 
     function renderOperationalMetrics(items, asig) {
       const personal = readLS('almacen_personal', {});
+      const attendance = readLS(ATTENDANCE_KEY, {});
+      const attendanceToday = attendance?.fecha === isoToday() ? (attendance.personal || {}) : {};
       const total = STAFF.length;
       const available = STAFF.filter(s => getPersonStatus(s.nombre) === 'DISPONIBLE').length;
       const enRuta = STAFF.filter(s => getPersonStatus(s.nombre) === 'EN RUTA').length;
       const ausentes = STAFF.filter(s => ['AUSENTE', 'BAJA MÉDICA', 'CAPACITACIÓN'].includes(getPersonStatus(s.nombre))).length;
+      const vacaciones = Object.values(attendanceToday).filter(v => v === 'vacaciones').length;
+      const operativos = available + enRuta; // presentes + en ruta = capacidad real del día
+      const indiceAsistencia = total > 0 ? Math.round((operativos / total) * 100) : 0;
+      const indiceColor = indiceAsistencia >= 80 ? '#2e7d32' : indiceAsistencia >= 60 ? '#f57f17' : '#b71c1c';
+      const indiceIcon = indiceAsistencia >= 80 ? '🟢' : indiceAsistencia >= 60 ? '🟡' : '🔴';
+      const tieneFoto = !!readLS('asistencia_foto_' + isoToday(), null);
       const byState = { ASIGNADA: 0, PICKING: 0, 'FACTURACIÓN': 0, EMPACADO: 0 };
       items.forEach(i => { if (byState[i.estado] !== undefined) byState[i.estado]++; });
       const actives = byState.PICKING + byState['FACTURACIÓN'] + byState.EMPACADO;
@@ -1401,7 +1448,35 @@
         `;
       }).join('');
       document.getElementById('metricsBody').innerHTML = `
-        <div class="metrics-grid">
+        <div class="cap-index-widget">
+          <div style="font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+            <span>📊 ÍNDICE DE CAPACIDAD OPERATIVA — HOY</span>
+            <span style="font-size:11px;color:${tieneFoto ? '#2e7d32' : '#b71c1c'};font-weight:700;">${tieneFoto ? '📋 Lista física ✓' : '⚠️ Sin foto de lista física'}</span>
+          </div>
+          <div class="cap-index-grid">
+            <div class="cap-index-card" style="border-top-color:#0b1f3a;">
+              <div class="ci-val">${total}</div>
+              <div class="ci-lbl">Total plantel</div>
+            </div>
+            <div class="cap-index-card" style="border-top-color:#2e7d32;">
+              <div class="ci-val" style="color:#2e7d32;">${operativos}</div>
+              <div class="ci-lbl">Operativos hoy</div>
+            </div>
+            <div class="cap-index-card" style="border-top-color:#b71c1c;">
+              <div class="ci-val" style="color:#b71c1c;">${ausentes}</div>
+              <div class="ci-lbl">Ausentes</div>
+            </div>
+            <div class="cap-index-card" style="border-top-color:#2e7d32;">
+              <div class="ci-val" style="color:#2e7d32;">${vacaciones}</div>
+              <div class="ci-lbl">Vacaciones</div>
+            </div>
+            <div class="cap-index-card" style="border-top-color:${indiceColor};">
+              <div class="ci-val" style="color:${indiceColor};">${indiceIcon} ${indiceAsistencia}%</div>
+              <div class="ci-lbl">Índice asist.</div>
+            </div>
+          </div>
+        </div>
+        <div class="metrics-grid" style="margin-top:10px;">
           <article class="metric-card">
             <div class="label">👥 Total personal</div>
             <div class="value">${total}</div>
@@ -1667,19 +1742,43 @@
         return `<div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px;">📦 <strong>Rutas planificadas para HOY:</strong> ${parts}</div>`;
       })();
 
-      container.innerHTML = routeBanner + Object.keys(grouped).sort().map((group) => `
+      // Photo capture section
+      const savedPhoto = readLS('asistencia_foto_' + today, null);
+      const photoSection = `
+        <div class="photo-capture-box">
+          <div class="photo-title">📋 Evidencia Lista Física CSS (Obligatoria por Norma)</div>
+          <div class="photo-actions">
+            <label class="photo-btn cam" title="Capturar con cámara">
+              📷 Capturar Lista
+              <input type="file" id="attendancePhotoCam" accept="image/*" capture="environment" style="display:none;" onchange="handleAttendancePhoto(this)" />
+            </label>
+            <label class="photo-btn file" title="Cargar desde archivos">
+              📁 Cargar Imagen
+              <input type="file" id="attendancePhotoFile" accept="image/*" style="display:none;" onchange="handleAttendancePhoto(this)" />
+            </label>
+            ${savedPhoto ? `<button class="photo-btn clear" onclick="clearAttendancePhoto()">🗑️ Quitar foto</button>` : ''}
+          </div>
+          <div class="photo-preview" id="attendancePhotoPreview">
+            ${savedPhoto ? `<img src="${savedPhoto}" alt="Lista de asistencia" />
+            <div class="photo-status">✅ Lista física registrada — ${today}</div>` : `<div class="photo-status" style="color:#6b7280;">Sin foto cargada — toma foto de la lista CSS como evidencia</div>`}
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = routeBanner + photoSection + Object.keys(grouped).sort().map((group) => `
         <div>
           <div class="attendance-header">${group}</div>
           ${grouped[group].map((s) => {
             const val = attendanceDraft[s.nombre] || 'presente';
             return `
-              <div class="attendance-row ${val === 'ausente' ? 'absent' : val === 'en-ruta' ? 'en-ruta' : val === 'baja-medica' ? 'baja-medica' : val === 'capacitacion' ? 'capacitacion' : ''}" data-name="${s.nombre}">
+              <div class="attendance-row ${val === 'ausente' ? 'absent' : val === 'en-ruta' ? 'en-ruta' : val === 'baja-medica' ? 'baja-medica' : val === 'capacitacion' ? 'capacitacion' : val === 'vacaciones' ? 'vacaciones' : ''}" data-name="${s.nombre}">
                 <span class="attendance-name">${s.nombre}</span>
                 <div class="attendance-actions">
                   <button class="attendance-set ${val === 'presente' ? 'active-present' : ''}" data-name="${s.nombre}" data-value="presente">✅ Presente</button>
                   <button class="attendance-set ${val === 'en-ruta' ? 'active-en-ruta' : ''}" data-name="${s.nombre}" data-value="en-ruta">🚚 En Ruta</button>
                   <button class="attendance-set ${val === 'baja-medica' ? 'active-baja-medica' : ''}" data-name="${s.nombre}" data-value="baja-medica">🏥 Baja Médica</button>
                   <button class="attendance-set ${val === 'capacitacion' ? 'active-capacitacion' : ''}" data-name="${s.nombre}" data-value="capacitacion">📚 Capacitación</button>
+                  <button class="attendance-set ${val === 'vacaciones' ? 'active-vacaciones' : ''}" data-name="${s.nombre}" data-value="vacaciones">🏖️ Vacaciones</button>
                   <button class="attendance-set ${val === 'ausente' ? 'active-absent' : ''}" data-name="${s.nombre}" data-value="ausente">❌ Ausente</button>
                 </div>
               </div>
@@ -1724,11 +1823,10 @@
         if (val === 'en-ruta') {
           personal[nombre].status = 'EN RUTA';
         } else if (val === 'presente') {
-          // Solo actualizar si actualmente está en un estado de ausencia — no sobreescribir EN RUTA manual
-          if (['AUSENTE', 'BAJA MÉDICA', 'CAPACITACIÓN'].includes(personal[nombre].status)) {
+          if (['AUSENTE', 'BAJA MÉDICA', 'CAPACITACIÓN', 'VACACIONES'].includes(personal[nombre].status)) {
             personal[nombre].status = 'DISPONIBLE';
           }
-        } else if (val === 'ausente' || val === 'baja-medica' || val === 'capacitacion') {
+        } else if (val === 'ausente' || val === 'baja-medica' || val === 'capacitacion' || val === 'vacaciones') {
           personal[nombre].status = 'AUSENTE';
         }
       });
@@ -1737,8 +1835,10 @@
       const bajaMedica = Object.values(payload.personal).filter(v => v === 'baja-medica').length;
       const enRuta = Object.values(payload.personal).filter(v => v === 'en-ruta').length;
       const capacitacion = Object.values(payload.personal).filter(v => v === 'capacitacion').length;
-      const presentes = STAFF.length - ausentes - bajaMedica - enRuta - capacitacion;
-      showToast(`Asistencia guardada · ${presentes} presentes · ${enRuta} en ruta · ${bajaMedica} baja médica · ${capacitacion} capacitación · ${ausentes} ausentes`);
+      const vacaciones = Object.values(payload.personal).filter(v => v === 'vacaciones').length;
+      const presentes = STAFF.length - ausentes - bajaMedica - enRuta - capacitacion - vacaciones;
+      const tieneFoto = !!readLS('asistencia_foto_' + today, null);
+      showToast(`Asistencia guardada · ${presentes} presentes · ${enRuta} en ruta · ${bajaMedica} baja · ${capacitacion} cap. · ${vacaciones} vac. · ${ausentes} ausentes${tieneFoto ? ' · 📋 Foto lista física' : ''}`);
       closeAttendanceModal();
       renderAttendanceBadge();
       renderDashboard();
@@ -2462,17 +2562,49 @@
       });
     }
 
+    function handleAttendancePhoto(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        const today = isoToday();
+        try {
+          writeLS('asistencia_foto_' + today, base64);
+          showToast('📋 Foto de lista física guardada');
+          renderAttendanceList();
+          // Sync photo reference to backend (without the image itself to avoid size issues)
+          fetch(WEB_APP_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'saveAttendancePhotoRef', fecha: today, hasPhoto: true, timestamp: new Date().toISOString() })
+          }).catch(() => {});
+        } catch(e) {
+          showToast('⚠️ Foto muy grande — intenta con una resolución menor');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearAttendancePhoto() {
+      const today = isoToday();
+      localStorage.removeItem('asistencia_foto_' + today);
+      showToast('🗑️ Foto eliminada');
+      renderAttendanceList();
+    }
+
     function exportAttendanceReport() {
       try {
         const history = readLS(ATTENDANCE_HISTORY_KEY, {});
-        const rows = [['Fecha', 'Nombre', 'Grupo', 'Estado']];
+        const rows = [['Fecha', 'Nombre', 'Grupo', 'Estado', 'Lista CSS Física']];
         const dates = Object.keys(history).sort().reverse();
         dates.forEach(date => {
           const dayData = history[date];
+          const tieneFoto = !!readLS('asistencia_foto_' + date, null);
           STAFF.forEach(s => {
             const estado = dayData[s.nombre] || 'presente';
-            const estadoLabel = estado === 'presente' ? 'Presente' : estado === 'en-ruta' ? 'En Ruta' : estado === 'baja-medica' ? 'Baja Médica' : 'Ausente';
-            rows.push([date, s.nombre, getStaffDisplayGroup(s), estadoLabel]);
+            const estadoLabel = estado === 'presente' ? 'Presente' : estado === 'en-ruta' ? 'En Ruta' : estado === 'baja-medica' ? 'Baja Médica' : estado === 'capacitacion' ? 'Capacitación' : estado === 'vacaciones' ? 'Vacaciones' : 'Ausente';
+            rows.push([date, s.nombre, getStaffDisplayGroup(s), estadoLabel, tieneFoto ? 'Sí' : 'No']);
           });
         });
         const ws = XLSX.utils.aoa_to_sheet(rows);
