@@ -664,10 +664,23 @@
   const CUTOFF_H = 7, CUTOFF_M = 45;
 
   const GROUP_COLORS = {
-    'GRUPO 1':'#1565c0','GRUPO 2':'#2e7d32','GRUPO 3':'#6a1b9a',
-    'GRUPO 4-5-11':'#e65100','FRÍO':'#0277bd','EMPAQUE':'#4e342e',
-    'URGENCIAS':'#b71c1c','MÓDULO':'#37474f','VENCIDOS':'#558b2f',
-    'KARDEX':'#5d4037','DISTRIBUCION':'#00796b'
+    // Nueva taxonomía por AREA_OPERATIVA
+    'MEDICAMENTOS':  '#1565C0',
+    'MQ':            '#6A1B9A',
+    'LABORATORIO':   '#2E7D32',
+    'URGENCIAS':     '#B71C1C',
+    'EMPAQUE':       '#E65100',
+    'DISTRIBUCIÓN':  '#00796B',
+    'VENCIDOS':      '#558B2F',
+    'RECEPCIÓN':     '#4A148C',
+    'GESTIÓN':       '#37474F',
+    // Fallback — grupos de producto (compatibilidad hacia atrás)
+    'GRUPO 1':       '#1565C0',
+    'GRUPO 2':       '#2E7D32',
+    'GRUPO 3':       '#6A1B9A',
+    'GRUPO 4-5-11':  '#E65100',
+    'FRÍO':          '#0277BD',
+    'MÓDULO':        '#37474F',
   };
 
   let STAFF = [];
@@ -698,8 +711,34 @@
     return M[String(raw).toUpperCase().trim()] || raw;
   }
   function getStaffGroup(s) {
+    // Nueva taxonomía: usar AREA_OPERATIVA si viene del backend actualizado
+    const area = s.AREA_OPERATIVA || s.area_operativa;
+    if (area && area.trim()) return area.trim().toUpperCase();
+    // Fallback — derivar del ROL para personas sin AREA_OPERATIVA aún
+    const rol = String(s.rol || '').toUpperCase();
+    if (rol.includes('MODULADOR') || rol.includes('MÓDULO'))  return 'MÓDULO';
+    if (rol.includes('URGENCIA'))                              return 'URGENCIAS';
+    if (rol.includes('EMPAQUE'))                              return 'EMPAQUE';
+    if (rol.includes('DISTRIBUCION') || rol.includes('DISTRIBUCIÓN')) return 'DISTRIBUCIÓN';
+    if (rol.includes('VENCIDOS'))                             return 'VENCIDOS';
+    if (rol.includes('JEFE') || rol.includes('DIRECTOR') || rol.includes('SUB-JEFE') || rol.includes('KARDEX') || rol.includes('FACTURACIÓN')) return 'GESTIÓN';
+    if (rol.includes('SECRETARIA') || rol.includes('MENSAJERA')) return 'GESTIÓN';
+    // Fallback por grupo de producto
     if (s.grupos && s.grupos.length) return normalizeGroup(s.grupos[0]);
-    return normalizeGroup(s.rol) || s.rol || 'SIN ROL';
+    return s.rol || 'SIN ÁREA';
+  }
+
+  // Función para obtener la función Kanban del staff
+  function getStaffFuncion(s) {
+    return (s.FUNCION_KANBAN || s.funcion_kanban || '').trim().toUpperCase();
+  }
+
+  // Determina si una persona puede hacer picking (recibe F8s)
+  function puedeHacerPicking(s) {
+    const func = getStaffFuncion(s);
+    if (func) return func === 'PICKING' || func === 'PICKING-URG';
+    // Fallback: usar RECIBE_PEDIDOS
+    return String(s.recibe_pedidos || s.RECIBE_PEDIDOS || '').toUpperCase() === 'SI';
   }
 
   // ── Lock ──
@@ -1325,14 +1364,23 @@
           ? `<button class="btn-salida" onclick="openSalidaModal('${s.nombre}')">🚪 Salida</button>`
           : '';
         return `<div class="person-row">
-          <div><div class="person-name">${s.nombre}${salidaBadge}</div><div class="person-sub">${s.rol||''}</div></div>
+          <div>
+            <div class="person-name">${s.nombre}${salidaBadge}</div>
+            <div class="person-sub">${s.rol || ''}${getStaffFuncion(s) ? ' · ' + getStaffFuncion(s) : ''}</div>
+          </div>
           <div class="status-btns">${btns}${salidaBtn}</div>
         </div>`;
       }).join('');
       const op = members.filter(s=>['presente','en-ruta'].includes(draft[s.nombre]||'presente')).length;
+      const pickersPresentes = members.filter(s => {
+        const st = draft[s.nombre] || 'presente';
+        return (st === 'presente' || st === 'en-ruta') && puedeHacerPicking(s);
+      }).length;
+      const totalPickers = members.filter(s => puedeHacerPicking(s)).length;
       return `<div>
         <div class="group-label" style="color:${GROUP_COLORS[group]||'var(--muted)'}">
-          ${group} &nbsp;·&nbsp; ${op}/${members.length} operativos
+          ${group} &nbsp;·&nbsp; ${op}/${members.length} presentes
+          ${totalPickers > 0 ? `<span style="font-size:10px;margin-left:6px;opacity:.75;">(${pickersPresentes}/${totalPickers} pickers)</span>` : ''}
         </div>${rows}
       </div>`;
     }).join('');
@@ -1353,25 +1401,49 @@
     const grouped = {};
     STAFF.forEach(s => {
       const g = getStaffGroup(s);
-      if (!grouped[g]) grouped[g]={ total:0, fisicos:0, enRuta:0 };
+      if (!grouped[g]) grouped[g] = { total:0, pickers:0, enRuta:0, modulo:0, otros:0 };
       grouped[g].total++;
-      const st = draft[s.nombre]||'presente';
-      if (st==='presente')  grouped[g].fisicos++;
-      if (st==='en-ruta')   grouped[g].enRuta++;
+      const st   = draft[s.nombre] || 'presente';
+      const func = getStaffFuncion(s);
+      const esPicker = func === 'PICKING' || func === 'PICKING-URG';
+      const esModulo = func === 'MODULO-PRE-PICKING' || func === 'MÓDULO' || func.includes('MODULO');
+      if (st === 'en-ruta')                             grouped[g].enRuta++;
+      else if (st === 'presente' && esPicker)           grouped[g].pickers++;
+      else if (st === 'presente' && esModulo)           grouped[g].modulo++;
+      else if (st === 'presente')                       grouped[g].otros++;
     });
-    const html = Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).map(([g,d]) => {
-      const pct   = d.total>0 ? Math.round((d.fisicos/d.total)*100) : 0;
-      const color = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
-      const bColor = GROUP_COLORS[g]||'#9ca3af';
-      const rutaNote = d.enRuta>0 ? `<div style="color:#1565c0;font-size:11px;">+${d.enRuta} en ruta</div>` : '';
+
+    // Orden fijo por área operativa
+    const ORDER = ['MEDICAMENTOS','MQ','LABORATORIO','URGENCIAS','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','RECEPCIÓN','GESTIÓN'];
+    const sortedGroups = [
+      ...ORDER.filter(g => grouped[g]),
+      ...Object.keys(grouped).filter(g => !ORDER.includes(g)).sort()
+    ];
+
+    const html = sortedGroups.map(g => {
+      const d = grouped[g];
+      const fisicos = d.pickers + d.modulo + d.otros; // presentes físicamente
+      const pct     = d.total > 0 ? Math.round((fisicos / d.total) * 100) : 0;
+      const color   = pct >= 80 ? 'var(--ok)' : pct >= 60 ? '#f59e0b' : 'var(--danger)';
+      const bColor  = GROUP_COLORS[g] || '#9ca3af';
+
+      const subline = [
+        d.pickers > 0  ? `${d.pickers} picker${d.pickers>1?'s':''}` : '',
+        d.modulo  > 0  ? `${d.modulo} módulo`  : '',
+        d.enRuta  > 0  ? `${d.enRuta} ruta`    : '',
+        d.otros   > 0  ? `${d.otros} otros`     : '',
+      ].filter(Boolean).join(' · ');
+
       return `<div class="group-cap-card" style="border-left-color:${bColor}">
         <div class="gc-name">${g}</div>
         <div class="gc-ratio" style="color:${color}">${pct}%</div>
-        <div class="gc-sub">${d.fisicos} de ${d.total} en almacén${rutaNote?'':''}</div>
-        ${rutaNote}
+        <div class="gc-sub">${fisicos} de ${d.total} presentes</div>
+        ${subline ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">${subline}</div>` : ''}
+        ${d.enRuta > 0 ? `<div style="font-size:10px;color:#1565c0;margin-top:1px;">+${d.enRuta} en ruta</div>` : ''}
         <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${color}"></div></div>
       </div>`;
     }).join('');
+
     document.getElementById('groupCapGrid').innerHTML = html || '<div style="color:var(--muted)">Sin grupos.</div>';
   }
 
