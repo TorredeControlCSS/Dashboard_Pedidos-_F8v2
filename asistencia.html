@@ -752,7 +752,9 @@
     if (rol.includes('JEFE') || rol.includes('DIRECTOR') || rol.includes('SUB-JEFE') || rol.includes('KARDEX') || rol.includes('FACTURACIÓN')) return 'GESTIÓN';
     if (rol.includes('SECRETARIA') || rol.includes('MENSAJERA')) return 'GESTIÓN';
     // Fallback por grupo de producto
-    if (s.grupos && s.grupos.length) return normalizeGroup(s.grupos[0]);
+    const grpFallback = s.grupos || s.GRUPOS || '';
+    const grpArr = Array.isArray(grpFallback) ? grpFallback : String(grpFallback).split(',').map(g=>g.trim()).filter(Boolean);
+    if (grpArr.length) return normalizeGroup(grpArr[0]);
     return s.rol || 'SIN ÁREA';
   }
 
@@ -1520,7 +1522,8 @@
 
     STAFF.forEach(s => {
       const area  = getStaffGroup(s);
-      const grps  = (s.grupos||s.GRUPOS||'').split(',').map(g=>g.trim()).filter(Boolean);
+      const grpsRaw = s.grupos || s.GRUPOS || '';
+      const grps = (Array.isArray(grpsRaw) ? grpsRaw : String(grpsRaw).split(',')).map(g=>g.trim()).filter(Boolean);
       const func  = getStaffFuncion(s);
       const st    = draft[s.nombre]||'presente';
       const pres  = st==='presente';
