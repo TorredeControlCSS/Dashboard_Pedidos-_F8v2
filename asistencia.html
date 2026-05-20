@@ -926,10 +926,17 @@
     if (!exp) { document.getElementById('salidaPinError').textContent='PIN no configurado — configúralo en el Kanban'; return; }
     if (pin!==exp) { document.getElementById('salidaPinError').textContent='PIN incorrecto'; document.getElementById('salidaPinInput').value=''; document.getElementById('salidaPinInput').focus(); return; }
     const hora = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+    const fecha = isoToday();
     draft[_salidaTarget] = 'salida-temprana';
-    const salidas = readLS(SALIDAS_KEY+isoToday(),[]);
-    salidas.push({ nombre:_salidaTarget, hora, autorizadoPor:'PAOLA MORENO' });
-    writeLS(SALIDAS_KEY+isoToday(), salidas);
+    const salidas = readLS(SALIDAS_KEY+fecha,[]);
+    const entry = { nombre:_salidaTarget, hora, autorizadoPor:'PAOLA MORENO', fecha };
+    salidas.push(entry);
+    writeLS(SALIDAS_KEY+fecha, salidas);
+    // Sync al backend
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({ action:'saveSalidaTemprana', ...entry })
+    }).catch(()=>{});
     closeSalidaModal();
     toast(`🚪 Salida autorizada — ${_salidaTarget} a las ${hora}`, 4000);
     renderAll();
@@ -1257,11 +1264,12 @@
   async function init(isRefresh=false) {
     if (!isRefresh) document.getElementById("loadOverlay").style.display="flex";
     try {
-      const [staffResp, attendResp, histResp, vacResp] = await Promise.all([
+      const [staffResp, attendResp, histResp, vacResp, salidasResp] = await Promise.all([
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
         fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=attendance_history`).then(r=>r.json()).catch(()=>null),
-        fetch(`${WEB_APP_URL}?file=vacaciones`).then(r=>r.json()).catch(()=>null)
+        fetch(`${WEB_APP_URL}?file=vacaciones`).then(r=>r.json()).catch(()=>null),
+        fetch(`${WEB_APP_URL}?file=salidas&fecha=${new Date().toISOString().split('T')[0]}`).then(r=>r.json()).catch(()=>null)
       ]);
       if (Array.isArray(staffResp) && staffResp.length) STAFF = staffResp;
       else toast('⚠️ No se pudo cargar el personal del servidor');
@@ -1288,6 +1296,18 @@
         const localOnly  = readLS(VAC_KEY, []).filter(v => !backendIds.has(v.id));
         writeLS(VAC_KEY, [...fromBackend, ...localOnly]);
         localOnly.forEach(v => syncVacacionToBackend(v));
+      }
+
+      // Salidas tempranas del día — backend tiene prioridad
+      if (salidasResp && Array.isArray(salidasResp) && salidasResp.length > 0) {
+        const todaySal = isoToday();
+        const fromBS = salidasResp.map(s => ({
+          nombre:        String(s.NOMBRE       || s.nombre        || ''),
+          hora:          String(s.HORA         || s.hora          || ''),
+          autorizadoPor: String(s.AUTORIZADO_POR|| s.autorizadoPor|| 'PAOLA MORENO'),
+          fecha:         todaySal
+        })).filter(s => s.nombre);
+        if (fromBS.length) writeLS(SALIDAS_KEY + todaySal, fromBS);
       }
 
       const today = isoToday();
