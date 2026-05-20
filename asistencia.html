@@ -75,10 +75,10 @@
     .kpi-box {
       background:var(--panel); border-radius:10px;
       border:1px solid var(--border); border-top:4px solid #9ca3af;
-      padding:7px 8px; text-align:center; flex:0 0 auto; width:80px;
+      padding:9px 11px; text-align:center; flex:0 0 auto; width:95px;
     }
-    .kpi-box .kv { font-size:1.45rem; font-weight:900; line-height:1; margin-top:2px; }
-    .kpi-box .kl { font-size:9px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .kpi-box .kv { font-size:1.65rem; font-weight:900; line-height:1; margin-top:3px; }
+    .kpi-box .kl { font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
     .sem-badge {
       flex:1; border-radius:10px; border:1px solid var(--border);
       display:flex; align-items:center; gap:10px;
@@ -201,6 +201,53 @@
     .save-bar .save-summary { font-size: 13px; color: var(--muted); line-height: 1.4; }
     .btn-save { background: var(--navy); color:#fff; border:none; border-radius:10px; padding:12px 22px; font-weight:800; font-size:14px; cursor:pointer; min-height:var(--touch); }
     .btn-export { background:#fff; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:11px 16px; font-size:13px; font-weight:700; cursor:pointer; min-height:var(--touch); }
+
+    /* ── GROUP DETAIL MODAL ── */
+    #groupModal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:502; padding:16px; }
+    #groupModal .gm-box {
+      background:#fff; border-radius:16px; max-width:480px; width:100%;
+      max-height:85vh; display:flex; flex-direction:column;
+      box-shadow:0 16px 48px rgba(0,0,0,.3); overflow:hidden;
+    }
+    .gm-head {
+      padding:16px 20px; display:flex; align-items:center; gap:12px;
+      border-bottom:1px solid var(--border);
+    }
+    .gm-head .gm-title { flex:1; font-weight:800; font-size:16px; }
+    .gm-head .gm-pct   { font-size:1.8rem; font-weight:900; }
+    .gm-head .gm-sub   { font-size:12px; color:var(--muted); margin-top:2px; }
+    .gm-close { background:var(--border); border:none; border-radius:50%; width:36px; height:36px; font-size:16px; cursor:pointer; flex-shrink:0; }
+    .gm-body  { overflow-y:auto; padding:12px 20px 20px; }
+    .gm-row {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 0; border-bottom:1px solid #f3f4f6;
+    }
+    .gm-row:last-child { border-bottom:none; }
+    .gm-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:#9ca3af; }
+    .gm-dot.s-presente    { background:#2e7d32; }
+    .gm-dot.s-en-ruta     { background:#1565c0; }
+    .gm-dot.s-baja-medica { background:#e65100; }
+    .gm-dot.s-capacitacion{ background:#7b1fa2; }
+    .gm-dot.s-vacaciones  { background:#00796b; }
+    .gm-dot.s-ausente     { background:#b71c1c; }
+    .gm-dot.s-salida-temprana { background:#4a148c; }
+    .gm-name { flex:1; font-weight:700; font-size:14px; }
+    .gm-role { font-size:11px; color:var(--muted); }
+    .gm-status {
+      font-size:11px; font-weight:700; border-radius:999px;
+      padding:3px 10px; white-space:nowrap;
+    }
+    .gm-status.s-presente    { background:#dcfce7; color:#166534; }
+    .gm-status.s-en-ruta     { background:#dbeafe; color:#1e40af; }
+    .gm-status.s-baja-medica { background:#fff3e0; color:#e65100; }
+    .gm-status.s-capacitacion{ background:#f3e5f5; color:#7b1fa2; }
+    .gm-status.s-vacaciones  { background:#e0f2f1; color:#00796b; }
+    .gm-status.s-ausente     { background:#fee2e2; color:#b71c1c; }
+    .gm-status.s-salida-temprana { background:#ede7f6; color:#4a148c; }
+    /* make capacity cards clickable */
+    .group-cap-card { cursor:pointer; transition:box-shadow .15s, transform .1s; }
+    .group-cap-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); transform:translateY(-1px); }
+    .group-cap-card:active { transform:scale(.98); }
 
     /* ── GROUP CAPACITY ── */
     .group-cap-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:8px; }
@@ -511,6 +558,20 @@
     <button onclick="closeHistModal()" style="margin-top:12px;border:none;background:none;color:#6b7280;cursor:pointer;font-size:14px;padding:8px;">Cancelar</button>
   </div>
 </div>
+<div id="groupModal" onclick="handleGroupModalClick(event)">
+  <div class="gm-box">
+    <div class="gm-head">
+      <div style="flex:1">
+        <div class="gm-title" id="gmTitle">—</div>
+        <div class="gm-sub" id="gmSub">—</div>
+      </div>
+      <div class="gm-pct" id="gmPct">—%</div>
+      <button class="gm-close" onclick="closeGroupModal()">✕</button>
+    </div>
+    <div class="gm-body" id="gmBody"></div>
+  </div>
+</div>
+
 <div id="vacModal">
   <div class="vac-box">
     <h3>🏖️ Registrar Vacaciones</h3>
@@ -764,17 +825,30 @@
     // Pickers y Urgencias → agrupar por primer grupo de producto
     const grpsRaw = s.grupos || s.GRUPOS || '';
     const grpArr  = Array.isArray(grpsRaw) ? grpsRaw : String(grpsRaw).split(',').map(g=>g.trim()).filter(Boolean);
-    if (grpArr.length) return normalizeGroup(grpArr[0]);
-    // Fallback por ROL
-    const rol = String(s.rol||'').toUpperCase();
-    if (rol.includes('DIRECTOR')||rol.includes('JEFE')||rol.includes('SUB-JEFE')) return 'JEFATURA';
-    if (rol.includes('SECRETARIA')||rol.includes('MENSAJERA')) return 'ADMINISTRATIVO';
-    return s.rol || 'SIN GRUPO';
+    // Ignorar grupos genéricos no-producto (TODOS, MEDICAMENTOS, MQ como área)
+    const NON_PRODUCT = ['TODOS','MEDICAMENTOS','MQ','LABORATORIO',''];
+    const productGrp  = grpArr.find(g => !NON_PRODUCT.includes(g.toUpperCase().trim()));
+    if (productGrp) return normalizeGroup(productGrp);
+    // Fallback por AREA_OPERATIVA
+    const area = String(s.AREA_OPERATIVA || s.area_operativa || '').trim();
+    if (area && !NON_PRODUCT.includes(area.toUpperCase())) return area;
+    return 'SIN GRUPO';
   }
 
   // Función para obtener la función Kanban del staff
   function getStaffFuncion(s) {
-    return (s.FUNCION_KANBAN || s.funcion_kanban || '').trim().toUpperCase();
+    const fromSheet = String(s.FUNCION_KANBAN || s.funcion_kanban || '').trim();
+    if (fromSheet) return fromSheet.toUpperCase();
+    // Derivar del ROL cuando FUNCION_KANBAN no llega del backend
+    const rol = String(s.rol || s.ROL || '').toUpperCase().trim();
+    if (rol.includes('DIRECTOR') || rol === 'JEFE DE ALMACEN' || rol === 'JEFE DE ALMACÉN') return 'SUPERVISIÓN';
+    if (rol === 'SUB-JEFE')                                      return 'SUPERVISIÓN';
+    if (rol === 'JEFE FACTURACION' || rol === 'JEFE FACTURACIÓN') return 'FACTURACIÓN';
+    if (rol === 'MODULADOR' || rol === 'MÓDULADOR')              return 'MÓDULO-PRE-PICKING';
+    if (rol === 'SECRETARIA' || rol === 'MENSAJERA' || rol === 'OPERATIVA') return 'SOPORTE ADMIN';
+    if (rol === 'OPERADOR')                                      return 'DISTRIBUCIÓN-WMS';
+    if (rol === 'KARDEX')                                        return 'FACTURACIÓN';
+    return 'PICKING'; // default: almacenistas y supervisores operativos
   }
 
   // Determina si una persona puede hacer picking (recibe F8s)
@@ -1072,6 +1146,51 @@
     </div>`;
   }
 
+  // ── Group Detail Modal ──
+  function openGroupModal(groupLabel) {
+    const members = STAFF.filter(s => getStaffGroup(s) === groupLabel);
+    if (!members.length) return;
+    const presentes = members.filter(s=>(draft[s.nombre]||'presente')==='presente').length;
+    const enRuta    = members.filter(s=>(draft[s.nombre]||'presente')==='en-ruta').length;
+    const total     = members.length;
+    const pct       = total>0?Math.round(presentes/total*100):0;
+    const color     = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
+    const STATUS_LABELS = {
+      'presente':'✅ Presente','en-ruta':'🚚 En Ruta',
+      'baja-medica':'🏥 Baja Médica','capacitacion':'📚 Capacitación',
+      'vacaciones':'🏖️ Vacaciones','ausente':'❌ Ausente',
+      'salida-temprana':'🚪 Salida Temprana'
+    };
+    document.getElementById('gmTitle').textContent = groupLabel;
+    document.getElementById('gmSub').textContent =
+      `${presentes} de ${total} presentes físicamente${enRuta>0?' · '+enRuta+' en ruta':''}`;
+    const gmPct = document.getElementById('gmPct');
+    gmPct.textContent = pct+'%'; gmPct.style.color = color;
+    const ORDER = ['presente','en-ruta','salida-temprana','baja-medica','capacitacion','vacaciones','ausente'];
+    const sorted = [...members].sort((a,b)=>{
+      const sa=draft[a.nombre]||'presente', sb=draft[b.nombre]||'presente';
+      return ORDER.indexOf(sa)-ORDER.indexOf(sb);
+    });
+    document.getElementById('gmBody').innerHTML = sorted.map(s=>{
+      const st    = draft[s.nombre]||'presente';
+      const label = STATUS_LABELS[st]||st;
+      const func  = getStaffFuncion(s);
+      const sal   = readLS(SALIDAS_KEY+isoToday(),[]).find(sl=>sl.nombre===s.nombre);
+      const salNote = sal?` · salió ${sal.hora}`:'';
+      return `<div class="gm-row">
+        <div class="gm-dot ${st}"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="gm-name">${s.nombre}</div>
+          <div class="gm-role">${s.rol||''}${func?' · '+func:''}${salNote}</div>
+        </div>
+        <span class="gm-status ${st}">${label}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('groupModal').style.display='flex';
+  }
+  function closeGroupModal() { document.getElementById('groupModal').style.display='none'; }
+  function handleGroupModalClick(e) { if(e.target.id==='groupModal') closeGroupModal(); }
+
   async function refreshData() {
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning'); btn.disabled=true;
@@ -1287,7 +1406,13 @@
         fetch(`${WEB_APP_URL}?file=vacaciones`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=salidas&fecha=${new Date().toISOString().split('T')[0]}`).then(r=>r.json()).catch(()=>null)
       ]);
-      if (Array.isArray(staffResp) && staffResp.length) STAFF = staffResp;
+      if (Array.isArray(staffResp) && staffResp.length) {
+        // Filtrar filas de encabezado de sección (── GESTIÓN ──, etc.)
+        STAFF = staffResp.filter(s => {
+          const nom = String(s.NOMBRE || s.nombre || '').trim();
+          return nom && !nom.startsWith('──') && !nom.startsWith('--') && nom.length > 2;
+        });
+      }
       else toast('⚠️ No se pudo cargar el personal del servidor');
 
       // Historial asistencia — backend es fuente de verdad
@@ -1552,7 +1677,7 @@
       const pct   = d.total > 0 ? Math.round(phys / d.total * 100) : 0;
       const color = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
       const ruta  = d.enRuta > 0 ? `<div style="font-size:10px;color:#1565c0;margin-top:1px;">+${d.enRuta} en ruta</div>` : '';
-      return `<div class="group-cap-card" style="border-left-color:${bColor}">
+      return `<div class="group-cap-card" style="border-left-color:${bColor}" onclick="openGroupModal('${label}')" title="Ver detalle de ${label}">
         <div class="gc-name">${label}</div>
         <div class="gc-ratio" style="color:${color}">${pct}%</div>
         <div class="gc-sub">${phys}/${d.total} presentes</div>
@@ -1826,6 +1951,7 @@
     document.getElementById('histModal').addEventListener('click', e => { if (e.target.id==='histModal') closeHistModal(); });
     document.getElementById('histPinInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmHistLoad(); });
     document.getElementById('histDateInput').addEventListener('change', updateHistInfo);
+    document.getElementById('groupModal').addEventListener('click', e => { if(e.target.id==='groupModal') closeGroupModal(); });
   });  // ── END DOMContentLoaded ──
 
   // ── Service Worker + Install prompt ──────────────────────
