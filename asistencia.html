@@ -354,7 +354,57 @@
     #salidaPinError { color:var(--danger); font-size:13px; min-height:20px; margin:8px 0 0; }
     .btn-sal-confirm { background:#4a148c; color:#fff; border:none; border-radius:10px; padding:13px 28px; font-size:15px; font-weight:800; cursor:pointer; margin-top:14px; width:100%; min-height:var(--touch); }
 
-    /* ── REFRESH BTN ── */
+    /* ── HISTORICAL EDIT MODE ── */
+    .hist-banner {
+      background: #450a0a; border: 1px solid #7f1d1d;
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .hist-banner .hb-icon { font-size: 1.8rem; flex-shrink: 0; }
+    .hist-banner .hb-text { flex: 1; }
+    .hist-banner .hb-title { font-weight: 800; font-size: 15px; color: #fca5a5; }
+    .hist-banner .hb-sub   { font-size: 12px; color: #f87171; margin-top: 2px; }
+    .btn-exit-hist {
+      background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b;
+      border-radius: 10px; padding: 10px 16px; font-size: 13px;
+      font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+
+    /* ── MODAL DÍA ANTERIOR ── */
+    #histModal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      display: none; align-items: center; justify-content: center; z-index: 501;
+    }
+    #histModal .hist-box {
+      background: #fff; border-radius: 16px; padding: 30px;
+      max-width: 380px; width: 94%;
+      box-shadow: 0 12px 40px rgba(0,0,0,.3); text-align: center;
+    }
+    #histModal h3 { margin: 0 0 6px; color: #0b1f3a; font-size: 17px; }
+    #histModal p  { font-size: 13px; color: #6b7280; margin: 0 0 20px; }
+    #histDateInput {
+      width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      padding: 12px; font-size: 16px; outline: none; text-align: center;
+      min-height: 48px; margin-bottom: 8px;
+    }
+    #histDateInput:focus { border-color: #0b1f3a; }
+    #histPinInput {
+      width: 130px; font-size: 2rem; text-align: center; letter-spacing: 8px;
+      border: 2px solid #e5e7eb; border-radius: 10px; padding: 10px;
+      outline: none; margin-top: 14px;
+    }
+    #histPinInput:focus { border-color: #b91c1c; }
+    #histPinError { color: #b91c1c; font-size: 13px; min-height: 20px; margin: 8px 0 0; }
+    .btn-hist-load {
+      background: #b91c1c; color: #fff; border: none; border-radius: 10px;
+      padding: 13px; font-size: 15px; font-weight: 800; cursor: pointer;
+      margin-top: 14px; width: 100%; min-height: 48px;
+    }
+    .hist-info-box {
+      background: #fef9c3; border: 1px solid #fde68a; border-radius: 8px;
+      padding: 10px 12px; font-size: 12px; color: #713f12;
+      margin: 10px 0 0; text-align: left;
+    }
     .btn-refresh { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; cursor:pointer; min-height:48px; display:flex; align-items:center; gap:6px; }
     .btn-refresh.spinning .rf-icon { display:inline-block; animation:spin .6s linear infinite; }
   </style>
@@ -405,12 +455,29 @@
   <button id="refreshBtn" class="btn-refresh" onclick="refreshData()">
     <span class="rf-icon">🔄</span> Actualizar
   </button>
+  <button class="btn-refresh" onclick="openHistModal()" style="background:rgba(220,38,38,.25);border-color:rgba(220,38,38,.4);">
+    📅 Día anterior
+  </button>
   <button id="installBtn" onclick="installApp()" style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;align-items:center;gap:6px;min-height:48px;">
     📲 Instalar App
   </button>
 </div>
 
-<!-- MODAL VACACIONES -->
+<!-- MODAL DÍA ANTERIOR -->
+<div id="histModal">
+  <div class="hist-box">
+    <div style="font-size:2rem;margin-bottom:8px">📅</div>
+    <h3>Editar Día Anterior</h3>
+    <p>Ingresa la fecha y el PIN de Jefatura para cargar y editar la asistencia de ese día.</p>
+    <input type="date" id="histDateInput" max="" />
+    <div class="hist-info-box" id="histInfoBox" style="display:none;"></div>
+    <input id="histPinInput" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+    <div id="histPinError"></div>
+    <button class="btn-hist-load" onclick="confirmHistLoad()">📂 Cargar día</button>
+    <br/>
+    <button onclick="closeHistModal()" style="margin-top:12px;border:none;background:none;color:#6b7280;cursor:pointer;font-size:14px;padding:8px;">Cancelar</button>
+  </div>
+</div>
 <div id="vacModal">
   <div class="vac-box">
     <h3>🏖️ Registrar Vacaciones</h3>
@@ -453,6 +520,9 @@
 </div>
 
 <div class="wrap">
+
+  <!-- HISTORICAL EDIT BANNER -->
+  <div id="histEditBanner" style="display:none;"></div>
 
   <!-- LOCK BANNER -->
   <div id="lockBanner"></div>
@@ -604,6 +674,7 @@
   let draft = {};
   let _unlockPurpose = '';
   let _salidaTarget  = '';
+  let editingDate    = null;   // null = hoy, string = fecha pasada en edición
 
   // ── Utils ──
   const readLS  = (k,fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
@@ -742,8 +813,119 @@
     renderAll();
   }
 
-  // ── Refresh ──
-  async function refreshData() {
+  // ── Historical Edit ──
+  function openHistModal() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().split('T')[0];
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() - 1);
+
+    const dateInput = document.getElementById('histDateInput');
+    dateInput.max   = maxDate.toISOString().split('T')[0];
+    dateInput.value = yStr;
+    document.getElementById('histPinInput').value   = '';
+    document.getElementById('histPinError').textContent = '';
+    document.getElementById('histInfoBox').style.display = 'none';
+    document.getElementById('histModal').style.display   = 'flex';
+    updateHistInfo();
+    setTimeout(() => document.getElementById('histPinInput').focus(), 50);
+  }
+
+  function closeHistModal() {
+    document.getElementById('histModal').style.display = 'none';
+  }
+
+  function updateHistInfo() {
+    const fecha   = document.getElementById('histDateInput').value;
+    const infoBox = document.getElementById('histInfoBox');
+    if (!fecha) { infoBox.style.display = 'none'; return; }
+    const hist    = readLS(HISTORY_KEY, {});
+    const dayData = hist[fecha];
+    if (dayData && Object.keys(dayData).length > 0) {
+      const presentes = Object.values(dayData).filter(v => v==='presente'||v==='en-ruta').length;
+      const total     = Object.keys(dayData).length;
+      infoBox.innerHTML  = `✅ Ya hay datos para este día — ${presentes}/${total} presentes. Se sobrescribirán al guardar.`;
+      infoBox.style.display = 'block';
+    } else {
+      infoBox.innerHTML  = `📋 Sin datos registrados para este día. Se creará un registro nuevo.`;
+      infoBox.style.display = 'block';
+    }
+  }
+
+  function confirmHistLoad() {
+    const fecha = document.getElementById('histDateInput').value;
+    const pin   = document.getElementById('histPinInput').value.trim();
+    const exp   = localStorage.getItem(PIN_KEY) || '';
+
+    if (!fecha) { document.getElementById('histPinError').textContent = 'Selecciona una fecha'; return; }
+    if (fecha >= isoToday()) { document.getElementById('histPinError').textContent = 'Solo fechas pasadas'; return; }
+    if (!exp) { document.getElementById('histPinError').textContent = 'PIN no configurado — configúralo en el Kanban'; return; }
+    if (pin !== exp) {
+      document.getElementById('histPinError').textContent = 'PIN incorrecto';
+      document.getElementById('histPinInput').value = '';
+      document.getElementById('histPinInput').focus();
+      return;
+    }
+
+    closeHistModal();
+    loadHistoricalDay(fecha);
+  }
+
+  function loadHistoricalDay(fecha) {
+    editingDate = fecha;
+    const hist    = readLS(HISTORY_KEY, {});
+    const dayData = hist[fecha] || {};
+
+    // Load draft from historical data or default to 'presente'
+    STAFF.forEach(s => {
+      draft[s.nombre] = dayData[s.nombre] || 'presente';
+    });
+    // Auto-apply vacation ranges for that date
+    getVacaciones().forEach(v => {
+      if (fecha >= v.desde && fecha <= v.hasta && draft[v.nombre] !== undefined) {
+        draft[v.nombre] = 'vacaciones';
+      }
+    });
+
+    renderAll();
+    renderVacPanel();
+    toast(`📅 Editando asistencia del ${formatDate(fecha)} — guarda cuando termines`, 5000);
+  }
+
+  function exitHistoricalMode() {
+    editingDate = null;
+    // Reload today's draft
+    const localAtt   = readLS(ATTENDANCE_KEY, {});
+    const today      = isoToday();
+    const baseLocal  = localAtt?.fecha === today ? (localAtt.personal || {}) : {};
+    STAFF.forEach(s => { draft[s.nombre] = baseLocal[s.nombre] || 'presente'; });
+    aplicarVacacionesAutomaticas();
+    renderAll();
+    renderVacPanel();
+    toast('✅ Regresaste a la vista de hoy', 2500);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    const date = new Date(Number(y), Number(m)-1, Number(d));
+    return date.toLocaleDateString('es-PA', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  }
+
+  function renderHistBanner() {
+    const el = document.getElementById('histEditBanner');
+    if (!editingDate) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = `<div class="hist-banner">
+      <span class="hb-icon">⚠️</span>
+      <div class="hb-text">
+        <div class="hb-title">MODO EDICIÓN — ${formatDate(editingDate).toUpperCase()}</div>
+        <div class="hb-sub">Estás editando un día pasado. Los cambios se guardarán en el historial y en Google Sheets. Esta vista NO afecta la lista de hoy.</div>
+      </div>
+      <button class="btn-exit-hist" onclick="exitHistoricalMode()">✕ Volver a hoy</button>
+    </div>`;
+  }
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning'); btn.disabled=true;
     try { await init(true); toast('✅ Datos actualizados',2000); }
@@ -1030,14 +1212,16 @@
 
   // ── Render all ──
   function renderAll() {
+    renderHistBanner();
     renderLockBanner();
     renderSemaforo();
     renderLista();
     renderGroupCap();
     renderFotoGallery();
     updateSaveSummary();
+    const displayDate = editingDate || isoToday();
     document.getElementById('fechaLabel').textContent =
-      new Date().toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
+      new Date(displayDate + 'T12:00:00').toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
   }
 
   function renderLockBanner() {
@@ -1193,50 +1377,58 @@
 
   // ── Guardar ──
   async function guardarAsistencia() {
-    if (getLock().locked) { toast('🔒 Lista cerrada — solicita autorización a Jefatura', 4000); return; }
+    if (!editingDate && getLock().locked) { toast('🔒 Lista cerrada — solicita autorización a Jefatura', 4000); return; }
 
-    // Feedback visual inmediato en el botón
     const btnSave = document.querySelector('.btn-save');
     const originalText = btnSave.textContent;
     btnSave.textContent = '⏳ Guardando...';
     btnSave.disabled = true;
     btnSave.style.opacity = '0.7';
-    const today = isoToday();
-    const payload = { fecha: today, personal: { ...draft } };
-    writeLS(ATTENDANCE_KEY, payload);
 
-    // Sync almacen_personal para métricas del Kanban
-    const personalLocal = readLS('almacen_personal',{});
-    Object.entries(draft).forEach(([nombre,val]) => {
-      if (!personalLocal[nombre]) personalLocal[nombre]={};
-      personalLocal[nombre].status = val==='en-ruta' ? 'EN RUTA' : val==='presente' ? 'DISPONIBLE' : 'AUSENTE';
-    });
-    writeLS('almacen_personal', personalLocal);
+    const targetDate = editingDate || isoToday();
+    const isHistorical = !!editingDate;
 
-    // Historial
-    let hist = readLS(HISTORY_KEY,{}); if (Array.isArray(hist)) hist={};
-    hist[today] = { ...draft }; writeLS(HISTORY_KEY, hist);
+    // Always save to history
+    let hist = readLS(HISTORY_KEY, {}); if (Array.isArray(hist)) hist = {};
+    hist[targetDate] = { ...draft };
+    writeLS(HISTORY_KEY, hist);
+
+    // Only update today's live keys if not historical
+    if (!isHistorical) {
+      writeLS(ATTENDANCE_KEY, { fecha: targetDate, personal: { ...draft } });
+      const personalLocal = readLS('almacen_personal', {});
+      Object.entries(draft).forEach(([nombre, val]) => {
+        if (!personalLocal[nombre]) personalLocal[nombre] = {};
+        personalLocal[nombre].status = val==='en-ruta' ? 'EN RUTA' : val==='presente' ? 'DISPONIBLE' : 'AUSENTE';
+      });
+      writeLS('almacen_personal', personalLocal);
+    }
 
     const { presentes, enRuta, vacaciones, bajas, ausentes, pctFisico } = conteos();
-    const fotos = getPhotos(today);
+    const fotos = getPhotos(targetDate);
 
     try {
-      await fetch(WEB_APP_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'},
-        body: JSON.stringify({ action:'saveAttendance', fecha:today, personal:draft }) });
+      await fetch(WEB_APP_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type': 'text/plain'},
+        body: JSON.stringify({ action: 'saveAttendance', fecha: targetDate, personal: draft })
+      });
     } catch(e) {}
 
-    if (isAfterCutoff()) {
+    if (isHistorical) {
+      toast(`✅ ${formatDate(targetDate)} guardado · ${presentes} pres · ${enRuta} ruta · ${vacaciones} vac · ${bajas} bajas · ${ausentes} aus`, 5000);
+    } else if (isAfterCutoff()) {
       doLock('PAOLA MORENO');
-      toast(`✅ Guardado y lista CERRADA · ${pctFisico}% fisicamente · ${fotos.length} foto(s) de lista`, 5000);
+      toast(`✅ Guardado y lista CERRADA · ${pctFisico}% físicos · ${fotos.length} foto(s)`, 5000);
     } else {
-      toast(`✅ Guardado · ${presentes} presentes · ${enRuta} en ruta · ${vacaciones} vac · ${bajas} bajas · ${ausentes} ausentes · ${fotos.length} foto(s)`, 5000);
+      toast(`✅ Guardado · ${presentes} pres · ${enRuta} ruta · ${vacaciones} vac · ${bajas} bajas · ${ausentes} aus · ${fotos.length} foto(s)`, 5000);
     }
-    document.getElementById('lastSaveLabel').textContent =
-      `Último guardado: ${new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})}`;
 
-    // Restaurar botón
+    document.getElementById('lastSaveLabel').textContent =
+      `Guardado: ${new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'})}${isHistorical?' (histórico)':''}`;
+
     btnSave.textContent = '✅ Guardado';
-    btnSave.style.background = '#2e7d32';
+    btnSave.style.background = isHistorical ? '#7f1d1d' : '#2e7d32';
     setTimeout(() => {
       btnSave.textContent = originalText;
       btnSave.disabled = false;
@@ -1246,6 +1438,7 @@
 
     renderAll();
     renderHistorico();
+    renderVacPanel();
   }
 
   function updateSaveSummary() {
@@ -1402,7 +1595,9 @@
     document.getElementById('salidaPinInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmSalidaTemprana(); });
     document.getElementById('salidaModal').addEventListener('click', e => { if (e.target.id==='salidaModal') closeSalidaModal(); });
     document.getElementById('vacModal').addEventListener('click', e => { if (e.target.id==='vacModal') closeVacModal(); });
-  });
+    document.getElementById('histModal').addEventListener('click', e => { if (e.target.id==='histModal') closeHistModal(); });
+    document.getElementById('histPinInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmHistLoad(); });
+    document.getElementById('histDateInput').addEventListener('change', updateHistInfo);
 
   // ── Service Worker + Install prompt ──────────────────────
   let _installPrompt = null;
