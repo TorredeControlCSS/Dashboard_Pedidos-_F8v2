@@ -693,6 +693,8 @@
     </div>
     <div class="hm-footer">
       <button class="btn-hm-cancel" onclick="closeHorarioModal()">Cancelar</button>
+      <button class="btn-hm-cancel" onclick="limpiarHorario()" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🗑️ Limpiar</button>
+      <button id="hmBtnEliminar" class="btn-hm-cancel" onclick="eliminarHorario()" style="display:none;background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;">❌ Eliminar</button>
       <button class="btn-hm-save" onclick="saveHorario()">💾 Guardar registro</button>
     </div>
   </div>
@@ -1008,7 +1010,7 @@
     const rol = String(s.rol || s.ROL || '').toUpperCase().trim();
     if (rol.includes('DIRECTOR') || rol === 'JEFE DE ALMACEN' || rol === 'JEFE DE ALMACÉN') return 'SUPERVISIÓN';
     if (rol === 'SUB-JEFE')                                      return 'SUPERVISIÓN';
-    if (rol === 'JEFE FACTURACION' || rol === 'JEFE FACTURACIÓN') return 'FACTURACIÓN';
+    if (rol === 'JEFE FACTURACION' || rol === 'JEFE FACTURACIÓN' || rol.includes('FACTURA')) return 'FACTURACIÓN';
     if (rol === 'MODULADOR' || rol === 'MÓDULADOR')              return 'MÓDULO-PRE-PICKING';
     if (rol === 'SECRETARIA' || rol === 'MENSAJERA' || rol === 'OPERATIVA') return 'SOPORTE ADMIN';
     if (rol === 'OPERADOR')                                      return 'DISTRIBUCIÓN-WMS';
@@ -1319,6 +1321,34 @@
   function getHorarios(date=isoToday()) { return readLS(HORARIOS_KEY+date, {}); }
   function saveHorarios(h, date=isoToday()) { try { writeLS(HORARIOS_KEY+date, h); return true; } catch(e){ return false; } }
 
+  function limpiarHorario() {
+    if (!confirm('¿Limpiar todos los campos del registro?')) return;
+    ['hmEntrada','hmAlmSalida','hmAlmRegreso','hmSalida'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('hmObs').value = '';
+    document.getElementById('hmPinInput').value = '';
+    _hmTardanza = false;
+    _hmTemprana = false;
+    document.getElementById('hmPinRow').style.display = 'none';
+    updateHmToggles();
+  }
+
+  function eliminarHorario() {
+    if (!confirm(`¿Eliminar el registro de horario de ${_horarioTarget}?\nEsta acción no se puede deshacer.`)) return;
+    const horarios = getHorarios();
+    delete horarios[_horarioTarget];
+    saveHorarios(horarios);
+    // Sync al backend
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({ action:'deleteHorario', fecha:isoToday(), nombre:_horarioTarget })
+    }).catch(()=>{});
+    closeHorarioModal();
+    renderAll();
+    toast(`🗑️ Registro de ${_horarioTarget} eliminado`, 3000);
+  }
+
   function openHorarioModal(nombre) {
     _horarioTarget = nombre;
     _hmTardanza    = false;
@@ -1338,6 +1368,9 @@
     _hmTardanza = h.tardanza || false;
     _hmTemprana = h.salidaTemprana || false;
     updateHmToggles();
+    // Show/hide delete button based on existing record
+    const hmEliminar = document.getElementById('hmBtnEliminar');
+    hmEliminar.style.display = hreg ? 'block' : 'none';
     document.getElementById('horarioModal').style.display = 'flex';
     setTimeout(() => document.getElementById('hmEntrada').focus(), 100);
   }
@@ -2019,7 +2052,7 @@
 
     // ── GESTIÓN ────────────────────────────────────────────
     if (grouped['JEFATURA'])     html += card('JEFATURA', grouped['JEFATURA'], '#0B1F3A');
-    if (grouped['ADMINISTRATIVO']) html += card('ADMIN', grouped['ADMINISTRATIVO'], '#607D8B');
+    if (grouped['ADMINISTRATIVO']) html += card('ADMINISTRATIVO', grouped['ADMINISTRATIVO'], '#607D8B');
 
     // Cualquier grupo no cubierto
     const known = [...ORDER_PICK,'MÓDULO','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','JEFATURA','ADMINISTRATIVO',...recKeys];
