@@ -427,7 +427,7 @@
     <button class="lb-close" onclick="closeLightbox()">✕</button>
   </div>
   <div id="lbSpinner" class="lb-spinner" style="display:none;">⏳ Cargando imagen...</div>
-  <img id="lightboxImg" src="" alt="" style="display:none;" onload="onLightboxLoad()" onerror="onLightboxError()" />
+  <img id="lightboxImg" alt="" style="display:none;" />
 </div>
 
 <!-- PIN MODAL -->
@@ -965,6 +965,8 @@
       <button class="btn-exit-hist" onclick="exitHistoricalMode()">✕ Volver a hoy</button>
     </div>`;
   }
+
+  async function refreshData() {
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning'); btn.disabled=true;
     try { await init(true); toast('✅ Datos actualizados',2000); }
@@ -1097,6 +1099,10 @@
     const spinner = document.getElementById('lbSpinner');
     const label   = document.getElementById('lbLabel');
     const driveBtn= document.getElementById('lbDriveBtn');
+
+    // Attach events programmatically to avoid onerror firing before script loads
+    img.onload  = onLightboxLoad;
+    img.onerror = onLightboxError;
 
     label.textContent = p.label || 'Lista de asistencia';
     img.style.display = 'none';
