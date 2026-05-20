@@ -54,7 +54,7 @@
     .wrap { padding: 14px; max-width: 1440px; margin: 0 auto; }
     .grid-main {
       display: grid;
-      grid-template-columns: 460px 1fr;
+      grid-template-columns: 500px 1fr;
       gap: 14px;
       align-items: start;
     }
@@ -70,26 +70,26 @@
     }
     .card-body { padding: 14px 16px; }
 
-    /* ── KPI STRIP + SEMÁFORO INLINE ── */
-    .kpi-row { display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
-    .kpi-box {
-      background:var(--panel); border-radius:10px;
-      border:1px solid var(--border); border-top:4px solid #9ca3af;
-      padding:9px 11px; text-align:center; flex:0 0 auto; width:95px;
-    }
-    .kpi-box .kv { font-size:1.65rem; font-weight:900; line-height:1; margin-top:3px; }
-    .kpi-box .kl { font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
+    /* ── KPI HEADER — badge izq, tarjetas der ── */
+    .kpi-header { display:grid; grid-template-columns:500px 1fr; gap:14px; margin-bottom:10px; align-items:stretch; }
+    @media (max-width:960px) { .kpi-header { grid-template-columns:1fr; } }
     .sem-badge {
-      flex:1; border-radius:10px; border:1px solid var(--border);
-      display:flex; align-items:center; gap:10px;
-      padding:8px 14px; transition:background .3s; min-width:0;
+      border-radius:12px; border:1px solid var(--border);
+      display:flex; align-items:center; gap:12px;
+      padding:10px 16px; transition:background .3s;
     }
-    .sem-badge .sb-icon { font-size:1.6rem; flex-shrink:0; }
-    .sem-badge .sb-pct  { font-size:1.7rem; font-weight:900; line-height:1; flex-shrink:0; }
+    .sem-badge .sb-icon { font-size:1.8rem; flex-shrink:0; }
+    .sem-badge .sb-pct  { font-size:2rem; font-weight:900; line-height:1; flex-shrink:0; }
+    .sem-badge .sb-lbl  { font-size:9px; font-weight:800; text-transform:uppercase; opacity:.8; }
     .sem-badge .sb-text { font-size:12px; font-weight:700; flex:1; line-height:1.4; min-width:0; }
-    .sem-badge .sb-lbl  { font-size:9px; font-weight:700; text-transform:uppercase; opacity:.8; }
-    @media (max-width:900px) { .kpi-box { width:70px; } .sem-badge .sb-text { display:none; } }
-    @media (max-width:700px) { .kpi-row { flex-wrap:wrap; } .kpi-box { flex:1; min-width:60px; width:auto; } }
+    .kpi-strip { display:flex; gap:8px; }
+    .kpi-box {
+      background:var(--panel); border-radius:10px; flex:1;
+      border:1px solid var(--border); border-top:4px solid #9ca3af;
+      padding:9px 8px; text-align:center;
+    }
+    .kpi-box .kv { font-size:1.55rem; font-weight:900; line-height:1; margin-top:3px; }
+    .kpi-box .kl { font-size:9px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
 
     /* ── LOCK BANNER — compact 1 line ── */
     .lock-banner {
@@ -389,6 +389,54 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; border-radius:999px; padding:10px 20px; font-size:14px; display:none; z-index:200; white-space:nowrap; max-width:90vw; text-align:center; }
 
+    /* ── HORARIO MODAL ── */
+    #horarioModal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:502; padding:16px; }
+    #horarioModal .hm-box {
+      background:#fff; border-radius:16px; max-width:420px; width:100%;
+      max-height:90vh; overflow-y:auto;
+      box-shadow:0 16px 48px rgba(0,0,0,.3);
+    }
+    .hm-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; background:#f8fafc; border-radius:16px 16px 0 0; }
+    .hm-head h3 { flex:1; font-size:15px; font-weight:800; color:var(--navy); margin:0; }
+    .hm-head .hm-close { background:var(--border); border:none; border-radius:50%; width:34px; height:34px; font-size:15px; cursor:pointer; }
+    .hm-body { padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+    .hm-field { display:flex; flex-direction:column; gap:4px; }
+    .hm-field label { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    .hm-row { display:flex; gap:8px; align-items:center; }
+    .hm-time {
+      flex:1; border:1.5px solid var(--border); border-radius:10px;
+      padding:10px 12px; font-size:15px; font-weight:700; outline:none;
+      min-height:44px; font-family:monospace;
+    }
+    .hm-time:focus { border-color:var(--navy); }
+    .btn-ahora {
+      background:var(--navy); color:#fff; border:none; border-radius:8px;
+      padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer;
+      white-space:nowrap; min-height:44px;
+    }
+    .btn-ahora:active { opacity:.8; }
+    .hm-toggle-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; border:1.5px solid var(--border); cursor:pointer; }
+    .hm-toggle-row.active-tardanza { background:#fff3e0; border-color:#e65100; }
+    .hm-toggle-row.active-temprana { background:#f3e5f5; border-color:#7b1fa2; }
+    .hm-toggle-icon { font-size:1.3rem; flex-shrink:0; }
+    .hm-toggle-label { flex:1; font-size:13px; font-weight:700; }
+    .hm-toggle-sub { font-size:11px; color:var(--muted); }
+    .hm-toggle-check { width:22px; height:22px; border-radius:6px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+    .hm-toggle-check.checked { background:var(--navy); border-color:var(--navy); color:#fff; }
+    .hm-sep { height:1px; background:var(--border); margin:4px 0; }
+    .hm-obs { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:13px; min-height:60px; resize:none; outline:none; font-family:inherit; }
+    .hm-obs:focus { border-color:var(--navy); }
+    .hm-pin-row { display:flex; flex-direction:column; gap:6px; padding:10px 12px; background:#f3e5f5; border-radius:10px; }
+    .hm-pin-row label { font-size:11px; font-weight:800; color:#7b1fa2; }
+    .hm-pin-input { border:1.5px solid #ce93d8; border-radius:8px; padding:8px 12px; font-size:1.4rem; letter-spacing:6px; text-align:center; width:120px; outline:none; }
+    .hm-pin-error { font-size:12px; color:var(--danger); }
+    .hm-footer { padding:12px 20px; border-top:1px solid var(--border); display:flex; gap:8px; }
+    .btn-hm-save { flex:1; background:var(--navy); color:#fff; border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:800; cursor:pointer; }
+    .btn-hm-cancel { background:#f3f4f6; color:var(--text); border:none; border-radius:10px; padding:12px 16px; font-size:14px; font-weight:700; cursor:pointer; }
+    /* Time indicator badge in person row */
+    .hora-badge { font-size:10px; font-weight:700; color:#0369a1; background:#dbeafe; border-radius:4px; padding:1px 5px; margin-left:4px; }
+    .hora-badge.tardanza { color:#b45309; background:#fef3c7; }
+
     /* ── SALIDA TEMPRANA ── */
     .st-btn.active-salida-temprana { background:#4a148c; border-color:#4a148c; color:#fff; }
     .salida-badge { display:inline-block; background:#4a148c22; color:#4a148c; border:1px solid #4a148c44; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:6px; }
@@ -572,6 +620,84 @@
   </div>
 </div>
 
+<!-- MODAL HORARIO DE ASISTENCIA -->
+<div id="horarioModal" onclick="if(event.target.id==='horarioModal')closeHorarioModal()">
+  <div class="hm-box">
+    <div class="hm-head">
+      <h3 id="hmNombre">—</h3>
+      <button class="hm-close" onclick="closeHorarioModal()">✕</button>
+    </div>
+    <div class="hm-body">
+      <!-- Entrada -->
+      <div class="hm-field">
+        <label>🟢 Hora de Entrada</label>
+        <div class="hm-row">
+          <input class="hm-time" type="time" id="hmEntrada" placeholder="--:--" />
+          <button class="btn-ahora" onclick="setAhora('hmEntrada')">Ahora</button>
+        </div>
+      </div>
+      <!-- Tardanza toggle -->
+      <div class="hm-toggle-row" id="hmTardanzaRow" onclick="toggleHmTardanza()">
+        <span class="hm-toggle-icon">⏰</span>
+        <div style="flex:1">
+          <div class="hm-toggle-label">Tardanza</div>
+          <div class="hm-toggle-sub" id="hmTardanzaSub">Se detecta automáticamente si la entrada supera el límite</div>
+        </div>
+        <div class="hm-toggle-check" id="hmTardanzaCheck">✓</div>
+      </div>
+      <div class="hm-sep"></div>
+      <!-- Almuerzo -->
+      <div class="hm-field">
+        <label>🍽️ Salida Almuerzo</label>
+        <div class="hm-row">
+          <input class="hm-time" type="time" id="hmAlmSalida" placeholder="--:--" />
+          <button class="btn-ahora" onclick="setAhora('hmAlmSalida')">Ahora</button>
+        </div>
+      </div>
+      <div class="hm-field">
+        <label>↩️ Regreso Almuerzo</label>
+        <div class="hm-row">
+          <input class="hm-time" type="time" id="hmAlmRegreso" placeholder="--:--" />
+          <button class="btn-ahora" onclick="setAhora('hmAlmRegreso')">Ahora</button>
+        </div>
+      </div>
+      <div class="hm-sep"></div>
+      <!-- Salida -->
+      <div class="hm-field">
+        <label>🔴 Hora de Salida</label>
+        <div class="hm-row">
+          <input class="hm-time" type="time" id="hmSalida" placeholder="--:--" />
+          <button class="btn-ahora" onclick="setAhora('hmSalida')">Ahora</button>
+        </div>
+      </div>
+      <!-- Salida temprana (requiere PIN) -->
+      <div class="hm-toggle-row" id="hmTempranaRow" onclick="toggleHmTemprana()">
+        <span class="hm-toggle-icon">🚪</span>
+        <div style="flex:1">
+          <div class="hm-toggle-label">Salida Temprana Autorizada</div>
+          <div class="hm-toggle-sub">Requiere PIN de Jefatura</div>
+        </div>
+        <div class="hm-toggle-check" id="hmTempranaCheck">✓</div>
+      </div>
+      <div id="hmPinRow" class="hm-pin-row" style="display:none;">
+        <label>PIN de Jefatura</label>
+        <input class="hm-pin-input" type="password" id="hmPinInput" maxlength="4" inputmode="numeric" placeholder="••••" />
+        <div class="hm-pin-error" id="hmPinError"></div>
+      </div>
+      <div class="hm-sep"></div>
+      <!-- Observaciones -->
+      <div class="hm-field">
+        <label>📝 Observaciones</label>
+        <textarea class="hm-obs" id="hmObs" placeholder="Ej: llegó tarde por transporte, permiso médico..."></textarea>
+      </div>
+    </div>
+    <div class="hm-footer">
+      <button class="btn-hm-cancel" onclick="closeHorarioModal()">Cancelar</button>
+      <button class="btn-hm-save" onclick="saveHorario()">💾 Guardar registro</button>
+    </div>
+  </div>
+</div>
+
 <div id="vacModal">
   <div class="vac-box">
     <h3>🏖️ Registrar Vacaciones</h3>
@@ -628,18 +754,25 @@
     El personal en ruta NO recibirá nuevas F8s automáticamente. Sus F8s ya asignadas permanecen activas.
   </div>
 
-  <!-- KPIs + Semáforo inline -->
-  <div class="kpi-row">
-    <div class="kpi-box" style="border-top-color:#0b1f3a"><div class="kl">Plantel</div><div class="kv" id="kTotal">--</div></div>
-    <div class="kpi-box" style="border-top-color:#2e7d32"><div class="kl">✅ Presentes</div><div class="kv" id="kPresentes">--</div></div>
-    <div class="kpi-box" style="border-top-color:#1565c0"><div class="kl">🚚 En Ruta</div><div class="kv" id="kEnRuta">--</div></div>
-    <div class="kpi-box" style="border-top-color:#00796b"><div class="kl">🏖️ Vac.</div><div class="kv" id="kVacaciones">--</div></div>
-    <div class="kpi-box" style="border-top-color:#e65100"><div class="kl">🏥 Baja/Cap.</div><div class="kv" id="kBajas">--</div></div>
-    <div class="kpi-box" style="border-top-color:#b71c1c"><div class="kl">❌ Ausentes</div><div class="kv" id="kAusentes">--</div></div>
+  <!-- Header: badge izq (alineado con pase lista) + KPIs der (alineados con capacidad) -->
+  <div class="kpi-header">
+    <!-- Badge capacidad operativa — izquierda -->
     <div class="sem-badge" id="semaforoEl" style="background:#e5e7eb;color:#374151;">
       <div class="sb-icon">⏳</div>
-      <div class="sb-pct" id="semPct">--</div>
-      <div class="sb-lbl">físicos</div>
+      <div>
+        <div class="sb-pct">--%</div>
+        <div class="sb-lbl">físicos</div>
+      </div>
+      <div class="sb-text">Cargando capacidad...</div>
+    </div>
+    <!-- KPI cards — derecha, misma anchura que Capacidad por Grupo -->
+    <div class="kpi-strip">
+      <div class="kpi-box" style="border-top-color:#0b1f3a"><div class="kl">Plantel</div><div class="kv" id="kTotal">--</div></div>
+      <div class="kpi-box" style="border-top-color:#2e7d32"><div class="kl">✅ Presentes</div><div class="kv" id="kPresentes">--</div></div>
+      <div class="kpi-box" style="border-top-color:#1565c0"><div class="kl">🚚 En Ruta</div><div class="kv" id="kEnRuta">--</div></div>
+      <div class="kpi-box" style="border-top-color:#00796b"><div class="kl">🏖️ Vac.</div><div class="kv" id="kVacaciones">--</div></div>
+      <div class="kpi-box" style="border-top-color:#e65100"><div class="kl">🏥 Baja/Cap.</div><div class="kv" id="kBajas">--</div></div>
+      <div class="kpi-box" style="border-top-color:#b71c1c"><div class="kl">❌ Ausentes</div><div class="kv" id="kAusentes">--</div></div>
     </div>
   </div>
 
@@ -753,6 +886,8 @@
   const PHOTOS_KEY      = 'asistencia_fotos_';
   const VAC_KEY         = 'vacaciones_programadas';
   const SALIDAS_KEY     = 'salidas_tempranas_';    // + isoToday()
+  const HORARIOS_KEY    = 'horarios_asistencia_';   // + isoToday()
+  const HORA_LIMITE_TARDANZA = '07:15'; // después de esta hora = tardanza
   const CUTOFF_H = 7, CUTOFF_M = 45;
 
   const GROUP_COLORS = {
@@ -814,24 +949,54 @@
   }
   function getStaffGroup(s) {
     const func = getStaffFuncion(s);
-    // Soporte y gestión → agrupar por función
-    if (func==='SUPERVISIÓN' || func==='FACTURACIÓN')         return 'JEFATURA';
-    if (func==='SOPORTE ADMIN')                               return 'ADMINISTRATIVO';
-    if (func.includes('MODULO') || func.includes('MÓDULO'))   return 'MÓDULO';
-    if (func==='EMPAQUE')                                     return 'EMPAQUE';
-    if (func.includes('DISTRIBUC'))                           return 'DISTRIBUCIÓN';
-    if (func==='VENCIDOS')                                    return 'VENCIDOS';
-    if (func==='RECEPCIÓN')                                   return 'RECEPCIÓN';
-    // Pickers y Urgencias → agrupar por primer grupo de producto
+    // 1. Función explícita del Kanban
+    if (func==='SUPERVISIÓN' || func==='FACTURACIÓN')        return 'JEFATURA';
+    if (func==='SOPORTE ADMIN')                              return 'ADMINISTRATIVO';
+    if (func.includes('MODULO') || func.includes('MÓDULO'))  return 'MÓDULO';
+    if (func==='EMPAQUE')                                    return 'EMPAQUE';
+    if (func.includes('DISTRIBUC'))                          return 'DISTRIBUCIÓN';
+    if (func==='VENCIDOS')                                   return 'VENCIDOS';
+    if (func==='RECEPCIÓN' || func==='RECEPCION')            return 'RECEPCIÓN';
+    if (func==='PICKING-URG')                                return 'URGENCIAS';
+
+    // 2. Grupo de producto del GRUPOS column
     const grpsRaw = s.grupos || s.GRUPOS || '';
     const grpArr  = Array.isArray(grpsRaw) ? grpsRaw : String(grpsRaw).split(',').map(g=>g.trim()).filter(Boolean);
-    // Ignorar grupos genéricos no-producto (TODOS, MEDICAMENTOS, MQ como área)
-    const NON_PRODUCT = ['TODOS','MEDICAMENTOS','MQ','LABORATORIO',''];
-    const productGrp  = grpArr.find(g => !NON_PRODUCT.includes(g.toUpperCase().trim()));
+    // Palabras clave de área que indican función (no producto)
+    const AREA_KEYS = new Set(['TODOS','MEDICAMENTOS','MQ','LABORATORIO','','MODULO','MÓDULO']);
+    // Palabras clave que sí indican grupo/función directa
+    for (const g of grpArr) {
+      const gu = g.toUpperCase().trim();
+      if (gu === 'VENCIDOS')   return 'VENCIDOS';
+      if (gu === 'URGENCIAS')  return 'URGENCIAS';
+      if (gu === 'EMPAQUE')    return 'EMPAQUE';
+      if (gu.includes('RECEP')) return 'RECEPCIÓN';
+    }
+    const productGrp = grpArr.find(g => !AREA_KEYS.has(g.toUpperCase().trim()));
     if (productGrp) return normalizeGroup(productGrp);
-    // Fallback por AREA_OPERATIVA
-    const area = String(s.AREA_OPERATIVA || s.area_operativa || '').trim();
-    if (area && !NON_PRODUCT.includes(area.toUpperCase())) return area;
+
+    // 3. AREA_OPERATIVA del backend (si llega)
+    const area = String(s.AREA_OPERATIVA || s.area_operativa || '').trim().toUpperCase();
+    if (area.includes('RECEP'))          return 'RECEPCIÓN';
+    if (area === 'EMPAQUE')              return 'EMPAQUE';
+    if (area.includes('DISTRIBUC'))      return 'DISTRIBUCIÓN';
+    if (area === 'VENCIDOS')             return 'VENCIDOS';
+    if (area === 'URGENCIAS')            return 'URGENCIAS';
+    if (area === 'MQ')                   return 'MQ';
+    if (area === 'LABORATORIO')          return 'LABORATORIO';
+
+    // 4. Deducción por ROL + GRUPOS cuando no hay FUNCION_KANBAN
+    const rol = String(s.rol || s.ROL || '').toUpperCase().trim();
+    // EMPAQUE: almacenistas cuyo único grupo es "MEDICAMENTOS" (no tienen grupo de producto)
+    if (grpArr.some(g => g.toUpperCase() === 'MEDICAMENTOS') && rol === 'ALMACENISTA') return 'EMPAQUE';
+    // RECEPCIÓN: almacenistas/supervisores sin grupo de producto
+    if (!productGrp && (rol === 'ALMACENISTA' || rol === 'SUPERVISOR' || rol === 'OPERATIVA')) return 'RECEPCIÓN';
+    // GESTIÓN final fallback
+    if (area === 'GESTIÓN' || area === 'GESTION') {
+      if (rol === 'SECRETARIA' || rol === 'MENSAJERA' || rol === 'OPERATIVA') return 'ADMINISTRATIVO';
+      return 'JEFATURA';
+    }
+
     return 'SIN GRUPO';
   }
 
@@ -1146,6 +1311,129 @@
     </div>`;
   }
 
+  // ── Horario de Asistencia ──
+  let _horarioTarget = '';
+  let _hmTardanza    = false;
+  let _hmTemprana    = false;
+
+  function getHorarios(date=isoToday()) { return readLS(HORARIOS_KEY+date, {}); }
+  function saveHorarios(h, date=isoToday()) { try { writeLS(HORARIOS_KEY+date, h); return true; } catch(e){ return false; } }
+
+  function openHorarioModal(nombre) {
+    _horarioTarget = nombre;
+    _hmTardanza    = false;
+    _hmTemprana    = false;
+    document.getElementById('hmNombre').textContent = nombre;
+    document.getElementById('hmPinRow').style.display = 'none';
+    document.getElementById('hmPinInput').value = '';
+    document.getElementById('hmPinError').textContent = '';
+
+    // Load existing data for this person
+    const h = getHorarios()[nombre] || {};
+    document.getElementById('hmEntrada').value   = h.entrada   || '';
+    document.getElementById('hmAlmSalida').value = h.almSalida || '';
+    document.getElementById('hmAlmRegreso').value= h.almRegreso|| '';
+    document.getElementById('hmSalida').value    = h.salida    || '';
+    document.getElementById('hmObs').value       = h.obs       || '';
+    _hmTardanza = h.tardanza || false;
+    _hmTemprana = h.salidaTemprana || false;
+    updateHmToggles();
+    document.getElementById('horarioModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('hmEntrada').focus(), 100);
+  }
+
+  function closeHorarioModal() {
+    document.getElementById('horarioModal').style.display = 'none';
+  }
+
+  function setAhora(fieldId) {
+    const now  = new Date();
+    const hhmm = now.toTimeString().slice(0,5);
+    document.getElementById(fieldId).value = hhmm;
+    // Auto-detect tardanza on entry time
+    if (fieldId === 'hmEntrada') {
+      _hmTardanza = hhmm > HORA_LIMITE_TARDANZA;
+      updateHmToggles();
+    }
+  }
+
+  function toggleHmTardanza() {
+    _hmTardanza = !_hmTardanza;
+    updateHmToggles();
+  }
+
+  function toggleHmTemprana() {
+    _hmTemprana = !_hmTemprana;
+    document.getElementById('hmPinRow').style.display = _hmTemprana ? 'flex' : 'none';
+    updateHmToggles();
+    if (_hmTemprana) document.getElementById('hmPinInput').focus();
+  }
+
+  function updateHmToggles() {
+    const tardRow   = document.getElementById('hmTardanzaRow');
+    const tardCheck = document.getElementById('hmTardanzaCheck');
+    const tempRow   = document.getElementById('hmTempranaRow');
+    const tempCheck = document.getElementById('hmTempranaCheck');
+
+    tardRow.className   = 'hm-toggle-row' + (_hmTardanza?' active-tardanza':'');
+    tardCheck.className = 'hm-toggle-check' + (_hmTardanza?' checked':'');
+    tempRow.className   = 'hm-toggle-row' + (_hmTemprana?' active-temprana':'');
+    tempCheck.className = 'hm-toggle-check' + (_hmTemprana?' checked':'');
+    document.getElementById('hmTardanzaSub').textContent = _hmTardanza
+      ? '⚠️ Marcada como tardanza'
+      : 'Se detecta automáticamente al registrar entrada';
+  }
+
+  async function saveHorario() {
+    const nombre    = _horarioTarget;
+    const entrada   = document.getElementById('hmEntrada').value;
+    const almSalida = document.getElementById('hmAlmSalida').value;
+    const almRegreso= document.getElementById('hmAlmRegreso').value;
+    const salida    = document.getElementById('hmSalida').value;
+    const obs       = document.getElementById('hmObs').value.trim();
+
+    // Validate PIN if salida temprana
+    if (_hmTemprana) {
+      const pin = document.getElementById('hmPinInput').value.trim();
+      const exp = localStorage.getItem(PIN_KEY) || '';
+      if (!exp) { document.getElementById('hmPinError').textContent='PIN no configurado'; return; }
+      if (pin !== exp) { document.getElementById('hmPinError').textContent='PIN incorrecto'; document.getElementById('hmPinInput').value=''; return; }
+      // Apply salida-temprana status
+      draft[nombre] = 'salida-temprana';
+      const salidas = readLS(SALIDAS_KEY+isoToday(),[]);
+      if (!salidas.find(s=>s.nombre===nombre)) {
+        const hora = salida || new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+        salidas.push({ nombre, hora, autorizadoPor:'PAOLA MORENO', fecha:isoToday() });
+        writeLS(SALIDAS_KEY+isoToday(), salidas);
+        fetch(WEB_APP_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
+          body: JSON.stringify({ action:'saveSalidaTemprana', nombre, hora, autorizadoPor:'PAOLA MORENO', fecha:isoToday() })
+        }).catch(()=>{});
+      }
+    }
+
+    const record = { entrada, almSalida, almRegreso, salida, tardanza:_hmTardanza, salidaTemprana:_hmTemprana, obs, ts:new Date().toISOString() };
+    const horarios = getHorarios();
+    horarios[nombre] = record;
+    saveHorarios(horarios);
+
+    // Sync al backend
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        action: 'saveHorario', fecha: isoToday(), nombre,
+        entrada, almSalida, almRegreso, salida,
+        tardanza: _hmTardanza ? 'SI' : 'NO',
+        salidaTemprana: _hmTemprana ? 'SI' : 'NO',
+        obs
+      })
+    }).catch(()=>{});
+
+    closeHorarioModal();
+    renderAll();
+    const parts = [entrada&&`entrada ${entrada}`, _hmTardanza&&'⚠️ tardanza', almSalida&&`alm ${almSalida}-${almRegreso||'?'}`, salida&&`salida ${salida}`].filter(Boolean);
+    toast(`🕐 ${nombre} — ${parts.join(' · ')||'sin horas'} guardado`, 4000);
+  }
+
   // ── Group Detail Modal ──
   function openGroupModal(groupLabel) {
     const members = STAFF.filter(s => getStaffGroup(s) === groupLabel);
@@ -1439,6 +1727,16 @@
         localOnly.forEach(v => syncVacacionToBackend(v));
       }
 
+      // Horarios del día — cargar desde backend
+      try {
+        const hResp = await fetch(`${WEB_APP_URL}?file=horarios&fecha=${isoToday()}`).then(r=>r.json()).catch(()=>null);
+        if (hResp && typeof hResp === 'object' && !Array.isArray(hResp)) {
+          const existing = getHorarios();
+          // Backend tiene prioridad — merge con local
+          writeLS(HORARIOS_KEY + isoToday(), { ...existing, ...hResp });
+        }
+      } catch(e) {}
+
       // Salidas tempranas del día — backend tiene prioridad
       if (salidasResp && Array.isArray(salidasResp) && salidasResp.length > 0) {
         const todaySal = isoToday();
@@ -1593,7 +1891,7 @@
     el.innerHTML = `
       <div class="sb-icon">${icon}</div>
       <div>
-        <div class="sb-pct" style="color:${color}">${pctFisico}%</div>
+        <div class="sb-pct" style="color:${color};font-size:2rem;font-weight:900;line-height:1;">${pctFisico}%</div>
         <div class="sb-lbl" style="color:${color}">físicos</div>
       </div>
       <div class="sb-text" style="color:${color}">${title}${rutaTxt}</div>`;
@@ -1620,18 +1918,22 @@
         ].map(([v,lbl]) =>
           `<button class="st-btn ${val===v?'active-'+v:''}" data-name="${s.nombre}" data-val="${v}">${lbl}</button>`
         ).join('');
-        const salidaBtn = !getLock().locked
-          ? `<button class="st-btn btn-salida" onclick="openSalidaModal('${s.nombre}')" title="Salida temprana">🚪</button>`
+        // Hora badge — show entry time if registered
+        const horarios = getHorarios();
+        const hreg = horarios[s.nombre];
+        const horaIndicator = hreg?.entrada
+          ? `<span class="hora-badge${hreg.tardanza?' tardanza':''}">🕐 ${hreg.entrada}${hreg.tardanza?' ⚠️':''}</span>`
           : '';
+        const clockBtn = `<button class="st-btn" onclick="openHorarioModal('${s.nombre}')" title="Registro de horario" style="background:#e0f2fe;border-color:#0284c7;color:#0284c7;">🕐</button>`;
         return `<div class="person-row">
           <div class="pr-top">
             <div class="pr-dot s-${val}"></div>
             <div class="pr-info">
-              <span class="person-name">${s.nombre}${salidaBadge}</span>
+              <span class="person-name">${s.nombre}${salidaBadge}${horaIndicator}</span>
               <span class="person-sub"> · ${s.rol||''}</span>
             </div>
           </div>
-          <div class="status-btns">${btns}${salidaBtn}</div>
+          <div class="status-btns">${btns}${clockBtn}</div>
         </div>`;
       }).join('');
       const op = members.filter(s=>['presente','en-ruta'].includes(draft[s.nombre]||'presente')).length;
@@ -1917,13 +2219,20 @@
     if (typeof XLSX==='undefined') { toast('❌ SheetJS no disponible'); return; }
     const hist  = readLS(HISTORY_KEY,{});
     const today = isoToday();
-    const rows  = [['Fecha','Nombre','Grupo','Estado','Operativo','Fotos Lista CSS']];
+    const rows  = [['Fecha','Nombre','Grupo','Estado','Operativo','H.Entrada','Tardanza','Alm.Salida','Alm.Regreso','H.Salida','Observaciones','Fotos']];
     Object.keys(hist).sort().reverse().forEach(fecha => {
       const dd = hist[fecha];
       const nFotos = getPhotos(fecha).length;
+      const hDay = readLS(HORARIOS_KEY+fecha, {});
       STAFF.forEach(s => {
         const st = dd[s.nombre]||'--';
-        rows.push([fecha, s.nombre, getStaffGroup(s), st, (st==='presente'||st==='en-ruta')?'Sí':'No', nFotos]);
+        const hr = hDay[s.nombre]||{};
+        rows.push([
+          fecha, s.nombre, getStaffGroup(s), st,
+          (st==='presente'||st==='en-ruta')?'Sí':'No',
+          hr.entrada||'', hr.tardanza?'SI':'', hr.almSalida||'', hr.almRegreso||'',
+          hr.salida||'', hr.obs||'', nFotos
+        ]);
       });
     });
     const wb = XLSX.utils.book_new();
@@ -1952,6 +2261,10 @@
     document.getElementById('histPinInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmHistLoad(); });
     document.getElementById('histDateInput').addEventListener('change', updateHistInfo);
     document.getElementById('groupModal').addEventListener('click', e => { if(e.target.id==='groupModal') closeGroupModal(); });
+    document.getElementById('horarioModal').addEventListener('click', e => { if(e.target.id==='horarioModal') closeHorarioModal(); });
+    document.getElementById('hmEntrada').addEventListener('change', function() {
+      if (this.value) { _hmTardanza = this.value > HORA_LIMITE_TARDANZA; updateHmToggles(); }
+    });
   });  // ── END DOMContentLoaded ──
 
   // ── Service Worker + Install prompt ──────────────────────
