@@ -807,7 +807,21 @@
           <span>👥 PASE DE LISTA — <span id="fechaLabel">hoy</span></span>
           <span id="conteoLabel" style="font-size:12px;color:var(--muted);">...</span>
         </div>
-        <div class="card-body" id="listaPersonal" style="max-height:58vh;overflow-y:auto;">
+        <!-- Buscador de personal -->
+        <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:#f8fafc;">
+          <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:0 10px;transition:border-color .15s;" id="searchWrap">
+            <span style="font-size:14px;color:var(--muted);">🔍</span>
+            <input id="listaSearch" type="text" placeholder="Buscar persona..." autocomplete="off"
+              style="flex:1;border:none;outline:none;font-size:14px;padding:9px 0;background:transparent;"
+              oninput="onListaSearch(this.value)"
+              onfocus="document.getElementById('searchWrap').style.borderColor='var(--navy)'"
+              onblur="document.getElementById('searchWrap').style.borderColor='var(--border)'" />
+            <button id="searchClear" onclick="clearListaSearch()"
+              style="display:none;background:none;border:none;font-size:16px;color:var(--muted);cursor:pointer;padding:4px;">✕</button>
+          </div>
+          <div id="searchResultCount" style="font-size:11px;color:var(--muted);margin-top:4px;display:none;"></div>
+        </div>
+        <div class="card-body" id="listaPersonal" style="max-height:52vh;overflow-y:auto;">
           <div style="color:var(--muted)">Cargando personal...</div>
         </div>
       </div>
@@ -917,6 +931,7 @@
   let _unlockPurpose = '';
   let _salidaTarget  = '';
   let editingDate    = null;   // null = hoy, string = fecha pasada en edición
+  let _listaSearch   = '';     // búsqueda activa en el pase de lista
 
   // ── Utils ──
   const readLS  = (k,fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
@@ -1311,6 +1326,21 @@
       </div>
       <button class="btn-exit-hist" onclick="exitHistoricalMode()">✕ Volver a hoy</button>
     </div>`;
+  }
+
+  // ── Buscador pase de lista ──
+  function onListaSearch(val) {
+    _listaSearch = val.trim().toLowerCase();
+    document.getElementById('searchClear').style.display = _listaSearch ? 'block' : 'none';
+    renderLista();
+  }
+  function clearListaSearch() {
+    _listaSearch = '';
+    document.getElementById('listaSearch').value = '';
+    document.getElementById('searchClear').style.display = 'none';
+    document.getElementById('searchResultCount').style.display = 'none';
+    document.getElementById('listaSearch').focus();
+    renderLista();
   }
 
   // ── Horario de Asistencia ──
@@ -1931,8 +1961,31 @@
   }
 
   function renderLista() {
+    // Aplicar filtro de búsqueda
+    const q = _listaSearch;
+    const staffFiltered = q
+      ? STAFF.filter(s => {
+          const nom = (s.nombre||s.NOMBRE||'').toLowerCase();
+          const rol = (s.rol||s.ROL||'').toLowerCase();
+          const grp = getStaffGroup(s).toLowerCase();
+          return nom.includes(q) || rol.includes(q) || grp.includes(q);
+        })
+      : STAFF;
+
+    // Update search result count
+    const countEl = document.getElementById('searchResultCount');
+    if (q && countEl) {
+      countEl.style.display = 'block';
+      countEl.textContent = staffFiltered.length === 0
+        ? 'Sin resultados'
+        : `${staffFiltered.length} persona${staffFiltered.length>1?'s':''} encontrada${staffFiltered.length>1?'s':''}`;
+      countEl.style.color = staffFiltered.length === 0 ? 'var(--danger)' : '#0369a1';
+    } else if (countEl) {
+      countEl.style.display = 'none';
+    }
+
     const grouped = {};
-    STAFF.forEach(s => { const g=getStaffGroup(s); if (!grouped[g]) grouped[g]=[]; grouped[g].push(s); });
+    staffFiltered.forEach(s => { const g=getStaffGroup(s); if (!grouped[g]) grouped[g]=[]; grouped[g].push(s); });
     const lock = getLock();
     let totalOp=0, total=0;
     const html = Object.keys(grouped).sort().map(group => {
