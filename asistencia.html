@@ -75,19 +75,21 @@
     .kpi-box {
       background:var(--panel); border-radius:10px;
       border:1px solid var(--border); border-top:4px solid #9ca3af;
-      padding:8px 10px; text-align:center; flex:1; min-width:0;
+      padding:7px 8px; text-align:center; flex:0 0 auto; width:80px;
     }
-    .kpi-box .kv { font-size:1.6rem; font-weight:900; line-height:1; margin-top:2px; }
-    .kpi-box .kl { font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .kpi-box .kv { font-size:1.45rem; font-weight:900; line-height:1; margin-top:2px; }
+    .kpi-box .kl { font-size:9px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
     .sem-badge {
-      flex-shrink:0; width:88px; border-radius:10px; border:1px solid var(--border);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      padding:6px 8px; text-align:center; transition:background .3s;
+      flex:1; border-radius:10px; border:1px solid var(--border);
+      display:flex; align-items:center; gap:10px;
+      padding:8px 14px; transition:background .3s; min-width:0;
     }
-    .sem-badge .sb-pct  { font-size:1.6rem; font-weight:900; line-height:1; }
-    .sem-badge .sb-icon { font-size:1.1rem; }
-    .sem-badge .sb-lbl  { font-size:9px; font-weight:700; text-transform:uppercase; margin-top:2px; opacity:.8; }
-    @media (max-width:700px) { .kpi-row { flex-wrap:wrap; } .kpi-box { min-width:calc(33% - 8px); } }
+    .sem-badge .sb-icon { font-size:1.6rem; flex-shrink:0; }
+    .sem-badge .sb-pct  { font-size:1.7rem; font-weight:900; line-height:1; flex-shrink:0; }
+    .sem-badge .sb-text { font-size:12px; font-weight:700; flex:1; line-height:1.4; min-width:0; }
+    .sem-badge .sb-lbl  { font-size:9px; font-weight:700; text-transform:uppercase; opacity:.8; }
+    @media (max-width:900px) { .kpi-box { width:70px; } .sem-badge .sb-text { display:none; } }
+    @media (max-width:700px) { .kpi-row { flex-wrap:wrap; } .kpi-box { flex:1; min-width:60px; width:auto; } }
 
     /* ── LOCK BANNER — compact 1 line ── */
     .lock-banner {
@@ -109,13 +111,14 @@
       padding:8px 0 4px; border-bottom:1px solid var(--border); margin-bottom:4px;
     }
     .person-row {
-      display:flex; align-items:center; gap:8px;
-      padding:5px 0; border-bottom:1px solid #f3f4f6; min-height:46px;
+      display:flex; flex-direction:column;
+      padding:5px 0; border-bottom:1px solid #f3f4f6; gap:4px;
     }
     .person-row:last-child { border-bottom:none; }
+    .pr-top { display:flex; align-items:center; gap:6px; }
     /* Status indicator dot */
     .pr-dot {
-      width:10px; height:10px; border-radius:50%; flex-shrink:0;
+      width:9px; height:9px; border-radius:50%; flex-shrink:0;
       background:#9ca3af;
     }
     .pr-dot.s-presente    { background:#2e7d32; }
@@ -125,15 +128,15 @@
     .pr-dot.s-vacaciones  { background:#00796b; }
     .pr-dot.s-ausente     { background:#b71c1c; }
     .pr-dot.s-salida-temprana { background:#4a148c; }
-    .person-name { font-weight:800; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .person-sub  { font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pr-info { flex:1; min-width:0; }
-    .status-btns { display:flex; gap:4px; flex-shrink:0; }
+    .person-name { font-weight:800; font-size:13px; }
+    .person-sub  { font-size:10px; color:var(--muted); }
+    .pr-info { flex:1; min-width:0; line-height:1.3; }
+    .status-btns { display:flex; gap:3px; flex-wrap:nowrap; }
     .st-btn {
       border:1.5px solid var(--border); background:#f9fafb;
-      border-radius:7px; padding:6px 8px;
+      border-radius:7px; padding:5px 7px;
       font-size:11px; font-weight:700; cursor:pointer;
-      min-height:36px; white-space:nowrap; transition:all .12s;
+      min-height:34px; white-space:nowrap; transition:all .12s;
       line-height:1;
     }
     .st-btn:active { transform:scale(.95); }
@@ -729,33 +732,44 @@
   };
 
   function normalizeGroup(raw) {
-    const M = {'G1-TABLETAS':'GRUPO 1','GRUPO 1':'GRUPO 1','G2-SOLUCION':'GRUPO 2','GRUPO 2':'GRUPO 2',
-      'G3-JARABE':'GRUPO 3','GRUPO 3':'GRUPO 3','G4-CREMAS':'GRUPO 4-5-11','G5-OVULOS':'GRUPO 4-5-11',
-      'G5-ÓVULOS':'GRUPO 4-5-11','G11-ODONTOLOGIA':'GRUPO 4-5-11','G-11-ODONTOLOGIA':'GRUPO 4-5-11',
-      'GRUPO 4-5-11':'GRUPO 4-5-11','G9-MQ':'MÓDULO','MODULO':'MÓDULO','MÓDULO':'MÓDULO',
-      'FRÍO':'FRÍO','FRIO':'FRÍO','EMPAQUE':'EMPAQUE','URGENCIAS':'URGENCIAS',
-      'VENCIDOS':'VENCIDOS','KARDEX':'KARDEX','DISTRIBUCION':'DISTRIBUCION','DISTRIBUCIÓN':'DISTRIBUCION'};
+    const M = {
+      'G1-TABLETAS':'GRUPO 1',    'GRUPO 1':'GRUPO 1',
+      'G2-SOLUCION':'GRUPO 2',    'GRUPO 2':'GRUPO 2',
+      'G3-JARABE':'GRUPO 3',      'GRUPO 3':'GRUPO 3',
+      'G4-CREMAS':'GRUPO 4-5-11','G5-OVULOS':'GRUPO 4-5-11',
+      'G5-ÓVULOS':'GRUPO 4-5-11','G11-ODONTOLOGIA':'GRUPO 4-5-11',
+      'G-11-ODONTOLOGIA':'GRUPO 4-5-11','GRUPO 4-5-11':'GRUPO 4-5-11',
+      'G9-MQ':'MQ','G10-MQ':'MQ','G12-RADIOLOGIA':'MQ','MQ':'MQ',
+      'G13-LABORATORIO':'LABORATORIO','G14-LABORATORIO':'LABORATORIO',
+      'G15-LABORATORIO':'LABORATORIO','LABORATORIO':'LABORATORIO',
+      'G13-LAB':'LABORATORIO','G14-LAB':'LABORATORIO','G15-LAB':'LABORATORIO',
+      'MÓDULO':'MÓDULO','MODULO':'MÓDULO',
+      'FRÍO':'FRÍO','FRIO':'FRÍO',
+      'URGENCIAS':'URGENCIAS','EMPAQUE':'EMPAQUE',
+      'VENCIDOS':'VENCIDOS','DISTRIBUCION':'DISTRIBUCIÓN','DISTRIBUCIÓN':'DISTRIBUCIÓN',
+    };
     if (!raw) return 'SIN GRUPO';
-    return M[String(raw).toUpperCase().trim()] || raw;
+    return M[String(raw).toUpperCase().trim()] || String(raw).trim();
   }
   function getStaffGroup(s) {
-    // Nueva taxonomía: usar AREA_OPERATIVA si viene del backend actualizado
-    const area = s.AREA_OPERATIVA || s.area_operativa;
-    if (area && area.trim()) return area.trim().toUpperCase();
-    // Fallback — derivar del ROL para personas sin AREA_OPERATIVA aún
-    const rol = String(s.rol || '').toUpperCase();
-    if (rol.includes('MODULADOR') || rol.includes('MÓDULO'))  return 'MÓDULO';
-    if (rol.includes('URGENCIA'))                              return 'URGENCIAS';
-    if (rol.includes('EMPAQUE'))                              return 'EMPAQUE';
-    if (rol.includes('DISTRIBUCION') || rol.includes('DISTRIBUCIÓN')) return 'DISTRIBUCIÓN';
-    if (rol.includes('VENCIDOS'))                             return 'VENCIDOS';
-    if (rol.includes('JEFE') || rol.includes('DIRECTOR') || rol.includes('SUB-JEFE') || rol.includes('KARDEX') || rol.includes('FACTURACIÓN')) return 'GESTIÓN';
-    if (rol.includes('SECRETARIA') || rol.includes('MENSAJERA')) return 'GESTIÓN';
-    // Fallback por grupo de producto
-    const grpFallback = s.grupos || s.GRUPOS || '';
-    const grpArr = Array.isArray(grpFallback) ? grpFallback : String(grpFallback).split(',').map(g=>g.trim()).filter(Boolean);
+    const func = getStaffFuncion(s);
+    // Soporte y gestión → agrupar por función
+    if (func==='SUPERVISIÓN' || func==='FACTURACIÓN')         return 'JEFATURA';
+    if (func==='SOPORTE ADMIN')                               return 'ADMINISTRATIVO';
+    if (func.includes('MODULO') || func.includes('MÓDULO'))   return 'MÓDULO';
+    if (func==='EMPAQUE')                                     return 'EMPAQUE';
+    if (func.includes('DISTRIBUC'))                           return 'DISTRIBUCIÓN';
+    if (func==='VENCIDOS')                                    return 'VENCIDOS';
+    if (func==='RECEPCIÓN')                                   return 'RECEPCIÓN';
+    // Pickers y Urgencias → agrupar por primer grupo de producto
+    const grpsRaw = s.grupos || s.GRUPOS || '';
+    const grpArr  = Array.isArray(grpsRaw) ? grpsRaw : String(grpsRaw).split(',').map(g=>g.trim()).filter(Boolean);
     if (grpArr.length) return normalizeGroup(grpArr[0]);
-    return s.rol || 'SIN ÁREA';
+    // Fallback por ROL
+    const rol = String(s.rol||'').toUpperCase();
+    if (rol.includes('DIRECTOR')||rol.includes('JEFE')||rol.includes('SUB-JEFE')) return 'JEFATURA';
+    if (rol.includes('SECRETARIA')||rol.includes('MENSAJERA')) return 'ADMINISTRATIVO';
+    return s.rol || 'SIN GRUPO';
   }
 
   // Función para obtener la función Kanban del staff
@@ -1443,17 +1457,21 @@
     const el = document.getElementById('semaforoEl');
     let icon, bg, color, title;
     if (pctFisico >= 80) {
-      icon='🟢'; bg='#dcfce7'; color='#166534'; title=`${fisicos}/${total} en almacén`;
+      icon='🟢'; bg='#dcfce7'; color='#166534'; title=`Capacidad NORMAL — ${fisicos} de ${total} físicamente en almacén`;
     } else if (pctFisico >= 60) {
-      icon='🟡'; bg='#fef9c3'; color='#713f12'; title=`${fisicos}/${total} en almacén`;
+      icon='🟡'; bg='#fef9c3'; color='#713f12'; title=`Capacidad REDUCIDA — ${fisicos}/${total} en almacén`;
     } else {
-      icon='🔴'; bg='#fee2e2'; color='#7f1d1d'; title=`ALERTA — solo ${fisicos}`;
+      icon='🔴'; bg='#fee2e2'; color='#7f1d1d'; title=`ALERTA — solo ${fisicos} de ${total} en almacén`;
     }
     el.style.background = bg; el.style.color = color;
-    el.title = title + (enRuta > 0 ? ` · ${enRuta} en ruta` : '');
-    el.innerHTML = `<div class="sb-icon">${icon}</div>
-      <div class="sb-pct" style="color:${color}">${pctFisico}%</div>
-      <div class="sb-lbl" style="color:${color}">físicos</div>`;
+    const rutaTxt = enRuta > 0 ? ` · ${enRuta} en ruta` : '';
+    el.innerHTML = `
+      <div class="sb-icon">${icon}</div>
+      <div>
+        <div class="sb-pct" style="color:${color}">${pctFisico}%</div>
+        <div class="sb-lbl" style="color:${color}">físicos</div>
+      </div>
+      <div class="sb-text" style="color:${color}">${title}${rutaTxt}</div>`;
   }
 
   function renderLista() {
@@ -1481,10 +1499,12 @@
           ? `<button class="st-btn btn-salida" onclick="openSalidaModal('${s.nombre}')" title="Salida temprana">🚪</button>`
           : '';
         return `<div class="person-row">
-          <div class="pr-dot s-${val}"></div>
-          <div class="pr-info">
-            <div class="person-name">${s.nombre}${salidaBadge}</div>
-            <div class="person-sub">${s.rol||''}${getStaffFuncion(s)?' · '+getStaffFuncion(s):''}</div>
+          <div class="pr-top">
+            <div class="pr-dot s-${val}"></div>
+            <div class="pr-info">
+              <span class="person-name">${s.nombre}${salidaBadge}</span>
+              <span class="person-sub"> · ${s.rol||''}</span>
+            </div>
           </div>
           <div class="status-btns">${btns}${salidaBtn}</div>
         </div>`;
@@ -1516,144 +1536,68 @@
   }
 
   function renderGroupCap() {
-    // Map groups by AREA_OPERATIVA and also track product subgroups for MED/MQ/LAB
-    const byArea  = {};
-    const byGroup = {}; // product group level
-
+    // Group by getStaffGroup: pickers → product group, support → function card
+    const grouped = {};
     STAFF.forEach(s => {
-      const area  = getStaffGroup(s);
-      const grpsRaw = s.grupos || s.GRUPOS || '';
-      const grps = (Array.isArray(grpsRaw) ? grpsRaw : String(grpsRaw).split(',')).map(g=>g.trim()).filter(Boolean);
-      const func  = getStaffFuncion(s);
-      const st    = draft[s.nombre]||'presente';
-      const pres  = st==='presente';
-      const ruta  = st==='en-ruta';
-      const isPicker = func==='PICKING'||func==='PICKING-URG';
-      const isMod    = func.includes('MODULO')||func.includes('MÓDULO');
-      const isMgmt   = func==='SUPERVISIÓN'||func==='SOPORTE ADMIN'||func==='FACTURACIÓN';
-
-      if (!byArea[area]) byArea[area]={total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
-      byArea[area].total++;
-      if (ruta)         byArea[area].enRuta++;
-      else if (pres) {
-        byArea[area].presentes++;
-        if (isPicker)   byArea[area].pickers++;
-        else if(isMod)  byArea[area].modulo++;
-        else            byArea[area].gestion++;
-      }
-
-      // Track product subgroups (for MED / MQ / LAB breakdown)
-      grps.forEach(g => {
-        if (!byGroup[g]) byGroup[g]={area,total:0,presentes:0,enRuta:0};
-        byGroup[g].total++;
-        if (ruta) byGroup[g].enRuta++;
-        else if (pres) byGroup[g].presentes++;
-      });
+      const g = getStaffGroup(s);
+      if (!grouped[g]) grouped[g] = { total:0, presentes:0, enRuta:0 };
+      grouped[g].total++;
+      const st = draft[s.nombre] || 'presente';
+      if (st === 'en-ruta')    grouped[g].enRuta++;
+      else if (st === 'presente') grouped[g].presentes++;
     });
 
-    function cardHtml(label, d, bColor, wide=false, subrows=[]) {
+    function card(label, d, bColor) {
       const phys  = d.presentes;
-      const pct   = d.total>0?Math.round(phys/d.total*100):0;
+      const pct   = d.total > 0 ? Math.round(phys / d.total * 100) : 0;
       const color = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
-      const notes = [
-        d.pickers>0?`${d.pickers}p`:''  ,
-        d.modulo >0?`${d.modulo}m`:''   ,
-        d.enRuta >0?`🚚${d.enRuta}`:''  ,
-        d.gestion>0?`${d.gestion}g`:''  ,
-      ].filter(Boolean).join(' ');
-      const srHtml = subrows.map(sr=>{
-        const sp = sr.total>0?Math.round(sr.presentes/sr.total*100):0;
-        const sc = sp>=80?'var(--ok)':sp>=60?'#f59e0b':'var(--danger)';
-        return `<div class="gc-subrow">
-          <span class="gcsr-name">${sr.label}</span>
-          <div class="gcsr-bar"><div class="gcsr-fill" style="width:${sp}%;background:${sc}"></div></div>
-          <span class="gcsr-pct" style="color:${sc}">${sp}%</span>
-        </div>`;
-      }).join('');
-      return `<div class="group-cap-card${wide?' gc-wide':''}" style="border-left-color:${bColor}">
+      const ruta  = d.enRuta > 0 ? `<div style="font-size:10px;color:#1565c0;margin-top:1px;">+${d.enRuta} en ruta</div>` : '';
+      return `<div class="group-cap-card" style="border-left-color:${bColor}">
         <div class="gc-name">${label}</div>
         <div class="gc-ratio" style="color:${color}">${pct}%</div>
-        <div class="gc-sub">${phys}/${d.total}${notes?' <span style="opacity:.65">· '+notes+'</span>':''}</div>
+        <div class="gc-sub">${phys}/${d.total} presentes</div>
+        ${ruta}
         <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${color}"></div></div>
-        ${srHtml?`<div class="gc-subrows">${srHtml}</div>`:''}
       </div>`;
     }
 
-    function grpData(gName) {
-      return byGroup[gName]||{area:'',total:0,presentes:0,enRuta:0};
-    }
-    function mergeAreas(...areas) {
-      const r={total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
-      areas.forEach(a=>{ const d=byArea[a]||{}; Object.keys(r).forEach(k=>r[k]+=(d[k]||0)); });
+    function merge(...keys) {
+      const r = { total:0, presentes:0, enRuta:0 };
+      keys.forEach(k => { const d=grouped[k]; if(d){ r.total+=d.total; r.presentes+=d.presentes; r.enRuta+=d.enRuta; } });
       return r;
     }
 
     let html = '';
 
-    // ── MEDICAMENTOS (wide card with G subrows) ──
-    if (byArea['MEDICAMENTOS']) {
-      const medSubs = [
-        { label:'G1-Tabletas',    ...grpData('G1-TABLETAS') },
-        { label:'G2-Solución',    ...(() =>{ const a=grpData('G2-SOLUCION'); return a; })() },
-        { label:'G3-Jarabe',      ...grpData('G3-JARABE') },
-        { label:'G4-5-11',        ...(() =>{ const a={total:0,presentes:0,enRuta:0}; ['G4-CREMAS','G5-ÓVULOS','G5-OVULOS','G-11-ODONTOLOGIA','G11-ODONTOLOGIA'].forEach(g=>{const d=byGroup[g];if(d){a.total+=d.total;a.presentes+=d.presentes;a.enRuta+=d.enRuta;}}); return a; })() },
-      ].filter(s=>s.total>0);
-      html += cardHtml('MEDICAMENTOS', byArea['MEDICAMENTOS'], '#1565C0', true, medSubs);
-    }
+    // ── PICKERS por grupo de producto ──────────────────────
+    const ORDER_PICK = ['GRUPO 1','GRUPO 2','GRUPO 3','GRUPO 4-5-11','MQ','LABORATORIO','URGENCIAS'];
+    const COLORS_PICK = {
+      'GRUPO 1':'#1565C0','GRUPO 2':'#2E7D32','GRUPO 3':'#6A1B9A',
+      'GRUPO 4-5-11':'#E65100','MQ':'#7B1FA2','LABORATORIO':'#2E7D32',
+      'URGENCIAS':'#B71C1C',
+    };
+    ORDER_PICK.forEach(g => {
+      if (grouped[g]) html += card(g, grouped[g], COLORS_PICK[g]||'#9ca3af');
+    });
 
-    // ── MQ ──
-    if (byArea['MQ']) {
-      const mqSubs = [
-        { label:'G9-10-12 MQ', ...(() =>{ const a={total:0,presentes:0,enRuta:0}; ['G9-MQ','G10-MQ','G12-RADIOLOGIA'].forEach(g=>{const d=byGroup[g];if(d){a.total+=d.total;a.presentes+=d.presentes;a.enRuta+=d.enRuta;}}); return a; })() },
-        byArea['MQ'].modulo>0?{label:'Módulo',total:byArea['MQ'].modulo,presentes:byArea['MQ'].modulo,enRuta:0}:null,
-      ].filter(Boolean).filter(s=>s.total>0);
-      html += cardHtml('MQ', byArea['MQ'], '#6A1B9A', false, mqSubs);
-    }
+    // ── SOPORTE OPERATIVO ──────────────────────────────────
+    if (grouped['MÓDULO'])       html += card('MÓDULO', grouped['MÓDULO'], '#37474F');
+    if (grouped['EMPAQUE'])      html += card('EMPAQUE', grouped['EMPAQUE'], '#E65100');
+    if (grouped['DISTRIBUCIÓN']) html += card('DISTRIBUCIÓN', grouped['DISTRIBUCIÓN'], '#00796B');
+    if (grouped['VENCIDOS'])     html += card('VENCIDOS', grouped['VENCIDOS'], '#558B2F');
 
-    // ── LABORATORIO ──
-    if (byArea['LABORATORIO']) {
-      html += cardHtml('LABORATORIO', byArea['LABORATORIO'], '#2E7D32');
-    }
+    // Recepción — fusionar variantes (RECEPCIÓN MEDICAMENTOS, RECEPCIÓN MQ, etc.)
+    const recKeys = Object.keys(grouped).filter(k => k.includes('RECEPCIÓN') || k === 'RECEPCIÓN');
+    if (recKeys.length) html += card('RECEPCIÓN', merge(...recKeys), '#4A148C');
 
-    // ── URGENCIAS ──
-    if (byArea['URGENCIAS']) {
-      html += cardHtml('URGENCIAS', byArea['URGENCIAS'], '#B71C1C');
-    }
+    // ── GESTIÓN ────────────────────────────────────────────
+    if (grouped['JEFATURA'])     html += card('JEFATURA', grouped['JEFATURA'], '#0B1F3A');
+    if (grouped['ADMINISTRATIVO']) html += card('ADMIN', grouped['ADMINISTRATIVO'], '#607D8B');
 
-    // ── EMPAQUE + DISTRIBUCIÓN ──
-    if (byArea['EMPAQUE']) html += cardHtml('EMPAQUE', byArea['EMPAQUE'], '#E65100');
-    if (byArea['DISTRIBUCIÓN']) html += cardHtml('DISTRIBUCIÓN', byArea['DISTRIBUCIÓN'], '#00796B');
-    if (byArea['VENCIDOS']) html += cardHtml('VENCIDOS', byArea['VENCIDOS'], '#558B2F');
-
-    // ── RECEPCIÓN (any variant) ──
-    const recAreas = Object.keys(byArea).filter(a=>a.includes('RECEPCIÓN'));
-    if (recAreas.length) {
-      const recD = mergeAreas(...recAreas);
-      html += cardHtml('RECEPCIÓN', recD, '#4A148C');
-    }
-
-    // ── GESTIÓN — split: JEFATURA vs SOPORTE ──
-    if (byArea['GESTIÓN']) {
-      const jefes = {total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
-      const soporte = {total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
-      STAFF.filter(s=>getStaffGroup(s)==='GESTIÓN').forEach(s=>{
-        const func = getStaffFuncion(s);
-        const st   = draft[s.nombre]||'presente';
-        const pres = st==='presente'; const ruta=st==='en-ruta';
-        const isJefe = func==='SUPERVISIÓN'||func==='FACTURACIÓN';
-        const bucket = isJefe ? jefes : soporte;
-        bucket.total++;
-        if(ruta) bucket.enRuta++;
-        else if(pres){ bucket.presentes++; bucket.gestion++; }
-      });
-      if (jefes.total)   html += cardHtml('JEFATURA', jefes, '#37474F');
-      if (soporte.total) html += cardHtml('SOPORTE ADMIN', soporte, '#607D8B');
-    }
-
-    // ── any remaining areas not covered ──
-    const covered = ['MEDICAMENTOS','MQ','LABORATORIO','URGENCIAS','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','GESTIÓN',...Object.keys(byArea).filter(a=>a.includes('RECEPCIÓN'))];
-    Object.keys(byArea).filter(a=>!covered.includes(a)).forEach(a=>{
-      html += cardHtml(a, byArea[a], GROUP_COLORS[a]||'#9ca3af');
+    // Cualquier grupo no cubierto
+    const known = [...ORDER_PICK,'MÓDULO','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','JEFATURA','ADMINISTRATIVO',...recKeys];
+    Object.keys(grouped).filter(g=>!known.includes(g)).forEach(g=>{
+      html += card(g, grouped[g], '#9ca3af');
     });
 
     document.getElementById('groupCapGrid').innerHTML = html||'<div style="color:var(--muted)">Sin grupos.</div>';
