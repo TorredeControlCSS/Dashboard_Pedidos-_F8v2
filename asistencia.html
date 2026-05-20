@@ -255,15 +255,108 @@
     .pin-confirm { background: var(--navy); color:#fff; border:none; border-radius:10px; padding:13px 32px; font-size:15px; font-weight:800; cursor:pointer; margin-top:16px; width:100%; min-height:var(--touch); }
 
     /* ── PHOTO LIGHTBOX ── */
-    #lightbox { position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:600; }
-    #lightbox img { max-width:95vw; max-height:92vh; border-radius:10px; }
-    #lightbox button { position:absolute; top:16px; right:16px; background:#fff; border:none; border-radius:50%; width:40px; height:40px; font-size:18px; cursor:pointer; }
+    #lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,.92);
+      display: none; align-items: center; justify-content: center;
+      z-index: 600; flex-direction: column; gap: 12px; padding: 16px;
+    }
+    #lightbox img {
+      max-width: 95vw; max-height: 82vh;
+      border-radius: 10px; object-fit: contain;
+      box-shadow: 0 4px 32px rgba(0,0,0,.5);
+    }
+    #lightbox .lb-toolbar {
+      display: flex; gap: 10px; align-items: center;
+    }
+    #lightbox .lb-label {
+      color: #fff; font-size: 14px; font-weight: 700;
+    }
+    #lightbox .lb-close {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+      color: #fff; border-radius: 50%; width: 44px; height: 44px;
+      font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    #lightbox .lb-drive {
+      background: #0277bd; border: none; color: #fff;
+      border-radius: 10px; padding: 10px 16px; font-size: 13px;
+      font-weight: 700; cursor: pointer; text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #lightbox .lb-spinner {
+      color: #fff; font-size: 14px;
+    }
+    /* Thumbnail hover effect */
+    .foto-thumb {
+      transition: transform .15s, box-shadow .15s;
+    }
+    .foto-thumb:active { transform: scale(.97); }
+    .foto-item-wrap {
+      position: relative; width: 80px; height: 60px; flex-shrink: 0;
+    }
+    .foto-thumb {
+      width: 80px; height: 60px; object-fit: cover;
+      border-radius: 6px; cursor: zoom-in; display: block;
+    }
+    .foto-zoom-icon {
+      position: absolute; bottom: 3px; right: 3px;
+      background: rgba(0,0,0,.55); color: #fff; border-radius: 4px;
+      font-size: 11px; padding: 2px 4px; pointer-events: none;
+    }
 
     /* ── SPINNER ── */
     #loadOverlay { position:fixed; inset:0; background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; color:#fff; gap:18px; }
     .spinner { width:48px; height:48px; border:5px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; border-radius:999px; padding:10px 20px; font-size:14px; display:none; z-index:200; white-space:nowrap; max-width:90vw; text-align:center; }
+
+    /* ── SALIDA TEMPRANA ── */
+    .st-btn.active-salida-temprana { background:#4a148c; border-color:#4a148c; color:#fff; }
+    .salida-badge { display:inline-block; background:#4a148c22; color:#4a148c; border:1px solid #4a148c44; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:6px; }
+    .btn-salida { background:#f3e5f5; color:#4a148c; border:1px solid #ce93d8; border-radius:8px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; min-height:38px; }
+
+    /* ── VACACIONES PROGRAMADAS ── */
+    .vac-panel { background:var(--panel); border-radius:14px; border:1px solid var(--border); overflow:hidden; margin-top:14px; }
+    .vac-panel .vp-head { padding:13px 16px; font-weight:800; font-size:14px; border-bottom:1px solid var(--border); background:#f0fdf4; display:flex; justify-content:space-between; align-items:center; }
+    .vac-panel .vp-body { padding:14px 16px; }
+    .btn-add-vac { background:#2e7d32; color:#fff; border:none; border-radius:10px; padding:9px 14px; font-size:13px; font-weight:700; cursor:pointer; min-height:44px; }
+    .vac-entry { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; margin-bottom:8px; border:1px solid var(--border); background:#f8fafc; flex-wrap:wrap; }
+    .vac-entry.vac-active   { background:#f0fdf4; border-color:#86efac; }
+    .vac-entry.vac-upcoming { background:#eff6ff; border-color:#93c5fd; }
+    .vac-entry.vac-past     { background:#f9fafb; opacity:.55; }
+    .vac-name  { font-weight:800; font-size:14px; flex:1; min-width:120px; }
+    .vac-dates { font-size:12px; color:var(--muted); }
+    .vac-tag { border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .vac-tag.active  { background:#bbf7d0; color:#166534; }
+    .vac-tag.upcoming{ background:#dbeafe; color:#1e40af; }
+    .vac-tag.past    { background:#e5e7eb; color:#6b7280; }
+    .vac-del { background:#fee2e2; color:#7f1d1d; border:none; border-radius:8px; padding:7px 11px; font-size:13px; font-weight:700; cursor:pointer; }
+    .vac-upcoming-alert { background:#fef9c3; border:1px solid #fde68a; border-radius:10px; padding:10px 14px; font-size:13px; color:#713f12; margin-bottom:10px; }
+
+    /* ── MODAL VACACIONES ── */
+    #vacModal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:501; }
+    #vacModal .vac-box { background:#fff; border-radius:16px; padding:28px; max-width:420px; width:94%; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+    #vacModal h3 { margin:0 0 18px; color:var(--navy); font-size:17px; }
+    .vac-field { margin-bottom:14px; }
+    .vac-field label { display:block; font-size:13px; font-weight:700; margin-bottom:5px; color:var(--muted); }
+    .vac-field select,.vac-field input[type=date],.vac-field input[type=text] { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:11px 12px; font-size:15px; outline:none; min-height:var(--touch); }
+    .vac-field select:focus,.vac-field input:focus { border-color:var(--navy); }
+    .vac-modal-btns { display:flex; gap:10px; margin-top:20px; }
+    .btn-vac-save { flex:1; background:var(--navy); color:#fff; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:800; cursor:pointer; }
+    .btn-vac-cancel { background:#f3f4f6; color:var(--text); border:none; border-radius:10px; padding:13px 20px; font-size:14px; font-weight:700; cursor:pointer; }
+
+    /* ── MODAL SALIDA TEMPRANA ── */
+    #salidaModal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:501; }
+    #salidaModal .sal-box { background:#fff; border-radius:16px; padding:28px; max-width:380px; width:94%; box-shadow:0 12px 40px rgba(0,0,0,.25); text-align:center; }
+    #salidaModal h3 { margin:0 0 6px; color:#4a148c; font-size:17px; }
+    #salidaModal p  { font-size:14px; color:var(--muted); margin:0 0 18px; }
+    #salidaPinInput { width:130px; font-size:2rem; text-align:center; letter-spacing:8px; border:2px solid #e5e7eb; border-radius:10px; padding:10px; outline:none; }
+    #salidaPinInput:focus { border-color:#4a148c; }
+    #salidaPinError { color:var(--danger); font-size:13px; min-height:20px; margin:8px 0 0; }
+    .btn-sal-confirm { background:#4a148c; color:#fff; border:none; border-radius:10px; padding:13px 28px; font-size:15px; font-weight:800; cursor:pointer; margin-top:14px; width:100%; min-height:var(--touch); }
+
+    /* ── REFRESH BTN ── */
+    .btn-refresh { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:#fff; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; cursor:pointer; min-height:48px; display:flex; align-items:center; gap:6px; }
+    .btn-refresh.spinning .rf-icon { display:inline-block; animation:spin .6s linear infinite; }
   </style>
 </head>
 <body>
@@ -275,9 +368,16 @@
 <div id="toast"></div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" onclick="closeLightbox()">
-  <img id="lightboxImg" src="" alt="" />
-  <button onclick="closeLightbox()">✕</button>
+<div id="lightbox" onclick="handleLightboxClick(event)">
+  <div class="lb-toolbar">
+    <span class="lb-label" id="lbLabel"></span>
+    <a class="lb-drive" id="lbDriveBtn" href="#" target="_blank" style="display:none;">
+      🔗 Ver en Drive
+    </a>
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+  </div>
+  <div id="lbSpinner" class="lb-spinner" style="display:none;">⏳ Cargando imagen...</div>
+  <img id="lightboxImg" src="" alt="" style="display:none;" onload="onLightboxLoad()" onerror="onLightboxError()" />
 </div>
 
 <!-- PIN MODAL -->
@@ -302,9 +402,54 @@
     <p id="clockBar">CEDIS PANAMÁ · Torre de Control</p>
   </div>
   <a class="btn-back" href="index.html">← Kanban</a>
+  <button id="refreshBtn" class="btn-refresh" onclick="refreshData()">
+    <span class="rf-icon">🔄</span> Actualizar
+  </button>
   <button id="installBtn" onclick="installApp()" style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;align-items:center;gap:6px;min-height:48px;">
     📲 Instalar App
   </button>
+</div>
+
+<!-- MODAL VACACIONES -->
+<div id="vacModal">
+  <div class="vac-box">
+    <h3>🏖️ Registrar Vacaciones</h3>
+    <div class="vac-field">
+      <label>Persona</label>
+      <select id="vacPersona"></select>
+    </div>
+    <div class="vac-field">
+      <label>Fecha de inicio</label>
+      <input type="date" id="vacDesde" />
+    </div>
+    <div class="vac-field">
+      <label>Fecha de regreso</label>
+      <input type="date" id="vacHasta" />
+    </div>
+    <div class="vac-field">
+      <label>Notas (opcional)</label>
+      <input type="text" id="vacNotas" placeholder="ej: vacaciones anuales, permiso aprobado..." />
+    </div>
+    <div class="vac-modal-btns">
+      <button class="btn-vac-cancel" onclick="closeVacModal()">Cancelar</button>
+      <button class="btn-vac-save" onclick="saveVacacion()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SALIDA TEMPRANA -->
+<div id="salidaModal">
+  <div class="sal-box">
+    <div style="font-size:2rem;margin-bottom:8px">🚪</div>
+    <h3>Autorizar Salida Temprana</h3>
+    <p id="salidaPersonaLabel">Persona seleccionada</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Ingresa el PIN de Jefatura para autorizar</p>
+    <input id="salidaPinInput" type="password" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" />
+    <div id="salidaPinError"></div>
+    <button class="btn-sal-confirm" onclick="confirmSalidaTemprana()">Autorizar salida</button>
+    <br/>
+    <button onclick="closeSalidaModal()" style="margin-top:12px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:8px;">Cancelar</button>
+  </div>
 </div>
 
 <div class="wrap">
@@ -381,6 +526,17 @@
           <button class="btn-save" onclick="guardarAsistencia()">💾 Guardar</button>
         </div>
       </div>
+
+      <!-- PANEL VACACIONES PROGRAMADAS -->
+      <div class="vac-panel">
+        <div class="vp-head">
+          <span>🏖️ Vacaciones Programadas</span>
+          <button class="btn-add-vac" onclick="openVacModal()">+ Agregar</button>
+        </div>
+        <div class="vp-body" id="vacBody">
+          <div style="color:var(--muted);font-size:13px;">Sin vacaciones registradas.</div>
+        </div>
+      </div>
     </div>
 
     <!-- ══ COLUMNA DERECHA ══ -->
@@ -432,7 +588,9 @@
   const HISTORY_KEY     = 'historial_asistencia';
   const LOCK_KEY        = 'asistencia_lock_v1';
   const PIN_KEY         = 'jefatura_pin';
-  const PHOTOS_KEY      = 'asistencia_fotos_';   // + isoToday()
+  const PHOTOS_KEY      = 'asistencia_fotos_';
+  const VAC_KEY         = 'vacaciones_programadas';
+  const SALIDAS_KEY     = 'salidas_tempranas_';    // + isoToday()
   const CUTOFF_H = 7, CUTOFF_M = 45;
 
   const GROUP_COLORS = {
@@ -445,6 +603,7 @@
   let STAFF = [];
   let draft = {};
   let _unlockPurpose = '';
+  let _salidaTarget  = '';
 
   // ── Utils ──
   const readLS  = (k,fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
@@ -485,6 +644,111 @@
   // ── Photos (multi) ──
   function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
   function savePhotos(photos, date=isoToday()) { try { writeLS(PHOTOS_KEY+date,photos); return true; } catch(e){ return false; } }
+
+  // ── Vacaciones ──
+  function getVacaciones() { return readLS(VAC_KEY, []); }
+  function saveVacaciones(arr) { writeLS(VAC_KEY, arr); }
+  function getVacStatusForDate(v, fecha=isoToday()) {
+    if (fecha < v.desde) return 'upcoming';
+    if (fecha > v.hasta) return 'past';
+    return 'active';
+  }
+  function aplicarVacacionesAutomaticas() {
+    const today = isoToday();
+    getVacaciones().forEach(v => {
+      if (today >= v.desde && today <= v.hasta && draft[v.nombre] !== undefined) {
+        draft[v.nombre] = 'vacaciones';
+      }
+    });
+  }
+  function openVacModal() {
+    const sel = document.getElementById('vacPersona');
+    sel.innerHTML = STAFF.map(s=>`<option value="${s.nombre}">${s.nombre} — ${getStaffGroup(s)}</option>`).join('');
+    const today = isoToday();
+    document.getElementById('vacDesde').value = today;
+    document.getElementById('vacHasta').value = today;
+    document.getElementById('vacNotas').value  = '';
+    document.getElementById('vacModal').style.display = 'flex';
+  }
+  function closeVacModal() { document.getElementById('vacModal').style.display = 'none'; }
+  function saveVacacion() {
+    const nombre = document.getElementById('vacPersona').value;
+    const desde  = document.getElementById('vacDesde').value;
+    const hasta  = document.getElementById('vacHasta').value;
+    const notas  = document.getElementById('vacNotas').value.trim();
+    if (!nombre||!desde||!hasta) { toast('⚠️ Completa todos los campos',3000); return; }
+    if (desde>hasta) { toast('⚠️ Fecha inicio no puede ser mayor al regreso',3000); return; }
+    const arr = getVacaciones();
+    arr.push({ id: Date.now().toString(36), nombre, desde, hasta, notas, creadoEn: isoToday() });
+    saveVacaciones(arr);
+    aplicarVacacionesAutomaticas();
+    renderAll(); renderVacPanel(); closeVacModal();
+    const dias = Math.round((new Date(hasta)-new Date(desde))/(86400000))+1;
+    toast(`🏖️ ${nombre} · ${dias} día(s) del ${desde} al ${hasta}`, 5000);
+  }
+  function deleteVacacion(id) {
+    if (!confirm('¿Eliminar este registro de vacaciones?')) return;
+    saveVacaciones(getVacaciones().filter(v=>v.id!==id));
+    aplicarVacacionesAutomaticas();
+    renderAll(); renderVacPanel();
+  }
+  function renderVacPanel() {
+    const today = isoToday();
+    const arr   = getVacaciones().sort((a,b)=>a.desde.localeCompare(b.desde));
+    const el    = document.getElementById('vacBody');
+    if (!el) return;
+    if (!arr.length) { el.innerHTML='<div style="color:var(--muted);font-size:13px;">Sin vacaciones registradas.</div>'; return; }
+    const soon = arr.filter(v=>{ const d=(new Date(v.desde)-new Date(today))/86400000; return d>0&&d<=3; });
+    let html = '';
+    if (soon.length) html+=`<div class="vac-upcoming-alert">⚠️ Próximas en 3 días: ${soon.map(v=>`<strong>${v.nombre}</strong> (${v.desde})`).join(', ')}</div>`;
+    const labels = { active:'🏖️ En vacaciones', upcoming:'📅 Próximamente', past:'✓ Completadas' };
+    arr.forEach(v=>{
+      const status = getVacStatusForDate(v,today);
+      const dias   = Math.round((new Date(v.hasta)-new Date(v.desde))/86400000)+1;
+      html+=`<div class="vac-entry vac-${status}">
+        <div style="flex:1;min-width:0">
+          <div class="vac-name">${v.nombre}</div>
+          <div class="vac-dates">Del ${v.desde} al ${v.hasta} · ${dias} día(s)${v.notas?' · '+v.notas:''}</div>
+        </div>
+        <span class="vac-tag ${status}">${labels[status]}</span>
+        <button class="vac-del" onclick="deleteVacacion('${v.id}')">🗑️</button>
+      </div>`;
+    });
+    el.innerHTML = html;
+  }
+
+  // ── Salida Temprana ──
+  function openSalidaModal(nombre) {
+    _salidaTarget = nombre;
+    document.getElementById('salidaPersonaLabel').textContent = `Persona: ${nombre}`;
+    document.getElementById('salidaPinInput').value = '';
+    document.getElementById('salidaPinError').textContent = '';
+    document.getElementById('salidaModal').style.display = 'flex';
+    setTimeout(()=>document.getElementById('salidaPinInput').focus(),50);
+  }
+  function closeSalidaModal() { document.getElementById('salidaModal').style.display='none'; }
+  function confirmSalidaTemprana() {
+    const pin = document.getElementById('salidaPinInput').value.trim();
+    const exp = localStorage.getItem(PIN_KEY)||'';
+    if (!exp) { document.getElementById('salidaPinError').textContent='PIN no configurado — configúralo en el Kanban'; return; }
+    if (pin!==exp) { document.getElementById('salidaPinError').textContent='PIN incorrecto'; document.getElementById('salidaPinInput').value=''; document.getElementById('salidaPinInput').focus(); return; }
+    const hora = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+    draft[_salidaTarget] = 'salida-temprana';
+    const salidas = readLS(SALIDAS_KEY+isoToday(),[]);
+    salidas.push({ nombre:_salidaTarget, hora, autorizadoPor:'PAOLA MORENO' });
+    writeLS(SALIDAS_KEY+isoToday(), salidas);
+    closeSalidaModal();
+    toast(`🚪 Salida autorizada — ${_salidaTarget} a las ${hora}`, 4000);
+    renderAll();
+  }
+
+  // ── Refresh ──
+  async function refreshData() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning'); btn.disabled=true;
+    try { await init(true); toast('✅ Datos actualizados',2000); }
+    finally { btn.classList.remove('spinning'); btn.disabled=false; }
+  }
 
   function handlePhotoAdd(input, defaultLabel) {
     const file = input.files[0]; if (!file) return;
@@ -578,7 +842,14 @@
     }
     el.innerHTML = photos.map(p => `
       <div class="foto-item">
-        <img class="foto-thumb" src="${p.base64}" onclick="openLightbox('${p.id}')" title="Ampliar" />
+        <div class="foto-item-wrap" onclick="openLightbox('${p.id}')" title="Toca para ampliar">
+          <img class="foto-thumb" src="${p.base64 || ''}" alt="${p.label||'Lista'}"
+            onerror="this.style.display='none';this.nextSibling.style.display='flex'"
+          />
+          <div style="display:none;width:80px;height:60px;background:#e5e7eb;border-radius:6px;align-items:center;justify-content:center;font-size:11px;color:#6b7280;text-align:center;cursor:zoom-in;"
+            onclick="openLightbox('${p.id}')">📷<br/>Ver foto</div>
+          <div class="foto-zoom-icon">🔍</div>
+        </div>
         <div class="foto-info">
           <input class="foto-label-input" value="${p.label || ''}" placeholder="Etiqueta (ej: Grupo 1, G2-Solución...)"
             onchange="updatePhotoLabel('${p.id}', this.value)" />
@@ -593,13 +864,77 @@
   }
 
   // ── Lightbox ──
+  let _currentLbPhoto = null;
+
   function openLightbox(id) {
     const p = getPhotos().find(p => p.id === id);
     if (!p) return;
-    document.getElementById('lightboxImg').src = p.base64;
-    document.getElementById('lightbox').style.display = 'flex';
+    _currentLbPhoto = p;
+
+    const lb      = document.getElementById('lightbox');
+    const img     = document.getElementById('lightboxImg');
+    const spinner = document.getElementById('lbSpinner');
+    const label   = document.getElementById('lbLabel');
+    const driveBtn= document.getElementById('lbDriveBtn');
+
+    label.textContent = p.label || 'Lista de asistencia';
+    img.style.display = 'none';
+    spinner.style.display = 'block';
+    lb.style.display = 'flex';
+
+    // Drive button
+    if (p.driveUrl) {
+      driveBtn.href = p.driveUrl;
+      driveBtn.style.display = 'flex';
+    } else {
+      driveBtn.style.display = 'none';
+    }
+
+    // Try local base64 first
+    if (p.base64) {
+      img.src = p.base64;
+    } else if (p.driveUrl) {
+      // Extract file ID and use Drive direct view URL
+      const match = p.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        img.src = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1400`;
+      } else {
+        img.src = p.driveUrl;
+      }
+    } else {
+      spinner.textContent = '⚠️ Foto no disponible en este dispositivo — ábrela en Drive';
+      spinner.style.display = 'block';
+    }
   }
-  function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+
+  function onLightboxLoad() {
+    document.getElementById('lbSpinner').style.display = 'none';
+    document.getElementById('lightboxImg').style.display = 'block';
+  }
+
+  function onLightboxError() {
+    const spinner = document.getElementById('lbSpinner');
+    const p = _currentLbPhoto;
+    if (p?.driveUrl) {
+      spinner.innerHTML = `⚠️ No se pudo cargar localmente — 
+        <a href="${p.driveUrl}" target="_blank" style="color:#90caf9;">Abrir en Drive</a>`;
+    } else {
+      spinner.textContent = '⚠️ Foto no disponible en este dispositivo';
+    }
+    spinner.style.display = 'block';
+    document.getElementById('lightboxImg').style.display = 'none';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+    document.getElementById('lightboxImg').src = '';
+    _currentLbPhoto = null;
+  }
+
+  function handleLightboxClick(e) {
+    // Close only if clicking the backdrop (not the image or toolbar)
+    if (e.target.id === 'lightbox') closeLightbox();
+  }
 
   // ── Clock ──
   setInterval(() => {
@@ -609,7 +944,8 @@
   }, 1000);
 
   // ── Load ──
-  async function init() {
+  async function init(isRefresh=false) {
+    if (!isRefresh) document.getElementById("loadOverlay").style.display="flex";
     try {
       const [staffResp, attendResp, histResp] = await Promise.all([
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
@@ -634,8 +970,10 @@
       const baseBackend = attendResp?.fecha===today ? (attendResp.personal||{}) : {};
       STAFF.forEach(s => { draft[s.nombre] = baseBackend[s.nombre] || baseLocal[s.nombre] || 'presente'; });
 
+      aplicarVacacionesAutomaticas();
       renderAll();
       renderHistorico();
+      renderVacPanel();
       document.getElementById('loadOverlay').style.display = 'none';
     } catch(e) {
       console.error(e);
@@ -643,27 +981,30 @@
       const today = isoToday();
       const base = localAtt?.fecha===today?(localAtt.personal||{}):{};
       STAFF.forEach(s => { draft[s.nombre] = base[s.nombre] || 'presente'; });
+      aplicarVacacionesAutomaticas();
       renderAll();
       renderHistorico();
+      renderVacPanel();
       document.getElementById('loadOverlay').style.display = 'none';
-      toast('⚠️ Sin conexión — mostrando datos locales');
+      if (!isRefresh) toast('⚠️ Sin conexión — mostrando datos locales');
     }
 
-    // Auto-lock check each minute
-    setInterval(() => {
-      if (!getLock().locked && isAfterCutoff()) {
-        const att = readLS(ATTENDANCE_KEY,{});
-        if (att?.fecha===isoToday() && Object.keys(att.personal||{}).length>0) {
-          const l = getLock();
-          if (!l.autoLocked) {
-            const ts = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
-            writeLS(LOCK_KEY,{fecha:isoToday(),locked:true,lockedAt:ts,lockedBy:'Sistema (auto-cierre)',autoLocked:true});
-            toast('🔒 Lista cerrada automáticamente a las '+ts, 4000);
-          }
-        }
-        renderLockBanner();
-      }
-    }, 60000);
+    // Auto-lock deshabilitado temporalmente — cierre manual por ahora
+    // TODO: reactivar cuando el equipo esté adaptado al proceso
+    // setInterval(() => {
+    //   if (!getLock().locked && isAfterCutoff()) {
+    //     const att = readLS(ATTENDANCE_KEY,{});
+    //     if (att?.fecha===isoToday() && Object.keys(att.personal||{}).length>0) {
+    //       const l = getLock();
+    //       if (!l.autoLocked) {
+    //         const ts = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+    //         writeLS(LOCK_KEY,{fecha:isoToday(),locked:true,lockedAt:ts,lockedBy:'Sistema (auto-cierre)',autoLocked:true});
+    //         toast('🔒 Lista cerrada automáticamente a las '+ts, 4000);
+    //       }
+    //     }
+    //     renderLockBanner();
+    //   }
+    // }, 60000);
   }
 
   // ── Conteos ──
@@ -717,10 +1058,10 @@
       if (lista) lista.classList.add('list-locked');
     } else if (after) {
       el.innerHTML = `<div class="lock-banner warning">
-        <span class="lb-icon">⚠️</span>
+        <span class="lb-icon">⏰</span>
         <div class="lb-text">
-          <div>CIERRE PENDIENTE — Ya son más de las ${cutoffLabel()}</div>
-          <div style="font-size:12px;margin-top:3px;">Guarda y cierra la lista para congelar las métricas.</div>
+          <div>Son más de las ${cutoffLabel()} — cuando estés lista, cierra el pase de lista manualmente.</div>
+          <div style="font-size:12px;margin-top:3px;">La lista permanece abierta hasta que la cierres.</div>
         </div>
         <button class="btn-lock" onclick="cerrarLista()">🔒 Cerrar Lista</button>
       </div>`;
@@ -786,6 +1127,9 @@
         const val = draft[s.nombre] || 'presente';
         total++;
         if (val==='presente'||val==='en-ruta') totalOp++;
+        const salidas = readLS(SALIDAS_KEY+isoToday(),[]);
+        const salidaReg = salidas.find(sl=>sl.nombre===s.nombre);
+        const salidaBadge = salidaReg ? `<span class="salida-badge">🚪 ${salidaReg.hora}</span>` : '';
         const btns = [
           ['presente','✅ Presente'],['en-ruta','🚚 En Ruta'],
           ['baja-medica','🏥 Baja'],['capacitacion','📚 Cap.'],
@@ -793,9 +1137,12 @@
         ].map(([v,lbl]) =>
           `<button class="st-btn ${val===v?'active-'+v:''}" data-name="${s.nombre}" data-val="${v}">${lbl}</button>`
         ).join('');
+        const salidaBtn = !getLock().locked
+          ? `<button class="btn-salida" onclick="openSalidaModal('${s.nombre}')">🚪 Salida</button>`
+          : '';
         return `<div class="person-row">
-          <div><div class="person-name">${s.nombre}</div><div class="person-sub">${s.rol||''}</div></div>
-          <div class="status-btns">${btns}</div>
+          <div><div class="person-name">${s.nombre}${salidaBadge}</div><div class="person-sub">${s.rol||''}</div></div>
+          <div class="status-btns">${btns}${salidaBtn}</div>
         </div>`;
       }).join('');
       const op = members.filter(s=>['presente','en-ruta'].includes(draft[s.nombre]||'presente')).length;
@@ -1052,6 +1399,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pinInput2').addEventListener('keydown', e => { if (e.key==='Enter') confirmUnlockPin(); });
     document.getElementById('pinOverlay').addEventListener('click', e => { if (e.target.id==='pinOverlay') closePinOverlay(); });
+    document.getElementById('salidaPinInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmSalidaTemprana(); });
+    document.getElementById('salidaModal').addEventListener('click', e => { if (e.target.id==='salidaModal') closeSalidaModal(); });
+    document.getElementById('vacModal').addEventListener('click', e => { if (e.target.id==='vacModal') closeVacModal(); });
   });
 
   // ── Service Worker + Install prompt ──────────────────────
