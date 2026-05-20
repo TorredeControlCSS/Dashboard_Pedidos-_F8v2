@@ -70,61 +70,73 @@
     }
     .card-body { padding: 14px 16px; }
 
-    /* ── KPI STRIP ── */
-    .kpi-strip { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 14px; }
-    @media (max-width: 700px) { .kpi-strip { grid-template-columns: repeat(3,1fr); } }
+    /* ── KPI STRIP + SEMÁFORO INLINE ── */
+    .kpi-row { display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     .kpi-box {
-      background: var(--panel); border-radius: 12px;
-      border: 1px solid var(--border); border-top: 5px solid #9ca3af;
-      padding: 12px; text-align: center;
+      background:var(--panel); border-radius:10px;
+      border:1px solid var(--border); border-top:4px solid #9ca3af;
+      padding:8px 10px; text-align:center; flex:1; min-width:0;
     }
-    .kpi-box .kv { font-size: 2.2rem; font-weight: 900; line-height: 1; margin-top: 4px; }
-    .kpi-box .kl { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-
-    /* ── SEMÁFORO ── */
-    .semaforo {
-      border-radius: 12px; padding: 14px 18px; margin-bottom: 14px;
-      display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 14px;
+    .kpi-box .kv { font-size:1.6rem; font-weight:900; line-height:1; margin-top:2px; }
+    .kpi-box .kl { font-size:10px; text-transform:uppercase; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .sem-badge {
+      flex-shrink:0; width:88px; border-radius:10px; border:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:6px 8px; text-align:center; transition:background .3s;
     }
-    .semaforo .sem-icon { font-size: 2rem; flex-shrink: 0; }
-    .semaforo .sem-text { flex: 1; line-height: 1.4; }
-    .semaforo .sem-pct  { font-size: 2.4rem; font-weight: 900; flex-shrink: 0; }
+    .sem-badge .sb-pct  { font-size:1.6rem; font-weight:900; line-height:1; }
+    .sem-badge .sb-icon { font-size:1.1rem; }
+    .sem-badge .sb-lbl  { font-size:9px; font-weight:700; text-transform:uppercase; margin-top:2px; opacity:.8; }
+    @media (max-width:700px) { .kpi-row { flex-wrap:wrap; } .kpi-box { min-width:calc(33% - 8px); } }
 
-    /* ── LOCK BANNER ── */
+    /* ── LOCK BANNER — compact 1 line ── */
     .lock-banner {
-      border-radius: 12px; padding: 13px 16px; margin-bottom: 14px;
-      display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 14px;
+      border-radius:10px; padding:8px 14px; margin-bottom:10px;
+      display:flex; align-items:center; gap:10px; font-weight:700; font-size:13px;
     }
-    .lock-banner.locked  { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
-    .lock-banner.warning { background: #fef9c3; color: #713f12; border: 1px solid #fde68a; }
-    .lock-banner.open    { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-    .lock-banner .lb-icon { font-size: 1.8rem; flex-shrink: 0; }
-    .lock-banner .lb-text { flex: 1; line-height: 1.4; }
-    .btn-lock   { background: #b71c1c; color:#fff; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:800; cursor:pointer; min-height:var(--touch); }
-    .btn-unlock { background: var(--navy); color:#fff; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:800; cursor:pointer; min-height:var(--touch); }
+    .lock-banner.locked  { background:#fee2e2; color:#7f1d1d; border:1px solid #fca5a5; }
+    .lock-banner.warning { background:#fef9c3; color:#713f12; border:1px solid #fde68a; }
+    .lock-banner.open    { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+    .lock-banner .lb-icon { font-size:1.1rem; flex-shrink:0; }
+    .lock-banner .lb-text { flex:1; font-size:12px; line-height:1.3; }
+    .btn-lock   { background:#b71c1c; color:#fff; border:none; border-radius:8px; padding:7px 13px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
+    .btn-unlock { background:var(--navy); color:#fff; border:none; border-radius:8px; padding:7px 13px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; }
 
-    /* ── PERSON LIST ── */
+    /* ── PERSON LIST — compact 1 row per person ── */
     .group-label {
-      font-size: 12px; font-weight: 800; text-transform: uppercase;
-      color: var(--muted); letter-spacing: .06em;
-      padding: 10px 0 5px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+      font-size:11px; font-weight:800; text-transform:uppercase;
+      color:var(--muted); letter-spacing:.06em;
+      padding:8px 0 4px; border-bottom:1px solid var(--border); margin-bottom:4px;
     }
     .person-row {
-      display: flex; flex-direction: column;
-      padding: 10px 0; border-bottom: 1px solid #f3f4f6;
-      gap: 8px;
+      display:flex; align-items:center; gap:8px;
+      padding:5px 0; border-bottom:1px solid #f3f4f6; min-height:46px;
     }
-    .person-row:last-child { border-bottom: none; }
-    .person-name { font-weight: 800; font-size: 15px; }
-    .person-sub  { font-size: 12px; color: var(--muted); }
-    .status-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .person-row:last-child { border-bottom:none; }
+    /* Status indicator dot */
+    .pr-dot {
+      width:10px; height:10px; border-radius:50%; flex-shrink:0;
+      background:#9ca3af;
+    }
+    .pr-dot.s-presente    { background:#2e7d32; }
+    .pr-dot.s-en-ruta     { background:#1565c0; }
+    .pr-dot.s-baja-medica { background:#e65100; }
+    .pr-dot.s-capacitacion{ background:#7b1fa2; }
+    .pr-dot.s-vacaciones  { background:#00796b; }
+    .pr-dot.s-ausente     { background:#b71c1c; }
+    .pr-dot.s-salida-temprana { background:#4a148c; }
+    .person-name { font-weight:800; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .person-sub  { font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pr-info { flex:1; min-width:0; }
+    .status-btns { display:flex; gap:4px; flex-shrink:0; }
     .st-btn {
-      border: 1.5px solid var(--border); background: #f9fafb;
-      border-radius: 8px; padding: 9px 12px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      min-height: var(--touch); white-space: nowrap; transition: all .15s;
+      border:1.5px solid var(--border); background:#f9fafb;
+      border-radius:7px; padding:6px 8px;
+      font-size:11px; font-weight:700; cursor:pointer;
+      min-height:36px; white-space:nowrap; transition:all .12s;
+      line-height:1;
     }
-    .st-btn:active { transform: scale(.96); }
+    .st-btn:active { transform:scale(.95); }
     .st-btn.active-presente    { background:#2e7d32; border-color:#2e7d32; color:#fff; }
     .st-btn.active-en-ruta     { background:#1565c0; border-color:#1565c0; color:#fff; }
     .st-btn.active-baja-medica { background:#e65100; border-color:#e65100; color:#fff; }
@@ -132,6 +144,16 @@
     .st-btn.active-vacaciones  { background:#00796b; border-color:#00796b; color:#fff; }
     .st-btn.active-ausente     { background:#b71c1c; border-color:#b71c1c; color:#fff; }
     .list-locked .st-btn { pointer-events:none; opacity:.45; }
+    /* Gantt vacaciones */
+    .vac-gantt { overflow-x:auto; margin-top:10px; }
+    .vac-gantt table { border-collapse:collapse; font-size:10px; width:100%; }
+    .vac-gantt th { padding:2px 3px; text-align:center; color:var(--muted); font-weight:700; font-size:9px; }
+    .vac-gantt td.vg-name { font-size:11px; font-weight:700; padding:3px 6px 3px 0; white-space:nowrap; }
+    .vac-gantt td.vg-day  { width:20px; min-width:20px; height:20px; border-radius:3px; text-align:center; }
+    .vac-gantt td.vg-vac  { background:#00796b; }
+    .vac-gantt td.vg-today{ outline:2px solid var(--navy); outline-offset:-1px; }
+    .vac-gantt td.vg-past { background:#f3f4f6; }
+    .vac-gantt td.vg-future{ background:#fafafa; }
 
     /* ── MULTI-PHOTO SECTION ── */
     .foto-box {
@@ -178,13 +200,21 @@
     .btn-export { background:#fff; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:11px 16px; font-size:13px; font-weight:700; cursor:pointer; min-height:var(--touch); }
 
     /* ── GROUP CAPACITY ── */
-    .group-cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; }
-    .group-cap-card { border:1px solid var(--border); border-radius:10px; padding:12px; border-left:4px solid #9ca3af; }
-    .group-cap-card .gc-name  { font-size:11px; font-weight:800; text-transform:uppercase; }
-    .group-cap-card .gc-ratio { font-size:1.5rem; font-weight:900; margin-top:4px; }
-    .group-cap-card .gc-sub   { font-size:11px; color:var(--muted); line-height:1.4; }
-    .group-cap-card .gc-bar   { height:5px; background:#e5e7eb; border-radius:999px; margin-top:8px; overflow:hidden; }
+    .group-cap-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:8px; }
+    .group-cap-card { border:1px solid var(--border); border-radius:10px; padding:9px 10px; border-left:4px solid #9ca3af; }
+    .group-cap-card.gc-wide { grid-column:span 2; }
+    .group-cap-card .gc-name  { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .group-cap-card .gc-ratio { font-size:1.35rem; font-weight:900; margin-top:3px; }
+    .group-cap-card .gc-sub   { font-size:10px; color:var(--muted); line-height:1.4; margin-top:1px; }
+    .group-cap-card .gc-bar   { height:4px; background:#e5e7eb; border-radius:999px; margin-top:6px; overflow:hidden; }
     .group-cap-card .gc-fill  { height:100%; border-radius:999px; }
+    /* Subgroup rows inside wide card */
+    .gc-subrows { margin-top:6px; display:flex; flex-direction:column; gap:3px; }
+    .gc-subrow  { display:flex; align-items:center; gap:6px; font-size:10px; }
+    .gc-subrow .gcsr-name { min-width:70px; color:var(--muted); font-weight:600; }
+    .gc-subrow .gcsr-bar  { flex:1; height:4px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+    .gc-subrow .gcsr-fill { height:100%; border-radius:999px; }
+    .gc-subrow .gcsr-pct  { min-width:28px; text-align:right; font-weight:800; font-size:10px; }
 
     /* ── CALENDAR (month view) ── */
     .cal-month-header {
@@ -534,21 +564,19 @@
     El personal en ruta NO recibirá nuevas F8s automáticamente. Sus F8s ya asignadas permanecen activas.
   </div>
 
-  <!-- KPIs -->
-  <div class="kpi-strip">
-    <div class="kpi-box" style="border-top-color:#0b1f3a"><div class="kl">Total plantel</div><div class="kv" id="kTotal">--</div></div>
+  <!-- KPIs + Semáforo inline -->
+  <div class="kpi-row">
+    <div class="kpi-box" style="border-top-color:#0b1f3a"><div class="kl">Plantel</div><div class="kv" id="kTotal">--</div></div>
     <div class="kpi-box" style="border-top-color:#2e7d32"><div class="kl">✅ Presentes</div><div class="kv" id="kPresentes">--</div></div>
     <div class="kpi-box" style="border-top-color:#1565c0"><div class="kl">🚚 En Ruta</div><div class="kv" id="kEnRuta">--</div></div>
-    <div class="kpi-box" style="border-top-color:#00796b"><div class="kl">🏖️ Vacaciones</div><div class="kv" id="kVacaciones">--</div></div>
+    <div class="kpi-box" style="border-top-color:#00796b"><div class="kl">🏖️ Vac.</div><div class="kv" id="kVacaciones">--</div></div>
     <div class="kpi-box" style="border-top-color:#e65100"><div class="kl">🏥 Baja/Cap.</div><div class="kv" id="kBajas">--</div></div>
     <div class="kpi-box" style="border-top-color:#b71c1c"><div class="kl">❌ Ausentes</div><div class="kv" id="kAusentes">--</div></div>
-  </div>
-
-  <!-- SEMÁFORO -->
-  <div id="semaforoEl" class="semaforo" style="background:#e5e7eb;">
-    <span class="sem-icon">⏳</span>
-    <span class="sem-text">Cargando...</span>
-    <span class="sem-pct" id="semPct">--</span>
+    <div class="sem-badge" id="semaforoEl" style="background:#e5e7eb;color:#374151;">
+      <div class="sb-icon">⏳</div>
+      <div class="sb-pct" id="semPct">--</div>
+      <div class="sb-lbl">físicos</div>
+    </div>
   </div>
 
   <div class="grid-main">
@@ -850,6 +878,35 @@
         <button class="vac-del" onclick="deleteVacacion('${v.id}')">🗑️</button>
       </div>`;
     });
+    // ── Gantt visual del mes ──
+    const today2 = isoToday();
+    const now2   = new Date();
+    const yr     = now2.getFullYear();
+    const mo     = now2.getMonth();
+    const lastD  = new Date(yr, mo+1, 0).getDate();
+    const active = arr.filter(v=>getVacStatusForDate(v,today2)!=='past');
+    if (active.length) {
+      // Day headers
+      let ganttHtml = '<div class="vac-gantt"><table><thead><tr><th></th>';
+      for (let d=1;d<=lastD;d++) ganttHtml+=`<th>${d}</th>`;
+      ganttHtml += '</tr></thead><tbody>';
+      active.forEach(v=>{
+        ganttHtml += `<tr><td class="vg-name">${v.nombre.split(' ')[0]} ${v.nombre.split(' ')[1]||''}</td>`;
+        for (let d=1;d<=lastD;d++){
+          const iso=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const inVac = iso>=v.desde && iso<=v.hasta;
+          const isT   = iso===today2;
+          const isPast= iso<today2;
+          let cls = inVac?'vg-vac':(isPast?'vg-past':'vg-future');
+          if(isT) cls+=' vg-today';
+          ganttHtml+=`<td class="vg-day ${cls}"></td>`;
+        }
+        ganttHtml+='</tr>';
+      });
+      ganttHtml+='</tbody></table></div>';
+      html = ganttHtml + html;
+    }
+
     el.innerHTML = html;
   }
 
@@ -1319,21 +1376,14 @@
     if (lock.locked) {
       el.innerHTML = `<div class="lock-banner locked">
         <span class="lb-icon">🔒</span>
-        <div class="lb-text">
-          <div>LISTA CERRADA — Bloqueada a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}</div>
-          ${lock.reason?`<div style="font-size:12px;margin-top:3px;opacity:.8">Motivo: ${lock.reason}</div>`:''}
-          <div style="font-size:12px;margin-top:3px;opacity:.8">Las métricas del Kanban reflejan esta lista.</div>
-        </div>
-        <button class="btn-unlock" onclick="openUnlockModal('tardanza')">🔓 Autorizar tardanza</button>
+        <div class="lb-text">CERRADA a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}${lock.reason?' · '+lock.reason:''}</div>
+        <button class="btn-unlock" onclick="openUnlockModal('tardanza')">🔓 Tardanza</button>
       </div>`;
       if (lista) lista.classList.add('list-locked');
     } else if (after) {
       el.innerHTML = `<div class="lock-banner warning">
         <span class="lb-icon">⏰</span>
-        <div class="lb-text">
-          <div>Son más de las ${cutoffLabel()} — cuando estés lista, cierra el pase de lista manualmente.</div>
-          <div style="font-size:12px;margin-top:3px;">La lista permanece abierta hasta que la cierres.</div>
-        </div>
+        <div class="lb-text">Más de las ${cutoffLabel()} — cuando estés lista, cierra el pase de lista.</div>
         <button class="btn-lock" onclick="cerrarLista()">🔒 Cerrar Lista</button>
       </div>`;
       if (lista) lista.classList.remove('list-locked');
@@ -1342,11 +1392,8 @@
       const minLeft = (CUTOFF_H*60+CUTOFF_M)-(now.getHours()*60+now.getMinutes());
       el.innerHTML = `<div class="lock-banner open">
         <span class="lb-icon">📋</span>
-        <div class="lb-text">
-          <div>LISTA ABIERTA — Cierre a las ${cutoffLabel()} (${minLeft} min)</div>
-          <div style="font-size:12px;margin-top:3px;">Marca la asistencia, sube las fotos de las listas CSS y guarda.</div>
-        </div>
-        <button class="btn-lock" style="background:#6b7280;" onclick="cerrarLista()">🔒 Cerrar anticipado</button>
+        <div class="lb-text">LISTA ABIERTA — cierre a las ${cutoffLabel()} (${minLeft} min)</div>
+        <button class="btn-lock" style="background:#6b7280;" onclick="cerrarLista()">🔒 Cerrar</button>
       </div>`;
       if (lista) lista.classList.remove('list-locked');
     }
@@ -1372,19 +1419,19 @@
     }
 
     const el = document.getElementById('semaforoEl');
-    let icon, msg, bg, color;
-    // Semáforo basado en fisicamente presentes
+    let icon, bg, color, title;
     if (pctFisico >= 80) {
-      icon='🟢'; msg=`Capacidad NORMAL — ${fisicos} de ${total} personas físicamente en almacén (${enRuta} en ruta)`; bg='#dcfce7'; color='#166534';
+      icon='🟢'; bg='#dcfce7'; color='#166534'; title=`${fisicos}/${total} en almacén`;
     } else if (pctFisico >= 60) {
-      icon='🟡'; msg=`Capacidad REDUCIDA — ${fisicos} en almacén + ${enRuta} en ruta = ${operativos} operativos totales`; bg='#fef9c3'; color='#713f12';
+      icon='🟡'; bg='#fef9c3'; color='#713f12'; title=`${fisicos}/${total} en almacén`;
     } else {
-      icon='🔴'; msg=`ALERTA — Solo ${fisicos} personas físicamente en almacén. Capacidad crítica.`; bg='#fee2e2'; color='#7f1d1d';
+      icon='🔴'; bg='#fee2e2'; color='#7f1d1d'; title=`ALERTA — solo ${fisicos}`;
     }
     el.style.background = bg; el.style.color = color;
-    el.innerHTML = `<span class="sem-icon">${icon}</span>
-      <span class="sem-text">${msg}</span>
-      <span class="sem-pct" style="color:${color}">${pctFisico}%<div style="font-size:11px;font-weight:700;margin-top:2px;">físicos</div></span>`;
+    el.title = title + (enRuta > 0 ? ` · ${enRuta} en ruta` : '');
+    el.innerHTML = `<div class="sb-icon">${icon}</div>
+      <div class="sb-pct" style="color:${color}">${pctFisico}%</div>
+      <div class="sb-lbl" style="color:${color}">físicos</div>`;
   }
 
   function renderLista() {
@@ -1409,12 +1456,13 @@
           `<button class="st-btn ${val===v?'active-'+v:''}" data-name="${s.nombre}" data-val="${v}">${lbl}</button>`
         ).join('');
         const salidaBtn = !getLock().locked
-          ? `<button class="btn-salida" onclick="openSalidaModal('${s.nombre}')">🚪 Salida</button>`
+          ? `<button class="st-btn btn-salida" onclick="openSalidaModal('${s.nombre}')" title="Salida temprana">🚪</button>`
           : '';
         return `<div class="person-row">
-          <div>
+          <div class="pr-dot s-${val}"></div>
+          <div class="pr-info">
             <div class="person-name">${s.nombre}${salidaBadge}</div>
-            <div class="person-sub">${s.rol || ''}${getStaffFuncion(s) ? ' · ' + getStaffFuncion(s) : ''}</div>
+            <div class="person-sub">${s.rol||''}${getStaffFuncion(s)?' · '+getStaffFuncion(s):''}</div>
           </div>
           <div class="status-btns">${btns}${salidaBtn}</div>
         </div>`;
@@ -1446,53 +1494,146 @@
   }
 
   function renderGroupCap() {
-    const grouped = {};
+    // Map groups by AREA_OPERATIVA and also track product subgroups for MED/MQ/LAB
+    const byArea  = {};
+    const byGroup = {}; // product group level
+
     STAFF.forEach(s => {
-      const g = getStaffGroup(s);
-      if (!grouped[g]) grouped[g] = { total:0, pickers:0, enRuta:0, modulo:0, otros:0 };
-      grouped[g].total++;
-      const st   = draft[s.nombre] || 'presente';
-      const func = getStaffFuncion(s);
-      const esPicker = func === 'PICKING' || func === 'PICKING-URG';
-      const esModulo = func === 'MODULO-PRE-PICKING' || func === 'MÓDULO' || func.includes('MODULO');
-      if (st === 'en-ruta')                             grouped[g].enRuta++;
-      else if (st === 'presente' && esPicker)           grouped[g].pickers++;
-      else if (st === 'presente' && esModulo)           grouped[g].modulo++;
-      else if (st === 'presente')                       grouped[g].otros++;
+      const area  = getStaffGroup(s);
+      const grps  = (s.grupos||s.GRUPOS||'').split(',').map(g=>g.trim()).filter(Boolean);
+      const func  = getStaffFuncion(s);
+      const st    = draft[s.nombre]||'presente';
+      const pres  = st==='presente';
+      const ruta  = st==='en-ruta';
+      const isPicker = func==='PICKING'||func==='PICKING-URG';
+      const isMod    = func.includes('MODULO')||func.includes('MÓDULO');
+      const isMgmt   = func==='SUPERVISIÓN'||func==='SOPORTE ADMIN'||func==='FACTURACIÓN';
+
+      if (!byArea[area]) byArea[area]={total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
+      byArea[area].total++;
+      if (ruta)         byArea[area].enRuta++;
+      else if (pres) {
+        byArea[area].presentes++;
+        if (isPicker)   byArea[area].pickers++;
+        else if(isMod)  byArea[area].modulo++;
+        else            byArea[area].gestion++;
+      }
+
+      // Track product subgroups (for MED / MQ / LAB breakdown)
+      grps.forEach(g => {
+        if (!byGroup[g]) byGroup[g]={area,total:0,presentes:0,enRuta:0};
+        byGroup[g].total++;
+        if (ruta) byGroup[g].enRuta++;
+        else if (pres) byGroup[g].presentes++;
+      });
     });
 
-    // Orden fijo por área operativa
-    const ORDER = ['MEDICAMENTOS','MQ','LABORATORIO','URGENCIAS','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','RECEPCIÓN','GESTIÓN'];
-    const sortedGroups = [
-      ...ORDER.filter(g => grouped[g]),
-      ...Object.keys(grouped).filter(g => !ORDER.includes(g)).sort()
-    ];
-
-    const html = sortedGroups.map(g => {
-      const d = grouped[g];
-      const fisicos = d.pickers + d.modulo + d.otros; // presentes físicamente
-      const pct     = d.total > 0 ? Math.round((fisicos / d.total) * 100) : 0;
-      const color   = pct >= 80 ? 'var(--ok)' : pct >= 60 ? '#f59e0b' : 'var(--danger)';
-      const bColor  = GROUP_COLORS[g] || '#9ca3af';
-
-      const subline = [
-        d.pickers > 0  ? `${d.pickers} picker${d.pickers>1?'s':''}` : '',
-        d.modulo  > 0  ? `${d.modulo} módulo`  : '',
-        d.enRuta  > 0  ? `${d.enRuta} ruta`    : '',
-        d.otros   > 0  ? `${d.otros} otros`     : '',
-      ].filter(Boolean).join(' · ');
-
-      return `<div class="group-cap-card" style="border-left-color:${bColor}">
-        <div class="gc-name">${g}</div>
+    function cardHtml(label, d, bColor, wide=false, subrows=[]) {
+      const phys  = d.presentes;
+      const pct   = d.total>0?Math.round(phys/d.total*100):0;
+      const color = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
+      const notes = [
+        d.pickers>0?`${d.pickers}p`:''  ,
+        d.modulo >0?`${d.modulo}m`:''   ,
+        d.enRuta >0?`🚚${d.enRuta}`:''  ,
+        d.gestion>0?`${d.gestion}g`:''  ,
+      ].filter(Boolean).join(' ');
+      const srHtml = subrows.map(sr=>{
+        const sp = sr.total>0?Math.round(sr.presentes/sr.total*100):0;
+        const sc = sp>=80?'var(--ok)':sp>=60?'#f59e0b':'var(--danger)';
+        return `<div class="gc-subrow">
+          <span class="gcsr-name">${sr.label}</span>
+          <div class="gcsr-bar"><div class="gcsr-fill" style="width:${sp}%;background:${sc}"></div></div>
+          <span class="gcsr-pct" style="color:${sc}">${sp}%</span>
+        </div>`;
+      }).join('');
+      return `<div class="group-cap-card${wide?' gc-wide':''}" style="border-left-color:${bColor}">
+        <div class="gc-name">${label}</div>
         <div class="gc-ratio" style="color:${color}">${pct}%</div>
-        <div class="gc-sub">${fisicos} de ${d.total} presentes</div>
-        ${subline ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">${subline}</div>` : ''}
-        ${d.enRuta > 0 ? `<div style="font-size:10px;color:#1565c0;margin-top:1px;">+${d.enRuta} en ruta</div>` : ''}
+        <div class="gc-sub">${phys}/${d.total}${notes?' <span style="opacity:.65">· '+notes+'</span>':''}</div>
         <div class="gc-bar"><div class="gc-fill" style="width:${pct}%;background:${color}"></div></div>
+        ${srHtml?`<div class="gc-subrows">${srHtml}</div>`:''}
       </div>`;
-    }).join('');
+    }
 
-    document.getElementById('groupCapGrid').innerHTML = html || '<div style="color:var(--muted)">Sin grupos.</div>';
+    function grpData(gName) {
+      return byGroup[gName]||{area:'',total:0,presentes:0,enRuta:0};
+    }
+    function mergeAreas(...areas) {
+      const r={total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
+      areas.forEach(a=>{ const d=byArea[a]||{}; Object.keys(r).forEach(k=>r[k]+=(d[k]||0)); });
+      return r;
+    }
+
+    let html = '';
+
+    // ── MEDICAMENTOS (wide card with G subrows) ──
+    if (byArea['MEDICAMENTOS']) {
+      const medSubs = [
+        { label:'G1-Tabletas',    ...grpData('G1-TABLETAS') },
+        { label:'G2-Solución',    ...(() =>{ const a=grpData('G2-SOLUCION'); return a; })() },
+        { label:'G3-Jarabe',      ...grpData('G3-JARABE') },
+        { label:'G4-5-11',        ...(() =>{ const a={total:0,presentes:0,enRuta:0}; ['G4-CREMAS','G5-ÓVULOS','G5-OVULOS','G-11-ODONTOLOGIA','G11-ODONTOLOGIA'].forEach(g=>{const d=byGroup[g];if(d){a.total+=d.total;a.presentes+=d.presentes;a.enRuta+=d.enRuta;}}); return a; })() },
+      ].filter(s=>s.total>0);
+      html += cardHtml('MEDICAMENTOS', byArea['MEDICAMENTOS'], '#1565C0', true, medSubs);
+    }
+
+    // ── MQ ──
+    if (byArea['MQ']) {
+      const mqSubs = [
+        { label:'G9-10-12 MQ', ...(() =>{ const a={total:0,presentes:0,enRuta:0}; ['G9-MQ','G10-MQ','G12-RADIOLOGIA'].forEach(g=>{const d=byGroup[g];if(d){a.total+=d.total;a.presentes+=d.presentes;a.enRuta+=d.enRuta;}}); return a; })() },
+        byArea['MQ'].modulo>0?{label:'Módulo',total:byArea['MQ'].modulo,presentes:byArea['MQ'].modulo,enRuta:0}:null,
+      ].filter(Boolean).filter(s=>s.total>0);
+      html += cardHtml('MQ', byArea['MQ'], '#6A1B9A', false, mqSubs);
+    }
+
+    // ── LABORATORIO ──
+    if (byArea['LABORATORIO']) {
+      html += cardHtml('LABORATORIO', byArea['LABORATORIO'], '#2E7D32');
+    }
+
+    // ── URGENCIAS ──
+    if (byArea['URGENCIAS']) {
+      html += cardHtml('URGENCIAS', byArea['URGENCIAS'], '#B71C1C');
+    }
+
+    // ── EMPAQUE + DISTRIBUCIÓN ──
+    if (byArea['EMPAQUE']) html += cardHtml('EMPAQUE', byArea['EMPAQUE'], '#E65100');
+    if (byArea['DISTRIBUCIÓN']) html += cardHtml('DISTRIBUCIÓN', byArea['DISTRIBUCIÓN'], '#00796B');
+    if (byArea['VENCIDOS']) html += cardHtml('VENCIDOS', byArea['VENCIDOS'], '#558B2F');
+
+    // ── RECEPCIÓN (any variant) ──
+    const recAreas = Object.keys(byArea).filter(a=>a.includes('RECEPCIÓN'));
+    if (recAreas.length) {
+      const recD = mergeAreas(...recAreas);
+      html += cardHtml('RECEPCIÓN', recD, '#4A148C');
+    }
+
+    // ── GESTIÓN — split: JEFATURA vs SOPORTE ──
+    if (byArea['GESTIÓN']) {
+      const jefes = {total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
+      const soporte = {total:0,presentes:0,enRuta:0,pickers:0,modulo:0,gestion:0};
+      STAFF.filter(s=>getStaffGroup(s)==='GESTIÓN').forEach(s=>{
+        const func = getStaffFuncion(s);
+        const st   = draft[s.nombre]||'presente';
+        const pres = st==='presente'; const ruta=st==='en-ruta';
+        const isJefe = func==='SUPERVISIÓN'||func==='FACTURACIÓN';
+        const bucket = isJefe ? jefes : soporte;
+        bucket.total++;
+        if(ruta) bucket.enRuta++;
+        else if(pres){ bucket.presentes++; bucket.gestion++; }
+      });
+      if (jefes.total)   html += cardHtml('JEFATURA', jefes, '#37474F');
+      if (soporte.total) html += cardHtml('SOPORTE ADMIN', soporte, '#607D8B');
+    }
+
+    // ── any remaining areas not covered ──
+    const covered = ['MEDICAMENTOS','MQ','LABORATORIO','URGENCIAS','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','GESTIÓN',...Object.keys(byArea).filter(a=>a.includes('RECEPCIÓN'))];
+    Object.keys(byArea).filter(a=>!covered.includes(a)).forEach(a=>{
+      html += cardHtml(a, byArea[a], GROUP_COLORS[a]||'#9ca3af');
+    });
+
+    document.getElementById('groupCapGrid').innerHTML = html||'<div style="color:var(--muted)">Sin grupos.</div>';
   }
 
   // ── Guardar ──
