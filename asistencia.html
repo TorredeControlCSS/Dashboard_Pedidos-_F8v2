@@ -758,6 +758,28 @@
   // ── Vacaciones ──
   function getVacaciones() { return readLS(VAC_KEY, []); }
   function saveVacaciones(arr) { writeLS(VAC_KEY, arr); }
+
+  // Sincroniza una vacación al backend (fire-and-forget)
+  function syncVacacionToBackend(v) {
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'saveVacacion',
+        id: v.id, nombre: v.nombre,
+        desde: v.desde, hasta: v.hasta,
+        notas: v.notas || '', creadoEn: v.creadoEn || isoToday()
+      })
+    }).catch(() => {}); // Silencioso — ya está en localStorage
+  }
+
+  function syncDeleteVacacionToBackend(id) {
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'deleteVacacion', id })
+    }).catch(() => {});
+  }
   function getVacStatusForDate(v, fecha=isoToday()) {
     if (fecha < v.desde) return 'upcoming';
     if (fecha > v.hasta) return 'past';
@@ -790,17 +812,21 @@
     if (desde>hasta) { toast('⚠️ Fecha inicio no puede ser mayor al regreso',3000); return; }
     const arr = getVacaciones();
     arr.push({ id: Date.now().toString(36), nombre, desde, hasta, notas, creadoEn: isoToday() });
+    const newEntry = arr[arr.length - 1];
     saveVacaciones(arr);
+    syncVacacionToBackend(newEntry);  // Sync al Sheet de Google
     aplicarVacacionesAutomaticas();
     renderAll(); renderVacPanel(); closeVacModal();
     const dias = Math.round((new Date(hasta)-new Date(desde))/(86400000))+1;
-    toast(`🏖️ ${nombre} · ${dias} día(s) del ${desde} al ${hasta}`, 5000);
+    toast(`🏖️ ${nombre} · ${dias} día(s) del ${desde} al ${hasta} · guardando en Sheet...`, 5000);
   }
   function deleteVacacion(id) {
     if (!confirm('¿Eliminar este registro de vacaciones?')) return;
     saveVacaciones(getVacaciones().filter(v=>v.id!==id));
+    syncDeleteVacacionToBackend(id);  // Sync eliminación al backend
     aplicarVacacionesAutomaticas();
     renderAll(); renderVacPanel();
+    toast('🗑️ Vacación eliminada — actualizando Sheet...', 3000);
   }
   function renderVacPanel() {
     const today = isoToday();
@@ -1174,21 +1200,37 @@
   async function init(isRefresh=false) {
     if (!isRefresh) document.getElementById("loadOverlay").style.display="flex";
     try {
-      const [staffResp, attendResp, histResp] = await Promise.all([
+      const [staffResp, attendResp, histResp, vacResp] = await Promise.all([
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
         fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
-        fetch(`${WEB_APP_URL}?file=attendance_history`).then(r=>r.json()).catch(()=>null)
+        fetch(`${WEB_APP_URL}?file=attendance_history`).then(r=>r.json()).catch(()=>null),
+        fetch(`${WEB_APP_URL}?file=vacaciones`).then(r=>r.json()).catch(()=>null)
       ]);
       if (Array.isArray(staffResp) && staffResp.length) STAFF = staffResp;
       else toast('⚠️ No se pudo cargar el personal del servidor');
 
-      // Historial: fusionar backend (fuente de verdad) con localStorage
+      // Historial asistencia — backend es fuente de verdad
       if (histResp && typeof histResp === 'object' && Object.keys(histResp).length > 0) {
         let localHist = readLS(HISTORY_KEY, {});
         if (Array.isArray(localHist)) localHist = {};
-        // Backend tiene prioridad — sobreescribe días que ya tenga
-        const merged = { ...localHist, ...histResp };
-        writeLS(HISTORY_KEY, merged);
+        writeLS(HISTORY_KEY, { ...localHist, ...histResp });
+      }
+
+      // Vacaciones — backend es fuente de verdad, localStorage es caché
+      if (vacResp && Array.isArray(vacResp) && vacResp.length > 0) {
+        const fromBackend = vacResp.map(v => ({
+          id:       String(v.ID       || v.id       || ''),
+          nombre:   String(v.NOMBRE   || v.nombre   || ''),
+          desde:    String(v.DESDE    || v.desde    || '').slice(0,10),
+          hasta:    String(v.HASTA    || v.hasta    || '').slice(0,10),
+          notas:    String(v.NOTAS    || v.notas    || ''),
+          creadoEn: String(v.CREADO_EN|| v.creadoEn || ''),
+        })).filter(v => v.id && v.nombre && v.desde && v.hasta);
+        // Vacaciones locales que aún no llegaron al backend → sincronizar
+        const backendIds = new Set(fromBackend.map(v => v.id));
+        const localOnly  = readLS(VAC_KEY, []).filter(v => !backendIds.has(v.id));
+        writeLS(VAC_KEY, [...fromBackend, ...localOnly]);
+        localOnly.forEach(v => syncVacacionToBackend(v));
       }
 
       const today = isoToday();
