@@ -1676,6 +1676,7 @@
     document.getElementById('histModal').addEventListener('click', e => { if (e.target.id==='histModal') closeHistModal(); });
     document.getElementById('histPinInput').addEventListener('keydown', e => { if (e.key==='Enter') confirmHistLoad(); });
     document.getElementById('histDateInput').addEventListener('change', updateHistInfo);
+  });  // ── END DOMContentLoaded ──
 
   // ── Service Worker + Install prompt ──────────────────────
   let _installPrompt = null;
