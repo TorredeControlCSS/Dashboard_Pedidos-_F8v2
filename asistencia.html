@@ -2591,7 +2591,7 @@
       el.innerHTML = `<div class="lock-banner locked">
         <span class="lb-icon">🔒</span>
         <div class="lb-text">CERRADA a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}${lock.reason?' · '+lock.reason:''}</div>
-        <button class="btn-unlock" onclick="openAdminPanel('tardanza')">⏰ Tardanza</button>
+        <button class="btn-unlock" onclick="openAdminPanel()">⚙️ Admin</button>
       </div>`;
       if (lista) lista.classList.add('list-locked');
     } else if (after) {
