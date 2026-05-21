@@ -1222,13 +1222,45 @@
 
   // ── Lock ──
   function getLock() { const s=readLS(LOCK_KEY,{}); return s.fecha===isoToday()?s:{locked:false}; }
+  async function syncLockFromGAS() {
+    // Fetch authoritative lock state from GAS and merge with localStorage
+    try {
+      const r = await fetch(WEB_APP_URL + '?file=lista_estado');
+      const remote = await r.json();
+      if (remote && remote.fecha === isoToday()) {
+        const local = getLock();
+        // GAS wins if remote is locked and local isn't, or remote is newer
+        if (remote.locked && !local.locked) {
+          writeLS(LOCK_KEY, remote);
+          renderAll();
+        } else if (!remote.locked && local.locked && local.lockedBy === 'Sistema (auto-cierre tardanza)') {
+          // Don't override manual locks with stale remote
+        }
+      }
+    } catch(e) { /* silencioso — localStorage como fallback */ }
+  }
   function isAfterCutoff() { const n=new Date(); return n.getHours()>CUTOFF_H||(n.getHours()===CUTOFF_H&&n.getMinutes()>=CUTOFF_M); }
   function cutoffLabel() { return `${String(CUTOFF_H).padStart(2,'0')}:${String(CUTOFF_M).padStart(2,'0')} a.m.`; }
   function doLock(by='Sistema', reason='') {
     const ts = new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
-    writeLS(LOCK_KEY,{fecha:isoToday(),locked:true,lockedAt:ts,lockedBy:by,reason});
+    const payload = {fecha:isoToday(),locked:true,lockedAt:ts,lockedBy:by,reason};
+    writeLS(LOCK_KEY, payload);
+    // Persistir en GAS para sincronizar entre dispositivos
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'setListaEstado', ...payload})
+    }).catch(()=>{});
   }
-  function doUnlock() { const s=getLock(); s.locked=false; writeLS(LOCK_KEY,s); }
+  function doUnlock() {
+    const s = getLock();
+    s.locked = false;
+    writeLS(LOCK_KEY, s);
+    // Persistir desbloqueo en GAS
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'setListaEstado', fecha:s.fecha||isoToday(), locked:false, lockedBy:'Admin'})
+    }).catch(()=>{});
+  }
 
   // ── Photos (multi) ──
   function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
@@ -1946,12 +1978,17 @@
       <div class="dkl">Físicos</div>
     </div>`;
 
-    // Photos — local base64 + Drive fallback
+    // Photos — local base64, si vacío busca en Google Drive via GAS
     const photosSection = document.getElementById('dmPhotosSection');
     const photosEl = document.getElementById('dmPhotos');
-    if (photos.length > 0) {
+
+    function renderDayPhotos(photoList) {
+      if (!photoList.length) {
+        photosSection.style.display = 'none';
+        return;
+      }
       photosSection.style.display = 'block';
-      photosEl.innerHTML = photos.map(p => {
+      photosEl.innerHTML = photoList.map(p => {
         if (p.base64) {
           return `<img class="dm-photo-thumb" src="${p.base64}" title="${p.label||'Lista'}"
             onclick="openLightboxFromUrl('${p.base64}','${p.label||'Lista'}')" />`;
@@ -1966,8 +2003,28 @@
         }
         return '';
       }).join('');
-    } else {
-      photosSection.style.display = 'none';
+    }
+
+    // Render local first, then try GAS for Drive photos if empty
+    renderDayPhotos(photos);
+    if (!photos.length) {
+      photosEl.innerHTML = '<div style="font-size:12px;color:#6b7280;padding:8px;">⏳ Buscando fotos en Drive...</div>';
+      fetch(`${WEB_APP_URL}?file=photos&fecha=${iso}`)
+        .then(r => r.json())
+        .then(drivePhotos => {
+          if (drivePhotos && drivePhotos.length) {
+            renderDayPhotos(drivePhotos.map(p => ({
+              id: p.id || iso + '_d',
+              label: p.label || 'Lista',
+              base64: null,
+              driveUrl: p.driveUrl
+            })));
+            photosSection.style.display = 'block';
+          } else {
+            photosSection.style.display = 'none';
+          }
+        })
+        .catch(() => { photosSection.style.display = 'none'; });
     }
 
     // Attendance list grouped
@@ -2175,6 +2232,29 @@
     const today = isoToday();
     const photos = getPhotos(today);
     const el = document.getElementById('fotoGallery');
+    // Bloquear panel de fotos si la lista está cerrada
+    const fotoBox = document.getElementById('fotoBox');
+    const fotoAddBar = fotoBox ? fotoBox.querySelector('.foto-add-bar') : null;
+    const lock = getLock();
+    if (fotoBox) {
+      if (lock.locked) {
+        fotoBox.style.opacity = '0.7';
+        fotoBox.style.pointerEvents = 'none';
+        // Agregar badge de bloqueado si no existe
+        if (!fotoBox.querySelector('.foto-lock-badge')) {
+          const badge = document.createElement('div');
+          badge.className = 'foto-lock-badge';
+          badge.style.cssText = 'background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:8px;';
+          badge.textContent = '🔒 Panel bloqueado — lista cerrada. Solo Admin puede desbloquear.';
+          fotoBox.insertBefore(badge, fotoBox.children[1]);
+        }
+      } else {
+        fotoBox.style.opacity = '';
+        fotoBox.style.pointerEvents = '';
+        const badge = fotoBox.querySelector('.foto-lock-badge');
+        if (badge) badge.remove();
+      }
+    }
     if (!photos.length) {
       el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
       return;
@@ -2388,6 +2468,7 @@
       renderHistorico();
       renderVacPanel();
       document.getElementById('loadOverlay').style.display = 'none';
+      syncLockFromGAS(); // Sincronizar estado de lista con servidor
     } catch(e) {
       console.error(e);
       const localAtt = readLS(ATTENDANCE_KEY, {});
