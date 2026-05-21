@@ -1960,8 +1960,7 @@
   }
   function adminCambiarPin() {
     if (!_adminVerified) return;
-    const nuevo = prompt('Nuevo PIN de Jefatura (4-6 dígitos):
-(Este PIN se usa para Admin + Tardanzas + Salidas)');
+    const nuevo = prompt('Nuevo PIN de Jefatura (4-6 dígitos). Este PIN se usa para Admin, Tardanzas y Salidas.');
     if (!nuevo || nuevo.length < 4) { toast('❌ PIN muy corto', 2000); return; }
     localStorage.setItem(PIN_KEY, nuevo.trim());
     toast('✅ PIN de Jefatura actualizado', 3000);
