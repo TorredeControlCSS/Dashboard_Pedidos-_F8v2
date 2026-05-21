@@ -2290,12 +2290,13 @@
   async function init(isRefresh=false) {
     if (!isRefresh) document.getElementById("loadOverlay").style.display="flex";
     try {
-      const [staffResp, attendResp, histResp, vacResp, salidasResp] = await Promise.all([
+      const [staffResp, attendResp, histResp, vacResp, salidasResp, photosResp] = await Promise.all([
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
         fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=attendance_history&months=3`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=vacaciones`).then(r=>r.json()).catch(()=>null),
-        fetch(`${WEB_APP_URL}?file=salidas&fecha=${new Date().toISOString().split('T')[0]}`).then(r=>r.json()).catch(()=>null)
+        fetch(`${WEB_APP_URL}?file=salidas&fecha=${new Date().toISOString().split('T')[0]}`).then(r=>r.json()).catch(()=>null),
+        fetch(`${WEB_APP_URL}?file=photos&fecha=${new Date().toISOString().split('T')[0]}`).then(r=>r.json()).catch(()=>null)
       ]);
       if (Array.isArray(staffResp) && staffResp.length) {
         // Filtrar filas de encabezado de sección (── GESTIÓN ──, etc.)
@@ -2342,6 +2343,21 @@
         }
       } catch(e) {}
 
+      // Fotos del día — merge Drive URLs desde backend con base64 local
+      if (photosResp && Array.isArray(photosResp) && photosResp.length > 0) {
+        const today0 = isoToday();
+        const localPhotos = getPhotos(today0);
+        photosResp.forEach(bp => {
+          const exists = localPhotos.find(lp => lp.driveUrl === bp.driveUrl);
+          if (!exists && bp.driveUrl) localPhotos.push(bp);
+        });
+        localPhotos.forEach(lp => {
+          const bp = photosResp.find(b => b.label === lp.label);
+          if (bp && bp.driveUrl && !lp.driveUrl) lp.driveUrl = bp.driveUrl;
+        });
+        savePhotos(localPhotos, today0);
+      }
+
       // Salidas tempranas del día — backend tiene prioridad
       if (salidasResp && Array.isArray(salidasResp) && salidasResp.length > 0) {
         const todaySal = isoToday();
@@ -2358,7 +2374,14 @@
       const localAtt   = readLS(ATTENDANCE_KEY, {});
       const baseLocal   = localAtt?.fecha===today ? (localAtt.personal||{}) : {};
       const baseBackend = attendResp?.fecha===today ? (attendResp.personal||{}) : {};
-      STAFF.forEach(s => { draft[s.nombre] = baseBackend[s.nombre] || baseLocal[s.nombre] || 'presente'; });
+      const hasBackendData = Object.keys(baseBackend).length > 0;
+      STAFF.forEach(s => {
+        if (hasBackendData) {
+          draft[s.nombre] = baseBackend[s.nombre] || 'presente';
+        } else {
+          draft[s.nombre] = baseLocal[s.nombre] || 'presente';
+        }
+      });
 
       aplicarVacacionesAutomaticas();
       renderAll();
