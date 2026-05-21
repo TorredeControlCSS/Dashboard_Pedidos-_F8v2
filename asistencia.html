@@ -737,6 +737,8 @@
       <button onclick="adminCerrarLista()" style="background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">🔒 Cerrar lista</button>
       <button onclick="adminAutorizarTardanza()" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">⏰ Autorizar tardanza (reabre 5 min)</button>
       <button onclick="adminEditarDia()" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">📅 Editar día anterior</button>
+      <button onclick="adminEnviarCierreDia()" style="background:#f0fdf4;color:#166534;border:1px solid #86efac;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">📧 Enviar correo de cierre de un día</button>
+      <button onclick="adminGenerarReporte()" style="background:#fdf4ff;color:#7e22ce;border:1px solid #d8b4fe;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">📊 Generar Reporte de Colaborador (PDF)</button>
       <button onclick="adminCambiarPin()" style="background:#f3f4f6;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">🔑 Cambiar PIN Jefatura</button>
     </div>
   </div>
@@ -2001,8 +2003,239 @@
   function adminEditarDia() {
     if (!_adminVerified) return;
     closeAdminModal();
-    openHistModal();  // opens the existing historical date picker
+    openHistModal();
   }
+  function adminEnviarCierreDia() {
+    if (!_adminVerified) return;
+    const fecha = prompt('Fecha del cierre a enviar (YYYY-MM-DD):\nEj: ' + new Date(Date.now()-86400000).toISOString().slice(0,10));
+    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      toast('❌ Formato inválido — usa YYYY-MM-DD', 3000); return;
+    }
+    closeAdminModal();
+    const btn = document.querySelector('[onclick="adminEnviarCierreDia()"]');
+    toast('📧 Enviando correo de cierre para ' + fecha + '...', 4000);
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'enviarCierreFecha', fecha })
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.result === 'success') {
+        toast('✅ Correo de cierre enviado para ' + fecha, 5000);
+      } else {
+        toast('⚠️ ' + (resp.msg || 'Error al enviar — verifica datos del día'), 5000);
+      }
+    })
+    .catch(() => toast('❌ Error de conexión con el servidor', 4000));
+  }
+
+  function adminGenerarReporte() {
+    if (!_adminVerified) return;
+    closeAdminModal();
+    const gasUrl = WEB_APP_URL;
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reporte de Desempeño — CEDIS PANAMÁ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+:root{--navy:#0b1f3a;--navy2:#1e3a5f;--gold:#f59e0b;--ok:#059669;--warn:#d97706;--danger:#dc2626;--muted:#64748b;--border:#e2e8f0;--bg:#f8fafc;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:#1e293b;}
+.toolbar{background:var(--navy);padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.toolbar h1{font-family:'DM Serif Display',serif;color:#fff;font-size:17px;flex:1;}
+.toolbar select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:7px 12px;font-size:13px;font-family:'DM Sans',sans-serif;}
+.toolbar select option{background:var(--navy);}
+.btn-action{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.btn-gen{background:var(--gold);color:var(--navy);}
+.btn-pdf{background:#fff;color:var(--navy);}
+.btn-gen:hover,.btn-pdf:hover{filter:brightness(1.08);}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center;color:var(--muted);}
+.empty .icon{font-size:52px;margin-bottom:16px;}
+.empty h2{font-size:20px;color:#334155;margin-bottom:8px;}
+.report-page{max-width:860px;margin:24px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+.rp-header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);padding:36px 40px 28px;position:relative;overflow:hidden;}
+.rp-header::after{content:'CEDIS';position:absolute;right:-10px;top:-10px;font-size:80px;font-weight:900;color:rgba(255,255,255,.04);letter-spacing:-4px;font-family:'DM Serif Display',serif;}
+.rp-header .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:100px;padding:4px 12px;font-size:11px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;}
+.rp-header h2{font-family:'DM Serif Display',serif;font-size:32px;color:#fff;line-height:1.15;margin-bottom:6px;}
+.rp-header .meta{font-size:13px;color:rgba(255,255,255,.65);display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;}
+.rp-body{padding:32px 40px;}
+.score-section{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;background:var(--bg);border-radius:14px;padding:28px;margin-bottom:32px;border:1px solid var(--border);}
+.score-circle{width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.score-circle .sn{font-family:'DM Serif Display',serif;font-size:38px;line-height:1;}
+.score-circle .sl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
+.s-ex{background:#dcfce7;color:var(--ok);border:3px solid var(--ok);}
+.s-bu{background:#d1fae5;color:#065f46;border:3px solid #059669;}
+.s-re{background:#fef3c7;color:var(--warn);border:3px solid var(--warn);}
+.s-cr{background:#fee2e2;color:var(--danger);border:3px solid var(--danger);}
+.score-breakdown h3{font-size:16px;font-weight:700;margin-bottom:14px;color:#0f172a;}
+.sb-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.sb-lbl{display:flex;justify-content:space-between;font-size:12px;}
+.sb-lbl span:first-child{color:#475569;font-weight:500;}
+.sb-lbl span:last-child{font-weight:700;color:#0f172a;}
+.sb-track{height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden;}
+.sb-fill{height:100%;border-radius:999px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px;}
+.kpi-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:center;position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kc-ok::before{background:var(--ok);}.kc-dn::before{background:var(--danger);}.kc-wn::before{background:var(--warn);}.kc-in::before{background:#3b82f6;}.kc-pu::before{background:#7c3aed;}
+.kpi-val{font-family:'DM Serif Display',serif;font-size:28px;color:#0f172a;line-height:1;}
+.kpi-sub{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:5px;}
+.sec-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:18px;}
+.mtable{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:32px;}
+.mtable th{background:var(--navy);color:rgba(255,255,255,.85);padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.mtable th:first-child{border-radius:8px 0 0 0;}.mtable th:last-child{border-radius:0 8px 0 0;}
+.mtable td{padding:9px 12px;border-bottom:1px solid var(--border);color:#334155;}
+.mtable tr:last-child td{border-bottom:none;}
+.mtable tr:nth-child(even) td{background:var(--bg);}
+.pill{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-weight:700;font-size:12px;}
+.p-ok{background:#dcfce7;color:#166534;}.p-wn{background:#fef3c7;color:#92400e;}.p-bd{background:#fee2e2;color:#991b1b;}
+.cal-months{display:flex;flex-direction:column;gap:20px;margin-bottom:32px;}
+.cal-mb h4{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;letter-spacing:.5px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cdow{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:2px 0;}
+.cday{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;}
+.cd-em{background:transparent;}.cd-pr{background:#bbf7d0;color:#166534;}.cd-au{background:#fecaca;color:#991b1b;}
+.cd-va{background:#d1fae5;color:#065f46;}.cd-tx{background:#cffafe;color:#164e63;}.cd-ba{background:#fed7aa;color:#9a3412;}
+.cd-ru{background:#dbeafe;color:#1e40af;}.cd-sa{background:#ede9fe;color:#5b21b6;}.cd-nd{background:#f1f5f9;color:#94a3b8;}
+.cd-fu{background:#f1f5f9;color:#cbd5e1;}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:11px;}
+.li{display:flex;align-items:center;gap:4px;color:#475569;}
+.ld{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.inc-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;}
+.inc-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.ib-head{padding:10px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px;}
+.ib-ta .ib-head{background:#fef3c7;color:#92400e;}.ib-au .ib-head{background:#fee2e2;color:#991b1b;}
+.ib-sl .ib-head{background:#ede9fe;color:#5b21b6;}.ib-tx .ib-head{background:#cffafe;color:#164e63;}
+.ib-row{padding:7px 14px;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;color:#334155;}
+.ib-row:last-child{border-bottom:none;}
+.ib-empty{padding:14px;text-align:center;font-size:12px;color:var(--muted);}
+.rp-footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media print{.toolbar{display:none!important;}.report-page{margin:0;border-radius:0;box-shadow:none;max-width:100%;}.rp-body{padding:24px 32px;}.score-section,.kpi-grid{break-inside:avoid;}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <h1>📊 Reporte de Desempeño — CEDIS PANAMÁ</h1>
+  <select id="empSel" onchange="onEmpChange()">
+    <option value="">Cargando colaboradores...</option>
+  </select>
+  <select id="mesSel">
+    <option value="1">1 mes</option>
+    <option value="3" selected>3 meses</option>
+    <option value="6">6 meses</option>
+    <option value="12">12 meses</option>
+  </select>
+  <button class="btn-action btn-gen" onclick="generateReport()" id="btnGen" style="display:none">📊 Generar</button>
+  <button class="btn-action btn-pdf" onclick="window.print()" id="btnPdf" style="display:none">🖨️ Imprimir / PDF</button>
+</div>
+<div id="main">
+  <div class="empty"><div class="icon">⏳</div><h2>Cargando colaboradores...</h2></div>
+</div>
+<script>
+const GAS_URL = '${gasUrl}';
+const $=id=>document.getElementById(id);
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+function fmtDate(iso){if(!iso)return'—';const d=new Date(iso+'T12:00:00');return d.getDate()+' '+MESES[d.getMonth()].slice(0,3)+' '+d.getFullYear();}
+function fmtDay(iso){if(!iso)return'—';const d=new Date(iso+'T12:00:00');return DIAS[d.getDay()].slice(0,3)+' '+d.getDate()+'/'+(d.getMonth()+1);}
+async function loadStaff(){
+  try{
+    const r=await fetch(GAS_URL+'?file=staff');
+    const staff=await r.json();
+    const sel=$('empSel');
+    sel.innerHTML='<option value="">— Seleccionar colaborador —</option>'+
+      staff.sort((a,b)=>a.nombre.localeCompare(b.nombre))
+           .map(s=>'<option value="'+s.nombre+'">'+s.nombre+'</option>').join('');
+    $('main').innerHTML='<div class="empty"><div class="icon">👤</div><h2>Selecciona un colaborador y haz clic en Generar</h2></div>';
+  }catch(e){$('main').innerHTML='<div class="empty"><div class="icon">⚠️</div><h2>Error de conexión</h2><p>'+e.message+'</p></div>';}
+}
+function onEmpChange(){$('btnGen').style.display=$('empSel').value?'flex':'none';$('btnPdf').style.display='none';}
+async function generateReport(){
+  const nombre=$('empSel').value;const meses=$('mesSel').value;
+  if(!nombre)return;
+  $('main').innerHTML='<div class="empty"><div class="icon"><span class="spinner"></span></div><h2 style="margin-top:12px">Generando reporte de '+nombre+'...</h2></div>';
+  try{
+    const data=await fetch(GAS_URL+'?file=reporte_colaborador&nombre='+encodeURIComponent(nombre)+'&meses='+meses).then(r=>r.json());
+    renderReport(data);$('btnPdf').style.display='flex';
+  }catch(e){$('main').innerHTML='<div class="empty"><div class="icon">⚠️</div><h2>Error</h2><p>'+e.message+'</p></div>';}
+}
+function calcScore(data){
+  const ents=Object.entries(data.asistencia||{});const total=ents.length;
+  if(!total)return{score:0,asist:0,puntual:0,perma:0,cond:0,cat:'Sin datos',presentes:0,ausInjust:0,ausJust:0,vacaciones:0,tardanzas:0,salTemp:0,total:0,labDays:0};
+  const presentes=ents.filter(([,v])=>v==='presente').length;
+  const ausInjust=ents.filter(([,v])=>v==='ausente').length;
+  const ausJust=ents.filter(([,v])=>['baja-medica','capacitacion','txt'].includes(v)).length;
+  const vacaciones=ents.filter(([,v])=>v==='vacaciones').length;
+  const labDays=total-vacaciones;
+  const tardanzas=Object.values(data.horarios||{}).filter(h=>h.tardanza).length;
+  const salTemp=Object.values(data.horarios||{}).filter(h=>h.salidaTemprana).length;
+  const asist=labDays>0?(presentes/labDays)*100:100;
+  const puntual=presentes>0?((presentes-tardanzas)/presentes)*100:100;
+  const perma=presentes>0?((presentes-salTemp)/presentes)*100:100;
+  const cond=(ausInjust+ausJust)>0?(ausJust/(ausInjust+ausJust))*100:100;
+  const score=Math.round(asist*.40+puntual*.30+perma*.20+cond*.10);
+  const cat=score>=90?'Excelente':score>=75?'Bueno':score>=60?'Regular':'Crítico';
+  return{score,asist:Math.round(asist),puntual:Math.round(puntual),perma:Math.round(perma),cond:Math.round(cond),cat,presentes,ausInjust,ausJust,vacaciones,tardanzas,salTemp,total,labDays};
+}
+function scColor(v){return v>=90?'#059669':v>=75?'#10b981':v>=60?'#d97706':'#dc2626';}
+function renderReport(data){
+  const s=calcScore(data);
+  const catCls=s.cat==='Excelente'?'s-ex':s.cat==='Bueno'?'s-bu':s.cat==='Regular'?'s-re':'s-cr';
+  const ents=Object.entries(data.asistencia||{});
+  const months={};
+  ents.forEach(([iso,est])=>{const ym=iso.slice(0,7);if(!months[ym])months[ym]=[];months[ym].push({iso,est});});
+  const mKeys=Object.keys(months).sort();
+  const mRows=mKeys.map(ym=>{
+    const days=months[ym];
+    const lab=days.filter(d=>d.est!=='vacaciones').length;
+    const pres=days.filter(d=>d.est==='presente').length;
+    const aus=days.filter(d=>d.est==='ausente').length;
+    const vac=days.filter(d=>d.est==='vacaciones').length;
+    const tard=days.filter(d=>(data.horarios||{})[d.iso]?.tardanza).length;
+    const pct=lab>0?Math.round(pres/lab*100):0;
+    const pc=pct>=80?'p-ok':pct>=60?'p-wn':'p-bd';
+    const [y,m]=ym.split('-');
+    return '<tr><td><strong>'+MESES[parseInt(m)-1]+' '+y+'</strong></td><td>'+lab+'</td><td>'+pres+'</td><td><span class="pill '+pc+'">'+pct+'%</span></td><td>'+(tard?'<span style="color:#d97706;font-weight:700;">⚠️ '+tard+'</span>':'—')+'</td><td>'+(aus?'<span style="color:#dc2626;font-weight:700;">'+aus+'</span>':'—')+'</td><td>'+(vac?'<span style="color:#059669;">'+vac+'</span>':'—')+'</td></tr>';
+  }).join('');
+  const cals=mKeys.map(ym=>{
+    const [y,m]=ym.split('-').map(Number);
+    const firstDow=new Date(y,m-1,1).getDay();
+    const pad=(firstDow+6)%7;
+    const lastD=new Date(y,m,0).getDate();
+    const dows=['L','M','X','J','V','S','D'].map(d=>'<div class="cdow">'+d+'</div>').join('');
+    let cells='<div class="cday cd-em"></div>'.repeat(pad);
+    for(let d=1;d<=lastD;d++){
+      const iso=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const dow2=new Date(iso+'T12:00:00').getDay();
+      const est=(data.asistencia||{})[iso];
+      let cls=est?{presente:'cd-pr',ausente:'cd-au',vacaciones:'cd-va',txt:'cd-tx','baja-medica':'cd-ba',capacitacion:'cd-ba','en-ruta':'cd-ru'}[est]||'cd-nd':dow2===6?'cd-sa':'cd-nd';
+      if(dow2===0)cls='cd-fu';
+      const tard=(data.horarios||{})[iso]?.tardanza?'⚡':'';
+      cells+='<div class="cday '+cls+'" title="'+iso+(est?' — '+est:'')+'">'+d+tard+'</div>';
+    }
+    return '<div class="cal-mb"><h4>'+MESES[m-1]+' '+y+'</h4><div class="cal-grid">'+dows+cells+'</div></div>';
+  }).join('');
+  const tardList=Object.entries(data.horarios||{}).filter(([,h])=>h.tardanza).sort(([a],[b])=>a.localeCompare(b));
+  const ausList=Object.entries(data.asistencia||{}).filter(([,v])=>v==='ausente').sort(([a],[b])=>a.localeCompare(b));
+  const saltList=Object.entries(data.horarios||{}).filter(([,h])=>h.salidaTemprana).sort(([a],[b])=>a.localeCompare(b));
+  const txtList=Object.entries(data.asistencia||{}).filter(([,v])=>v==='txt').sort(([a],[b])=>a.localeCompare(b));
+  function incBox(title,cls,items,row){return'<div class="inc-box '+cls+'"><div class="ib-head">'+title+' ('+items.length+')</div>'+(items.length?items.map(row).join(''):'<div class="ib-empty">Sin registros ✓</div>')+'</div>';}
+  $('main').innerHTML='<div class="report-page"><div class="rp-header"><div class="badge">📋 Reporte de Desempeño · CEDIS PANAMÁ</div><h2>'+data.nombre+'</h2><div class="meta"><span>👔 '+(data.rol||'Sin rol')+'</span><span>📦 '+(data.grupos||data.area||'Sin área')+'</span><span>🗓️ '+fmtDate(data.periodo?.desde)+' — '+fmtDate(data.periodo?.hasta)+'</span><span>📆 '+s.total+' días registrados</span></div></div><div class="rp-body"><div class="score-section"><div class="score-circle '+catCls+'"><span class="sn">'+s.score+'</span><span class="sl">'+s.cat+'</span></div><div class="score-breakdown"><h3>Índice de Desempeño de Asistencia</h3>'+[['Asistencia (40%)',s.asist,'#059669'],['Puntualidad (30%)',s.puntual,'#3b82f6'],['Permanencia (20%)',s.perma,'#8b5cf6'],['Justificación (10%)',s.cond,'#f59e0b']].map(([l,v,col])=>'<div class="sb-row"><div class="sb-lbl"><span>'+l+'</span><span>'+v+'%</span></div><div class="sb-track"><div class="sb-fill" style="width:'+v+'%;background:'+col+';"></div></div></div>').join('')+'</div></div><div class="sec-title">📊 Resumen del Período</div><div class="kpi-grid"><div class="kpi-card kc-ok"><div class="kpi-val">'+s.presentes+'</div><div class="kpi-sub">Días Presente</div></div><div class="kpi-card kc-dn"><div class="kpi-val">'+s.ausInjust+'</div><div class="kpi-sub">Ausencias</div></div><div class="kpi-card kc-wn"><div class="kpi-val">'+s.tardanzas+'</div><div class="kpi-sub">Tardanzas</div></div><div class="kpi-card kc-pu"><div class="kpi-val">'+s.salTemp+'</div><div class="kpi-sub">Salidas Temp.</div></div><div class="kpi-card kc-in"><div class="kpi-val">'+s.vacaciones+'</div><div class="kpi-sub">Vacaciones</div></div><div class="kpi-card kc-in"><div class="kpi-val">'+s.ausJust+'</div><div class="kpi-sub">Bajas / TXT</div></div><div class="kpi-card kc-ok"><div class="kpi-val">'+s.labDays+'</div><div class="kpi-sub">Días Laborables</div></div><div class="kpi-card kc-ok"><div class="kpi-val" style="color:'+scColor(s.asist)+'">'+s.asist+'%</div><div class="kpi-sub">Tasa Asistencia</div></div></div><div class="sec-title">📅 Desglose Mensual</div><table class="mtable"><thead><tr><th>Mes</th><th>Días Lab.</th><th>Presentes</th><th>Asistencia</th><th>Tardanzas</th><th>Ausentes</th><th>Vacaciones</th></tr></thead><tbody>'+mRows+'</tbody></table><div class="sec-title">📆 Calendario de Asistencia</div><div class="legend"><div class="li"><div class="ld" style="background:#bbf7d0"></div>Presente</div><div class="li"><div class="ld" style="background:#fecaca"></div>Ausente</div><div class="li"><div class="ld" style="background:#d1fae5"></div>Vacaciones</div><div class="li"><div class="ld" style="background:#cffafe"></div>TXT</div><div class="li"><div class="ld" style="background:#fed7aa"></div>Baja/Cap.</div><div class="li"><div class="ld" style="background:#ede9fe"></div>Sábado</div><div class="li">⚡ tardanza</div></div><div class="cal-months">'+cals+'</div><div class="sec-title">⚠️ Detalle de Incidencias</div><div class="inc-grid">'+incBox('⏰ Tardanzas','ib-ta',tardList,([iso,h])=>'<div class="ib-row"><span>'+fmtDay(iso)+'</span><span>'+(h.entrada||'—')+'</span></div>')+incBox('❌ Ausencias','ib-au',ausList,([iso])=>'<div class="ib-row"><span>'+fmtDay(iso)+'</span><span>'+DIAS[new Date(iso+'T12:00:00').getDay()]+'</span></div>')+incBox('🚪 Salidas Tempranas','ib-sl',saltList,([iso,h])=>'<div class="ib-row"><span>'+fmtDay(iso)+'</span><span>'+(h.salida||'—')+'</span></div>')+incBox('⏱️ TXT','ib-tx',txtList,([iso])=>'<div class="ib-row"><span>'+fmtDay(iso)+'</span><span>'+DIAS[new Date(iso+'T12:00:00').getDay()]+'</span></div>')+'</div>'+(data.vacaciones?.length?'<div class="sec-title">🏖️ Vacaciones</div><table class="mtable"><thead><tr><th>Desde</th><th>Hasta</th><th>Notas</th></tr></thead><tbody>'+data.vacaciones.map(v=>'<tr><td>'+fmtDate(v.desde)+'</td><td>'+fmtDate(v.hasta)+'</td><td>'+(v.notas||'—')+'</td></tr>').join('')+'</tbody></table>':'')+'<div class="rp-footer"><span>Torre de Control CEDIS — '+new Date().toLocaleDateString('es-PA',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</span><span>CONFIDENCIAL — Solo Jefatura</span></div></div></div>';
+}
+loadStaff();
+</script>
+</body>
+</html>`);
+    win.document.close();
+  }
+
   function adminCambiarPin() {
     if (!_adminVerified) return;
     const nuevo = prompt('Nuevo PIN de Jefatura (4-6 dígitos). Este PIN se usa para Admin, Tardanzas y Salidas.');
