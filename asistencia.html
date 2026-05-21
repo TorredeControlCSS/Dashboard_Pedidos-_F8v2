@@ -54,7 +54,7 @@
     .wrap { padding: 14px; max-width: 1440px; margin: 0 auto; }
     .grid-main {
       display: grid;
-      grid-template-columns: 500px 1fr;
+      grid-template-columns: 530px 1fr;
       gap: 14px;
       align-items: start;
     }
@@ -71,7 +71,7 @@
     .card-body { padding: 14px 16px; }
 
     /* ── KPI HEADER — badge izq, tarjetas der ── */
-    .kpi-header { display:grid; grid-template-columns:500px 1fr; gap:14px; margin-bottom:10px; align-items:stretch; }
+    .kpi-header { display:grid; grid-template-columns:530px 1fr; gap:14px; margin-bottom:10px; align-items:stretch; }
     @media (max-width:960px) { .kpi-header { grid-template-columns:1fr; } }
     .sem-badge {
       border-radius:12px; border:1px solid var(--border);
@@ -132,11 +132,11 @@
     .person-name { font-weight:800; font-size:13px; }
     .person-sub  { font-size:10px; color:var(--muted); }
     .pr-info { flex:1; min-width:0; line-height:1.3; }
-    .status-btns { display:flex; gap:3px; flex-wrap:nowrap; }
+    .status-btns { display:flex; gap:2px; flex-wrap:nowrap; }
     .st-btn {
       border:1.5px solid var(--border); background:#f9fafb;
-      border-radius:7px; padding:5px 7px;
-      font-size:11px; font-weight:700; cursor:pointer;
+      border-radius:7px; padding:5px 5px;
+      font-size:10.5px; font-weight:700; cursor:pointer;
       min-height:34px; white-space:nowrap; transition:all .12s;
       line-height:1;
     }
@@ -684,9 +684,7 @@
     <button id="refreshBtn" class="btn-refresh" onclick="refreshData()">
     <span class="rf-icon">🔄</span> Actualizar
   </button>
-  <button class="btn-refresh" onclick="openHistModal()" style="background:rgba(220,38,38,.25);border-color:rgba(220,38,38,.4);">
-    📅 Día anterior
-  </button>
+  
   <button id="installBtn" onclick="installApp()" style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;align-items:center;gap:6px;min-height:48px;">
     📲 Instalar App
   </button>
@@ -2295,7 +2293,7 @@
       const [staffResp, attendResp, histResp, vacResp, salidasResp] = await Promise.all([
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
         fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
-        fetch(`${WEB_APP_URL}?file=attendance_history`).then(r=>r.json()).catch(()=>null),
+        fetch(`${WEB_APP_URL}?file=attendance_history&months=3`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=vacaciones`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=salidas&fecha=${new Date().toISOString().split('T')[0]}`).then(r=>r.json()).catch(()=>null)
       ]);
@@ -2312,7 +2310,9 @@
       if (histResp && typeof histResp === 'object' && Object.keys(histResp).length > 0) {
         let localHist = readLS(HISTORY_KEY, {});
         if (Array.isArray(localHist)) localHist = {};
-        writeLS(HISTORY_KEY, { ...localHist, ...histResp });
+        const merged = { ...localHist, ...histResp };
+        writeLS(HISTORY_KEY, merged);
+        renderHistorico(); // refresh calendar with backend data
       }
 
       // Vacaciones — backend es fuente de verdad, localStorage es caché
