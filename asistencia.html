@@ -2025,26 +2025,31 @@
     const photosEl = document.getElementById('dmPhotos');
 
     function renderDayPhotos(photoList) {
-      if (!photoList.length) {
-        photosSection.style.display = 'none';
-        return;
-      }
-      photosSection.style.display = 'block';
+      if (!photoList.length) { photosSection.style.display = "none"; return; }
+      photosSection.style.display = "block";
       photosEl.innerHTML = photoList.map(p => {
         if (p.base64) {
-          return `<img class="dm-photo-thumb" src="${p.base64}" title="${p.label||'Lista'}"
-            onclick="openLightboxFromUrl('${p.base64}','${p.label||'Lista'}')" />`;
+          return '<img class="dm-photo-thumb" src="' + p.base64 + '" title="' + (p.label||"Lista") + '" onclick="openLightboxFromUrl(this.src,this.title)"/>';
         } else if (p.driveUrl) {
           const fileId = (p.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || [])[1];
-          const thumbUrl = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : '';
-          return thumbUrl
-            ? `<img class="dm-photo-thumb" src="${thumbUrl}" title="${p.label||'Lista'}"
-                onclick="openLightboxFromUrl('${thumbUrl}','${p.label||'Lista'}')"
-                onerror="this.outerHTML='<a class=dm-photo-drive href=\\'${p.driveUrl}\\' target=\\'_blank\\'>📋 ${p.label||'Lista'}<br/>Ver en Drive</a>'" />`
-            : `<a class="dm-photo-drive" href="${p.driveUrl}" target="_blank">📋 ${p.label||'Lista'}<br/>Ver en Drive</a>`;
+          const thumbUrl = fileId ? "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w400" : "";
+          if (thumbUrl) return '<img class="dm-photo-thumb" data-drive="' + p.driveUrl + '" src="' + thumbUrl + '" title="' + (p.label||"Lista") + '" onclick="openLightboxFromUrl(this.src,this.title)"/>';
+          return '<a class="dm-photo-drive" href="' + p.driveUrl + '" target="_blank">📋 ' + (p.label||"Lista") + "<br/>Ver en Drive</a>";
         }
-        return '';
-      }).join('');
+        return "";
+      }).join("");
+      // onerror via JS — seguro si el modal se cierra antes de cargar la imagen
+      photosEl.querySelectorAll("img[data-drive]").forEach(img => {
+        img.onerror = function() {
+          if (!this.parentNode) return;
+          const a = document.createElement("a");
+          a.className = "dm-photo-drive";
+          a.href = this.dataset.drive;
+          a.target = "_blank";
+          a.innerHTML = "📋 " + (this.title||"Lista") + "<br/>Ver en Drive";
+          this.parentNode.replaceChild(a, this);
+        };
+      });
     }
 
     // Render local first, then try GAS for Drive photos if empty
