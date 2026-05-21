@@ -1250,7 +1250,7 @@
     writeLS(LOCK_KEY, payload);
     // Persistir en GAS para sincronizar entre dispositivos
     fetch(WEB_APP_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({action:'setListaEstado', ...payload})
     }).catch(()=>{});
   }
@@ -1260,7 +1260,7 @@
     writeLS(LOCK_KEY, s);
     // Persistir desbloqueo en GAS
     fetch(WEB_APP_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({action:'setListaEstado', fecha:s.fecha||isoToday(), locked:false, lockedBy:'Admin'})
     }).catch(()=>{});
   }
@@ -1929,7 +1929,7 @@
     // Escribir unlock en localStorage Y sincronizar con GAS
     writeLS(LOCK_KEY, {fecha:isoToday(), locked:false, lockedBy:'Admin', lockedAt:''});
     fetch(WEB_APP_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({action:'setListaEstado', fecha:isoToday(), locked:false, lockedBy:'Admin'})
     }).catch(()=>{});
     _adminUnlockedThisSession = true;
@@ -1945,7 +1945,7 @@
     const payload = {locked:true, fecha:isoToday(), lockedAt:hora, lockedBy:'ADMIN'};
     writeLS(LOCK_KEY, payload);
     fetch(WEB_APP_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({action:'setListaEstado', ...payload})
     }).catch(()=>{});
     closeAdminModal();
@@ -2279,7 +2279,7 @@
     const fotoAddBar = fotoBox ? fotoBox.querySelector('.foto-add-bar') : null;
     const lock = getLock();
     if (fotoBox) {
-      if (lock.locked) {
+      if (lock.locked && !editingDate) {
         fotoBox.style.opacity = '0.7';
         fotoBox.style.pointerEvents = 'none';
         // Agregar badge de bloqueado si no existe
@@ -2592,7 +2592,8 @@
         <div class="lb-text">CERRADA a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}${lock.reason?' · '+lock.reason:''}</div>
         <button class="btn-unlock" onclick="openAdminPanel()">⚙️ Admin</button>
       </div>`;
-      if (lista) lista.classList.add('list-locked');
+      // En modo edición histórica, no bloquear el panel — el lock es solo para hoy
+      if (lista && !editingDate) lista.classList.add('list-locked');
     } else if (after) {
       el.innerHTML = `<div class="lock-banner warning">
         <span class="lb-icon">⏰</span>
