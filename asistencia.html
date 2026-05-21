@@ -1288,6 +1288,7 @@
 
   // ── Photos (multi) ──
   function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
+  function currentFotoDate() { return editingDate || isoToday(); }
   function savePhotos(photos, date=isoToday()) { try { writeLS(PHOTOS_KEY+date,photos); return true; } catch(e){ return false; } }
 
   // ── Vacaciones ──
@@ -1798,21 +1799,44 @@
     document.getElementById('hmPinInput').value = '';
     document.getElementById('hmPinError').textContent = '';
 
-    // Load existing data for this person
-    const h = getHorarios()[nombre] || {};
-    document.getElementById('hmEntrada').value   = h.entrada   || '';
-    document.getElementById('hmAlmSalida').value = h.almSalida || '';
-    document.getElementById('hmAlmRegreso').value= h.almRegreso|| '';
-    document.getElementById('hmSalida').value    = h.salida    || '';
-    document.getElementById('hmObs').value       = h.obs       || '';
-    _hmTardanza = h.tardanza || false;
-    _hmTemprana = h.salidaTemprana || false;
-    updateHmToggles();
-    // Show/hide delete button based on existing record
-    const hmEliminar = document.getElementById('hmBtnEliminar');
-    hmEliminar.style.display = h.entrada ? 'block' : 'none';
+    function populateHm(h) {
+      document.getElementById('hmEntrada').value    = h.entrada    || '';
+      document.getElementById('hmAlmSalida').value  = h.almSalida  || '';
+      document.getElementById('hmAlmRegreso').value = h.almRegreso || '';
+      document.getElementById('hmSalida').value     = h.salida     || '';
+      document.getElementById('hmObs').value        = h.obs        || '';
+      _hmTardanza = !!(h.tardanza || h.TARDANZA === 'SI');
+      _hmTemprana = !!(h.salidaTemprana || h.SALIDA_TEMPRANA === 'SI');
+      updateHmToggles();
+      const hmEliminar = document.getElementById('hmBtnEliminar');
+      if (hmEliminar) hmEliminar.style.display = h.entrada ? 'block' : 'none';
+    }
+
+    const targetDate = editingDate || isoToday();
+
+    // Si hay datos en localStorage para esta fecha, úsalos primero
+    const localH = getHorarios(targetDate)[nombre] || {};
+    populateHm(localH);
     document.getElementById('horarioModal').style.display = 'flex';
     setTimeout(() => document.getElementById('hmEntrada').focus(), 100);
+
+    // Si es fecha histórica, buscar también en GAS (tiene prioridad si hay datos)
+    if (editingDate) {
+      fetch(`${WEB_APP_URL}?file=horarios&fecha=${editingDate}`)
+        .then(r => r.json())
+        .then(resp => {
+          if (resp && resp[nombre]) {
+            const gasH = resp[nombre];
+            // GAS tiene prioridad — sobrescribir con datos reales del backend
+            populateHm(gasH);
+            // Guardar en localStorage para próxima vez
+            const hAll = getHorarios(editingDate);
+            hAll[nombre] = gasH;
+            saveHorarios(hAll, editingDate);
+          }
+        })
+        .catch(() => {}); // silencioso — datos locales como fallback
+    }
   }
 
   function closeHorarioModal() {
@@ -2226,7 +2250,7 @@
   }
   function handlePhotoAddMultiple(input) {
     const files = Array.from(input.files); if (!files.length) return;
-    files.forEach((f, i) => compressAndAdd(f, `Lista ${getPhotos().length + i + 1}`));
+    files.forEach((f, i) => compressAndAdd(f, `Lista ${getPhotos(currentFotoDate()).length + i + 1}`));
     input.value = '';
   }
 
@@ -2244,7 +2268,7 @@
         canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
         const compressed = canvas.toDataURL('image/jpeg',0.78);
         const today = isoToday();
-        const photos = getPhotos(today);
+        const photos = getPhotos(currentFotoDate());
         const id = Date.now().toString(36) + Math.random().toString(36).slice(2,5);
         photos.push({ id, label: label || `Lista ${photos.length+1}`, base64: compressed, driveUrl: null, ts: new Date().toISOString() });
         if (!savePhotos(photos, today)) {
@@ -2252,7 +2276,7 @@
           return;
         }
         renderFotoGallery();
-        uploadPhotoToDrive(id, compressed, label, today, photos.length);
+        uploadPhotoToDrive(id, compressed, label, currentFotoDate(), photos.length);
       };
       img.src = e.target.result;
     };
@@ -2291,22 +2315,31 @@
 
   function removePhoto(id) {
     const today = isoToday();
-    const photos = getPhotos(today).filter(p => p.id !== id);
+    const photos = getPhotos(currentFotoDate()).filter(p => p.id !== id);
     savePhotos(photos, today);
     renderFotoGallery();
   }
 
   function updatePhotoLabel(id, newLabel) {
     const today = isoToday();
-    const photos = getPhotos(today);
+    const photos = getPhotos(currentFotoDate());
     const p = photos.find(p => p.id === id);
     if (p) { p.label = newLabel; savePhotos(photos, today); }
   }
 
   function renderFotoGallery() {
     const today = isoToday();
-    const photos = getPhotos(today);
+    const activeDate = editingDate || today;  // histórico o hoy
+    const photos = getPhotos(activeDate);
     const el = document.getElementById('fotoGallery');
+    // Header: mostrar de qué fecha son las fotos cuando es histórico
+    const fotoBox = document.getElementById('fotoBox');
+    const fotoTitle = fotoBox ? fotoBox.querySelector('h3') : null;
+    if (fotoTitle) {
+      fotoTitle.textContent = editingDate
+        ? `📋 Evidencia Lista Física — ${new Date(editingDate+'T12:00:00').toLocaleDateString('es-PA',{weekday:'short',day:'numeric',month:'long'})}`
+        : '📋 Evidencia Lista Física CSS — Obligatoria por Norma';
+    }
     // Bloquear panel de fotos si la lista está cerrada
     const fotoBox = document.getElementById('fotoBox');
     const fotoAddBar = fotoBox ? fotoBox.querySelector('.foto-add-bar') : null;
@@ -2331,6 +2364,30 @@
       }
     }
     if (!photos.length) {
+      // Si es fecha histórica, intentar cargar fotos desde Drive via GAS
+      if (editingDate) {
+        el.innerHTML = '<div class="foto-empty" style="color:#6b7280;font-size:12px;">⏳ Buscando fotos de '+ editingDate +' en Drive...</div>';
+        fetch(`${WEB_APP_URL}?file=photos&fecha=${editingDate}`)
+          .then(r => r.json())
+          .then(drivePhotos => {
+            if (drivePhotos && drivePhotos.length) {
+              // Cache for this session
+              const cached = drivePhotos.map(p => ({
+                id: p.id || editingDate + '_' + Math.random().toString(36).slice(2),
+                label: p.label || 'Lista',
+                base64: null,
+                driveUrl: p.driveUrl,
+                ts: editingDate
+              }));
+              savePhotos(cached, editingDate);
+              renderFotoGallery(); // re-render with cached photos
+            } else {
+              el.innerHTML = '<div class="foto-empty">Sin fotos registradas para este día</div>';
+            }
+          })
+          .catch(() => { el.innerHTML = '<div class="foto-empty">Sin fotos cargadas</div>'; });
+        return;
+      }
       el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
       return;
     }
