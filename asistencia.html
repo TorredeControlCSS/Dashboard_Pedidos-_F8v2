@@ -148,15 +148,30 @@
     .st-btn.active-ausente     { background:#b71c1c; border-color:#b71c1c; color:#fff; }
     .list-locked .st-btn { pointer-events:none; opacity:.45; }
     /* Gantt vacaciones */
-    .vac-gantt { overflow-x:auto; margin-top:10px; }
-    .vac-gantt table { border-collapse:collapse; font-size:10px; width:100%; }
-    .vac-gantt th { padding:2px 3px; text-align:center; color:var(--muted); font-weight:700; font-size:9px; }
-    .vac-gantt td.vg-name { font-size:11px; font-weight:700; padding:3px 6px 3px 0; white-space:nowrap; }
-    .vac-gantt td.vg-day  { width:20px; min-width:20px; height:20px; border-radius:3px; text-align:center; }
+    .vac-gantt { overflow-x:auto; margin-top:10px; -webkit-overflow-scrolling:touch; }
+    .vac-gantt table { border-collapse:collapse; font-size:10px; }
+    .vac-gantt .month-header th { background:#f1f5f9; font-size:9px; font-weight:800; color:var(--navy); letter-spacing:.04em; }
+    .vac-gantt .month-header th.month-label { text-align:left; padding:3px 6px 3px 0; white-space:nowrap; }
+    .vac-gantt th.day-num { padding:2px 1px; text-align:center; color:var(--muted); font-weight:700; font-size:9px; min-width:18px; width:18px; }
+    .vac-gantt td.vg-name { font-size:11px; font-weight:700; padding:3px 8px 3px 0; white-space:nowrap; min-width:130px; }
+    .vac-gantt td.vg-day  { width:18px; min-width:18px; height:22px; border-radius:2px; }
     .vac-gantt td.vg-vac  { background:#00796b; }
+    .vac-gantt td.vg-vac-upcoming { background:#0284c7; }
     .vac-gantt td.vg-today{ outline:2px solid var(--navy); outline-offset:-1px; }
     .vac-gantt td.vg-past { background:#f3f4f6; }
     .vac-gantt td.vg-future{ background:#fafafa; }
+    /* Ranking toggle */
+    .rank-toggle-head {
+      padding:12px 16px; cursor:pointer; user-select:none;
+      display:flex; align-items:center; gap:8px;
+      background:#f8fafc; border-top:1px solid var(--border);
+    }
+    .rank-toggle-head:hover { background:#f1f5f9; }
+    .rank-toggle-head .rt-title { flex:1; font-weight:800; font-size:14px; }
+    .rank-chevron { color:var(--muted); font-size:13px; transition:transform .2s; }
+    .rank-chevron.open { transform:rotate(180deg); }
+    .rank-body { display:none; }
+    .rank-body.open { display:block; }
 
     /* ── MULTI-PHOTO SECTION ── */
     .foto-box {
@@ -388,6 +403,41 @@
     .spinner { width:48px; height:48px; border:5px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; border-radius:999px; padding:10px 20px; font-size:14px; display:none; z-index:200; white-space:nowrap; max-width:90vw; text-align:center; }
+
+    /* ── GROUP FILTER PILLS ── */
+    .group-pills { display:flex; gap:6px; overflow-x:auto; padding:8px 12px; border-bottom:1px solid var(--border); background:#f8fafc; scrollbar-width:none; }
+    .group-pills::-webkit-scrollbar { display:none; }
+    
+    .pill:active { transform:scale(.96); }
+    
+
+    /* Progress counter */
+    .horario-progress { font-size:11px; font-weight:700; padding:4px 12px 6px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+    .horario-progress .hp-bar { flex:1; height:4px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+    .horario-progress .hp-fill { height:100%; background:#0369a1; border-radius:999px; transition:width .3s; }
+    .horario-progress .hp-count { color:#0369a1; font-weight:800; }
+    /* Clock button states */
+    .btn-clock { background:#e0f2fe; border-color:#0284c7; color:#0284c7; }
+    .btn-clock.registered { background:#dcfce7; border-color:#16a34a; color:#16a34a; }
+
+    /* ── FILTER CHIPS ── */
+    .filter-chips { display:flex; gap:5px; flex-wrap:wrap; padding:8px 12px 0; }
+    .chip {
+      border:1.5px solid var(--border); background:#f9fafb;
+      border-radius:999px; padding:5px 10px; font-size:11px; font-weight:700;
+      cursor:pointer; white-space:nowrap; transition:all .12s; color:var(--muted);
+    }
+    .chip:active { transform:scale(.96); }
+    .chip.chip-active { background:var(--navy); border-color:var(--navy); color:#fff; }
+    .chip.chip-todos  { border-color:#9ca3af; }
+    /* Clock button states */
+    .btn-clock-none { background:#f1f5f9; border:1.5px solid #cbd5e1; color:#64748b; }
+    .btn-clock-partial { background:#fff3e0; border:1.5px solid #f59e0b; color:#b45309; }
+    .btn-clock-done { background:#dcfce7; border:1.5px solid #16a34a; color:#166534; }
+    /* Capture progress counter */
+    .capture-progress { font-size:11px; font-weight:700; }
+    .capture-progress .cp-done { color:#166534; }
+    .capture-progress .cp-total { color:var(--muted); }
 
     /* ── HORARIO MODAL ── */
     #horarioModal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:502; padding:16px; }
@@ -805,9 +855,22 @@
       <div class="card">
         <div class="card-head">
           <span>👥 PASE DE LISTA — <span id="fechaLabel">hoy</span></span>
-          <span id="conteoLabel" style="font-size:12px;color:var(--muted);">...</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+            <span id="conteoLabel" style="font-size:12px;color:var(--muted);">...</span>
+            <span class="capture-progress" id="captureProgress" style="display:none;">
+              🕐 <span class="cp-done" id="cpDone">0</span><span class="cp-total" id="cpTotal">/0 con horario</span>
+            </span>
+          </div>
         </div>
         <!-- Buscador de personal -->
+        <!-- Filtro por grupo -->
+        
+        <!-- Progreso horarios -->
+        <div class="horario-progress" id="horarioProgress" style="display:none;">
+          <span>🕐 Horarios:</span>
+          <span class="hp-count" id="hpCount">0/0</span>
+          <div class="hp-bar"><div class="hp-fill" id="hpFill" style="width:0%"></div></div>
+        </div>
         <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:#f8fafc;">
           <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:0 10px;transition:border-color .15s;" id="searchWrap">
             <span style="font-size:14px;color:var(--muted);">🔍</span>
@@ -821,6 +884,8 @@
           </div>
           <div id="searchResultCount" style="font-size:11px;color:var(--muted);margin-top:4px;display:none;"></div>
         </div>
+        <!-- Chips de filtro por grupo -->
+        <div class="filter-chips" id="filterChips"></div>
         <div class="card-body" id="listaPersonal" style="max-height:52vh;overflow-y:auto;">
           <div style="color:var(--muted)">Cargando personal...</div>
         </div>
@@ -877,14 +942,17 @@
         </div>
       </div>
 
-      <!-- RANKING ASISTENCIA -->
+      <!-- RANKING ASISTENCIA — collapsible -->
       <div class="card">
-        <div class="card-head">
-          <span>🏆 Asistencia por Persona — Mes actual</span>
+        <div class="rank-toggle-head" onclick="toggleRanking()">
+          <span class="rt-title">🏆 Asistencia por Persona — Mes actual</span>
           <span id="rankPeriodLabel" style="font-size:11px;color:var(--muted);"></span>
+          <span class="rank-chevron" id="rankChevron">▼</span>
         </div>
-        <div class="card-body" id="rankGrid" style="max-height:340px;overflow-y:auto;">
-          <div style="color:var(--muted)">Sin historial aún.</div>
+        <div class="rank-body" id="rankBody">
+          <div class="card-body" id="rankGrid" style="max-height:340px;overflow-y:auto;">
+            <div style="color:var(--muted)">Sin historial aún.</div>
+          </div>
         </div>
       </div>
 
@@ -931,7 +999,8 @@
   let _unlockPurpose = '';
   let _salidaTarget  = '';
   let editingDate    = null;   // null = hoy, string = fecha pasada en edición
-  let _listaSearch   = '';     // búsqueda activa en el pase de lista
+  let _listaSearch      = '';   // búsqueda activa en el pase de lista
+  let _listaGroupFilter = '';   // filtro por grupo activo
 
   // ── Utils ──
   const readLS  = (k,fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
@@ -1130,52 +1199,107 @@
   }
   function renderVacPanel() {
     const today = isoToday();
-    const arr   = getVacaciones().sort((a,b)=>a.desde.localeCompare(b.desde));
+    const now2  = new Date();
+    const arr   = getVacaciones().sort((a,b) => a.desde.localeCompare(b.desde));
     const el    = document.getElementById('vacBody');
     if (!el) return;
+
+    // Cluster by status
+    const active   = arr.filter(v => getVacStatusForDate(v,today) === 'active');
+    const upcoming = arr.filter(v => getVacStatusForDate(v,today) === 'upcoming');
+    const past     = arr.filter(v => getVacStatusForDate(v,today) === 'past');
+
     if (!arr.length) { el.innerHTML='<div style="color:var(--muted);font-size:13px;">Sin vacaciones registradas.</div>'; return; }
-    const soon = arr.filter(v=>{ const d=(new Date(v.desde)-new Date(today))/86400000; return d>0&&d<=3; });
+
+    // Warning: starting in ≤3 days
+    const soon = upcoming.filter(v => {
+      const d=(new Date(v.desde)-new Date(today))/86400000;
+      return d>=0 && d<=3;
+    });
     let html = '';
     if (soon.length) html+=`<div class="vac-upcoming-alert">⚠️ Próximas en 3 días: ${soon.map(v=>`<strong>${v.nombre}</strong> (${v.desde})`).join(', ')}</div>`;
-    const labels = { active:'🏖️ En vacaciones', upcoming:'📅 Próximamente', past:'✓ Completadas' };
-    arr.forEach(v=>{
-      const status = getVacStatusForDate(v,today);
-      const dias   = Math.round((new Date(v.hasta)-new Date(v.desde))/86400000)+1;
-      html+=`<div class="vac-entry vac-${status}">
-        <div style="flex:1;min-width:0">
-          <div class="vac-name">${v.nombre}</div>
-          <div class="vac-dates">Del ${v.desde} al ${v.hasta} · ${dias} día(s)${v.notas?' · '+v.notas:''}</div>
-        </div>
-        <span class="vac-tag ${status}">${labels[status]}</span>
-        <button class="vac-del" onclick="deleteVacacion('${v.id}')">🗑️</button>
-      </div>`;
-    });
-    // ── Gantt visual del mes ──
-    const today2 = isoToday();
-    const now2   = new Date();
-    const yr     = now2.getFullYear();
-    const mo     = now2.getMonth();
-    const lastD  = new Date(yr, mo+1, 0).getDate();
-    const active = arr.filter(v=>getVacStatusForDate(v,today2)!=='past');
-    if (active.length) {
-      // Day headers
-      let ganttHtml = '<div class="vac-gantt"><table><thead><tr><th></th>';
-      for (let d=1;d<=lastD;d++) ganttHtml+=`<th>${d}</th>`;
-      ganttHtml += '</tr></thead><tbody>';
-      active.forEach(v=>{
-        ganttHtml += `<tr><td class="vg-name">${v.nombre.split(' ')[0]} ${v.nombre.split(' ')[1]||''}</td>`;
-        for (let d=1;d<=lastD;d++){
-          const iso=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-          const inVac = iso>=v.desde && iso<=v.hasta;
-          const isT   = iso===today2;
-          const isPast= iso<today2;
-          let cls = inVac?'vg-vac':(isPast?'vg-past':'vg-future');
-          if(isT) cls+=' vg-today';
-          ganttHtml+=`<td class="vg-day ${cls}"></td>`;
-        }
-        ganttHtml+='</tr>';
+
+    // Render cluster
+    function cluster(list, clsName, label) {
+      if (!list.length) return '';
+      let h = `<div style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);letter-spacing:.06em;padding:8px 0 4px;">${label}</div>`;
+      const labels = { active:'🏖️ En vacaciones', upcoming:'📅 Próximamente', past:'✓ Completadas' };
+      list.forEach(v => {
+        const status = getVacStatusForDate(v,today);
+        const dias = Math.round((new Date(v.hasta)-new Date(v.desde))/86400000)+1;
+        h+=`<div class="vac-entry vac-${clsName}">
+          <div style="flex:1;min-width:0">
+            <div class="vac-name">${v.nombre}</div>
+            <div class="vac-dates">Del ${v.desde} al ${v.hasta} · ${dias} día(s)${v.notas?' · '+v.notas:''}</div>
+          </div>
+          <span class="vac-tag ${status}">${labels[status]}</span>
+          <button class="vac-del" onclick="deleteVacacion('${v.id}')">🗑️</button>
+        </div>`;
       });
-      ganttHtml+='</tbody></table></div>';
+      return h;
+    }
+    html += cluster(active,   'active',   '🏖️ En Vacaciones Ahora');
+    html += cluster(upcoming, 'upcoming', '📅 Próximas');
+    html += cluster(past,     'past',     '✓ Completadas');
+
+    // ── GANTT — full period across all active+upcoming vacations ──
+    const ganttArr = [...active, ...upcoming];
+    if (ganttArr.length) {
+      // Determine date range: from earliest "desde" to latest "hasta" (or today+90d max)
+      const minDate = ganttArr.reduce((m,v)=>v.desde<m?v.desde:m, ganttArr[0].desde);
+      const maxDate = ganttArr.reduce((m,v)=>v.hasta>m?v.hasta:m, ganttArr[0].hasta);
+      const startD  = new Date(minDate+'T12:00:00');
+      const endD    = new Date(maxDate+'T12:00:00');
+      // Build list of all days in range
+      const days = [];
+      for (let d=new Date(startD); d<=endD; d.setDate(d.getDate()+1)) {
+        days.push(new Date(d));
+      }
+      const MONTHS_ES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+      // Build month header spans
+      let monthSpans = [];
+      let curMonth = -1, curSpan = 0, curLabel = '';
+      days.forEach((d,i) => {
+        if (d.getMonth() !== curMonth) {
+          if (curSpan) monthSpans.push({label:curLabel, span:curSpan});
+          curMonth = d.getMonth();
+          curLabel = MONTHS_ES[d.getMonth()] + ' ' + d.getFullYear();
+          curSpan  = 1;
+        } else { curSpan++; }
+      });
+      if (curSpan) monthSpans.push({label:curLabel, span:curSpan});
+
+      let ganttHtml = '<div class="vac-gantt" style="margin-top:14px;"><table><thead>';
+      // Month row
+      ganttHtml += '<tr class="month-header"><th class="month-label vg-name"></th>';
+      monthSpans.forEach(ms => {
+        ganttHtml += `<th colspan="${ms.span}" class="month-label" style="border-left:2px solid var(--border);padding:3px 6px;">${ms.label}</th>`;
+      });
+      ganttHtml += '</tr>';
+      // Day numbers row
+      ganttHtml += '<tr><th class="vg-name">Persona</th>';
+      days.forEach(d => {
+        const isToday = d.toISOString().split('T')[0] === today;
+        ganttHtml += `<th class="day-num"${isToday?' style="color:var(--navy);font-weight:900;"':''}>${d.getDate()}</th>`;
+      });
+      ganttHtml += '</tr></thead><tbody>';
+
+      // One row per person
+      ganttArr.forEach(v => {
+        ganttHtml += `<tr><td class="vg-name">${v.nombre.split(' ')[0]} ${(v.nombre.split(' ')[1]||'').charAt(0)}.</td>`;
+        days.forEach(d => {
+          const iso     = d.toISOString().split('T')[0];
+          const inVac   = iso >= v.desde && iso <= v.hasta;
+          const isT     = iso === today;
+          const isUpcoming = getVacStatusForDate(v, today) === 'upcoming';
+          let cls = inVac ? (isUpcoming ? 'vg-vac-upcoming' : 'vg-vac') : (iso < today ? 'vg-past' : 'vg-future');
+          if (isT) cls += ' vg-today';
+          ganttHtml += `<td class="vg-day ${cls}"></td>`;
+        });
+        ganttHtml += '</tr>';
+      });
+      ganttHtml += '</tbody></table></div>';
       html = ganttHtml + html;
     }
 
@@ -1328,10 +1452,14 @@
     </div>`;
   }
 
-  // ── Buscador pase de lista ──
+  // ── Filtro grupo + progreso horarios ──
+
+
+  // ── Buscador + Filtro grupo pase de lista ──
   function onListaSearch(val) {
     _listaSearch = val.trim().toLowerCase();
     document.getElementById('searchClear').style.display = _listaSearch ? 'block' : 'none';
+    if (_listaSearch) { _listaGroupFilter = ''; renderFilterChips(); }
     renderLista();
   }
   function clearListaSearch() {
@@ -1341,6 +1469,51 @@
     document.getElementById('searchResultCount').style.display = 'none';
     document.getElementById('listaSearch').focus();
     renderLista();
+  }
+  function setGrupoFilter(grupo) {
+    _listaGroupFilter = (grupo === 'TODOS') ? '' : grupo;
+    _listaSearch = '';
+    document.getElementById('listaSearch').value = '';
+    document.getElementById('searchClear').style.display = 'none';
+    document.getElementById('searchResultCount').style.display = 'none';
+    renderFilterChips();
+    renderLista();
+  }
+  function renderFilterChips() {
+    const container = document.getElementById('filterChips');
+    if (!container || !STAFF.length) return;
+    const ORDER = ['GRUPO 1','GRUPO 2','GRUPO 3','GRUPO 4-5-11','MQ','LABORATORIO','URGENCIAS','MÓDULO','EMPAQUE','DISTRIBUCIÓN','VENCIDOS','RECEPCIÓN','JEFATURA','ADMINISTRATIVO'];
+    const presentGroups = new Set(STAFF.map(s => getStaffGroup(s)));
+    const orderedGroups = [...ORDER.filter(g => presentGroups.has(g)),
+                           ...[...presentGroups].filter(g => !ORDER.includes(g) && g !== 'SIN GRUPO')];
+    const activeFilter = _listaGroupFilter || '';
+    const chips = ['TODOS', ...orderedGroups];
+    container.innerHTML = chips.map(g => {
+      const isAll    = g === 'TODOS';
+      const isActive = isAll ? !activeFilter : activeFilter === g;
+      const color    = GROUP_COLORS[g] || '#374151';
+      const style    = isActive
+        ? (isAll ? 'background:var(--navy);border-color:var(--navy);color:#fff;'
+                 : `background:${color};border-color:${color};color:#fff;`)
+        : (isAll ? '' : `color:${color};border-color:${color}33;`);
+      // Count per group
+      const count = isAll ? STAFF.length : STAFF.filter(s=>getStaffGroup(s)===g).length;
+      return `<button class="chip${isActive?' chip-active':''}" style="${style}" onclick="setGrupoFilter('${g}')">${g} <span style="opacity:.7;font-size:10px;">(${count})</span></button>`;
+    }).join('');
+  }
+  function updateCaptureProgress() {
+    const horarios = getHorarios();
+    const done = STAFF.filter(s => horarios[s.nombre]?.entrada).length;
+    const total = STAFF.length;
+    const prog = document.getElementById('captureProgress');
+    if (!prog) return;
+    if (done > 0) {
+      prog.style.display = 'inline';
+      document.getElementById('cpDone').textContent = done;
+      document.getElementById('cpTotal').textContent = `/${total} con horario`;
+    } else {
+      prog.style.display = 'none';
+    }
   }
 
   // ── Horario de Asistencia ──
@@ -1540,6 +1713,15 @@
     document.getElementById('groupModal').style.display='flex';
   }
   function closeGroupModal() { document.getElementById('groupModal').style.display='none'; }
+
+  // ── Ranking toggle ──
+  function toggleRanking() {
+    const body    = document.getElementById('rankBody');
+    const chevron = document.getElementById('rankChevron');
+    const isOpen  = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    chevron.classList.toggle('open', !isOpen);
+  }
   function handleGroupModalClick(e) { if(e.target.id==='groupModal') closeGroupModal(); }
 
   async function refreshData() {
@@ -1885,6 +2067,8 @@
     renderGroupCap();
     renderFotoGallery();
     updateSaveSummary();
+    updateCaptureProgress();
+    renderFilterChips();
     const displayDate = editingDate || isoToday();
     document.getElementById('fechaLabel').textContent =
       new Date(displayDate + 'T12:00:00').toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
@@ -1961,16 +2145,18 @@
   }
 
   function renderLista() {
-    // Aplicar filtro de búsqueda
+    renderGroupPills();
+    // Aplicar filtros: búsqueda + grupo
     const q = _listaSearch;
-    const staffFiltered = q
-      ? STAFF.filter(s => {
-          const nom = (s.nombre||s.NOMBRE||'').toLowerCase();
-          const rol = (s.rol||s.ROL||'').toLowerCase();
-          const grp = getStaffGroup(s).toLowerCase();
-          return nom.includes(q) || rol.includes(q) || grp.includes(q);
-        })
-      : STAFF;
+    const staffFiltered = STAFF.filter(s => {
+      const matchGroup = !_listaGroupFilter || getStaffGroup(s) === _listaGroupFilter;
+      if (!matchGroup) return false;
+      if (!q) return true;
+      const nom = (s.nombre||s.NOMBRE||'').toLowerCase();
+      const rol = (s.rol||s.ROL||'').toLowerCase();
+      const grp = getStaffGroup(s).toLowerCase();
+      return nom.includes(q) || rol.includes(q) || grp.includes(q);
+    });
 
     // Update search result count
     const countEl = document.getElementById('searchResultCount');
@@ -1984,6 +2170,7 @@
       countEl.style.display = 'none';
     }
 
+    const horarios = getHorarios(); // single read for all rows
     const grouped = {};
     staffFiltered.forEach(s => { const g=getStaffGroup(s); if (!grouped[g]) grouped[g]=[]; grouped[g].push(s); });
     const lock = getLock();
@@ -2005,12 +2192,16 @@
           `<button class="st-btn ${val===v?'active-'+v:''}" data-name="${s.nombre}" data-val="${v}">${lbl}</button>`
         ).join('');
         // Hora badge — show entry time if registered
-        const horarios = getHorarios();
         const hreg = horarios[s.nombre];
         const horaIndicator = hreg?.entrada
           ? `<span class="hora-badge${hreg.tardanza?' tardanza':''}">🕐 ${hreg.entrada}${hreg.tardanza?' ⚠️':''}</span>`
           : '';
-        const clockBtn = `<button class="st-btn" onclick="openHorarioModal('${s.nombre}')" title="Registro de horario" style="background:#e0f2fe;border-color:#0284c7;color:#0284c7;">🕐</button>`;
+        const hasHorario = !!(getHorarios()[s.nombre]?.entrada);
+        const hrClock = horarios[s.nombre];
+        let clockCls = 'btn-clock-none', clockTip = 'Registrar horario';
+        if (hrClock?.entrada && hrClock?.salida)  { clockCls='btn-clock-done';    clockTip=`✅ ${hrClock.entrada}→${hrClock.salida}`; }
+        else if (hrClock?.entrada)                { clockCls='btn-clock-partial';  clockTip=`⏳ Entrada ${hrClock.entrada} — sin salida`; }
+        const clockBtn = `<button class="st-btn ${clockCls}" onclick="openHorarioModal('${s.nombre}')" title="${clockTip}">🕐</button>`;
         return `<div class="person-row">
           <div class="pr-top">
             <div class="pr-dot s-${val}"></div>
