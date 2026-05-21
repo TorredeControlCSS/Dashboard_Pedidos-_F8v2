@@ -336,6 +336,17 @@
     .cal-day.nodata  { background: #f3f4f6; }
     .cal-day.future  { background: #f9fafb; }
     .cal-day.today   { outline: 2.5px solid var(--navy); outline-offset: -1px; }
+    .cal-day.feriado { background: #fef3c7; border: 1px solid #f59e0b; }
+    .cal-day.feriado .cal-num { color: #92400e; }
+    .cal-day.feriado .cal-pct { color: #92400e; }
+    .cal-day.sabado  { background: #ede9fe; border: 1px solid #8b5cf6; }
+    .cal-day.sabado  .cal-num { color: #5b21b6; }
+    .cal-day.sabado  .cal-pct { color: #5b21b6; }
+    .cal-day.domingo { background: #f1f5f9; pointer-events:none; opacity:.6; }
+    .jornada-banner { background:#ede9fe; border:1px solid #8b5cf6; border-radius:8px;
+      padding:6px 12px; font-size:12px; font-weight:700; color:#5b21b6;
+      margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+    .jornada-banner.feriado { background:#fef3c7; border-color:#f59e0b; color:#92400e; }
     .cal-num  { font-size: 12px; font-weight: 800; line-height: 1; }
     .cal-day.ok   .cal-num { color: #166534; }
     .cal-day.warn .cal-num { color: #713f12; }
@@ -949,6 +960,7 @@
 
       <!-- PASE DE LISTA -->
       <div class="card">
+        <div id="jornadaBanner" class="jornada-banner" style="display:none;"></div>
         <div class="card-head">
           <span>👥 PASE DE LISTA — <span id="fechaLabel">hoy</span></span>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
@@ -1110,6 +1122,7 @@
   let _unlockPurpose = '';
   let _salidaTarget  = '';
   let editingDate    = null;   // null = hoy, string = fecha pasada en edición
+  let FERIADOS       = {};    // {iso: {descripcion, tipo}} — cargado desde GAS
   let _listaSearch      = '';   // búsqueda activa en el pase de lista
   let _listaGroupFilter = '';   // filtro por grupo activo
 
@@ -1241,6 +1254,14 @@
         }
       }
     } catch(e) { /* silencioso — localStorage como fallback */ }
+  }
+  function getDayType(iso) {
+    // Retorna: 'feriado', 'sabado', 'domingo', 'laboral'
+    if (FERIADOS[iso]) return 'feriado';
+    const dow = new Date(iso + 'T12:00:00').getDay(); // 0=Dom, 6=Sab
+    if (dow === 0) return 'domingo';
+    if (dow === 6) return 'sabado';
+    return 'laboral';
   }
   function isAfterCutoff() { const n=new Date(); return n.getHours()>CUTOFF_H||(n.getHours()===CUTOFF_H&&n.getMinutes()>=CUTOFF_M); }
   function cutoffLabel() { return `${String(CUTOFF_H).padStart(2,'0')}:${String(CUTOFF_M).padStart(2,'0')} a.m.`; }
@@ -2042,6 +2063,13 @@
       photosEl.querySelectorAll("img[data-drive]").forEach(img => {
         img.onerror = function() {
           if (!this.parentNode) return;
+          // Intento 1: uc?id= (carga directa, evita 503 del thumbnail)
+          if (!this.dataset.fallback) {
+            this.dataset.fallback = "1";
+            const m = this.dataset.drive.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (m) { this.src = "https://drive.google.com/uc?id=" + m[1]; return; }
+          }
+          // Intento 2: link directo a Drive
           const a = document.createElement("a");
           a.className = "dm-photo-drive";
           a.href = this.dataset.drive;
@@ -2309,10 +2337,8 @@
     el.innerHTML = photos.map(p => `
       <div class="foto-item">
         <div class="foto-item-wrap" onclick="openLightbox('${p.id}')" title="Toca para ampliar">
-          <img class="foto-thumb" src="${p.base64 || ''}" alt="${p.label||'Lista'}"
-            onerror="this.style.display='none';this.nextSibling.style.display='flex'"
-          />
-          <div style="display:none;width:80px;height:60px;background:#e5e7eb;border-radius:6px;align-items:center;justify-content:center;font-size:11px;color:#6b7280;text-align:center;cursor:zoom-in;"
+          <img class="foto-thumb" data-foto-id="${p.id}" src="${p.base64 || ''}" alt="${p.label||'Lista'}" />
+          <div class="foto-fallback" style="display:none;width:80px;height:60px;background:#e5e7eb;border-radius:6px;align-items:center;justify-content:center;font-size:11px;color:#6b7280;text-align:center;cursor:zoom-in;"
             onclick="openLightbox('${p.id}')">📷<br/>Ver foto</div>
           <div class="foto-zoom-icon">🔍</div>
         </div>
@@ -2327,6 +2353,14 @@
         <button class="foto-del" onclick="removePhoto('${p.id}')">🗑️</button>
       </div>
     `).join('');
+    // onerror programático — seguro cuando no hay base64 o falla la carga
+    el.querySelectorAll('img.foto-thumb').forEach(img => {
+      img.onerror = function() {
+        this.style.display = 'none';
+        const fallback = this.parentNode && this.parentNode.querySelector('.foto-fallback');
+        if (fallback) fallback.style.display = 'flex';
+      };
+    });
   }
 
   // ── Lightbox ──
@@ -2418,6 +2452,10 @@
     if (!isRefresh) document.getElementById("loadOverlay").style.display="flex";
     try {
       const [staffResp, attendResp, histResp, vacResp, salidasResp, photosResp] = await Promise.all([
+        fetch(`${WEB_APP_URL}?file=feriados`).then(r=>r.json()).then(list=>{
+          FERIADOS = {};
+          (list||[]).forEach(f=>{ if(f.fecha) FERIADOS[f.fecha]={descripcion:f.descripcion,tipo:f.tipo}; });
+        }).catch(()=>{}),
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
         fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=attendance_history&months=3`).then(r=>r.json()).catch(()=>null),
@@ -2584,6 +2622,21 @@
     const displayDate = editingDate || isoToday();
     document.getElementById('fechaLabel').textContent =
       new Date(displayDate + 'T12:00:00').toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
+    // Banner jornada extraordinaria
+    const jBanner = document.getElementById('jornadaBanner');
+    if (jBanner) {
+      const dt = getDayType(displayDate);
+      if ((dt === 'sabado' || dt === 'feriado') && displayDate !== isoToday()) {
+        const desc = dt === 'feriado'
+          ? '🏖️ Feriado Nacional' + (FERIADOS[displayDate]?.descripcion ? ' — ' + FERIADOS[displayDate].descripcion : '')
+          : '⭐ Sábado — Jornada Extraordinaria (asistencia voluntaria, sin penalización)';
+        jBanner.className = 'jornada-banner' + (dt === 'feriado' ? ' feriado' : '');
+        jBanner.innerHTML = desc;
+        jBanner.style.display = 'flex';
+      } else {
+        jBanner.style.display = 'none';
+      }
+    }
   }
 
   function renderLockBanner() {
@@ -2744,7 +2797,7 @@
     document.getElementById('listaPersonal').innerHTML = html || '<div style="color:var(--muted)">Sin personal cargado.</div>';
     document.getElementById('conteoLabel').textContent = `${totalOp} / ${total} operativos`;
 
-    if (!lock.locked) {
+    if (!lock.locked || editingDate) {
       document.getElementById('listaPersonal').querySelectorAll('.st-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           draft[btn.dataset.name] = btn.dataset.val;
@@ -2969,21 +3022,49 @@
     for (let p=0; p<padDays; p++) calHtml += '<div class="cal-day empty"></div>';
     for (let d=1; d<=lastDate; d++) {
       const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const isToday = iso===today;
-      const isFuture = iso>today;
-      let cls='future', pct=null;
+      const isToday  = iso === today;
+      const isFuture = iso > today;
+      const dayType  = getDayType(iso);  // 'feriado','sabado','domingo','laboral'
+      let cls = 'future', pct = null;
+
       if (!isFuture && hist[iso]) {
         const dd = hist[iso];
         const tot = STAFF.length || Object.keys(dd).length;
-        const op  = Object.values(dd).filter(v=>v==='presente').length; // solo físicos, igual que el badge
-        pct = tot>0 ? Math.round((op/tot)*100) : 0;
-        cls = pct>=80?'ok':pct>=60?'warn':'bad';
-      } else if (!isFuture) { cls='nodata'; }
-      const todayCls = isToday?' today':'';
-      const pctHtml  = pct!==null ? `<div class="cal-pct">${pct}%</div>` : (cls==='nodata'&&!isFuture?`<div class="cal-pct">—</div>`:'');
-      const calClick = (cls==='ok'||cls==='warn'||cls==='bad') ? `onclick="openDayModal('${iso}')"` : '';
-      calHtml += `<div class="cal-day ${cls}${todayCls}" ${calClick} title="${iso}${pct!==null?': '+pct+'%':''}">
-        <div class="cal-num">${d}</div>${pctHtml}
+        const op  = Object.values(dd).filter(v => v === 'presente').length;
+        pct = tot > 0 ? Math.round((op / tot) * 100) : 0;
+        cls = pct>=80 ? 'ok' : pct>=60 ? 'warn' : 'bad';
+      } else if (!isFuture) {
+        cls = 'nodata';
+      }
+
+      // Feriados y sábados toman su propia clase visual (superpuesta al estado)
+      let extraCls = '';
+      let extraIcon = '';
+      let titleExtra = '';
+      if (dayType === 'feriado') {
+        extraCls = ' feriado';
+        extraIcon = '<div style="font-size:9px;margin-top:1px;">🏖️ ' + (FERIADOS[iso]?.descripcion || 'Feriado') + '</div>';
+        titleExtra = ' · 🏖️ ' + (FERIADOS[iso]?.descripcion || 'Feriado Nacional');
+      } else if (dayType === 'sabado') {
+        extraCls = ' sabado';
+        extraIcon = '<div style="font-size:9px;margin-top:1px;">⭐ Extraordinaria</div>';
+        titleExtra = ' · ⭐ Jornada Extraordinaria';
+      } else if (dayType === 'domingo') {
+        extraCls = ' domingo';
+      }
+
+      const todayCls  = isToday ? ' today' : '';
+      const pctHtml   = pct !== null
+        ? `<div class="cal-pct">${pct}%</div>`
+        : (cls === 'nodata' && !isFuture ? `<div class="cal-pct">—</div>` : '');
+      // Feriados y sábados también son clickeables aunque no tengan datos
+      const isClickable = cls==='ok'||cls==='warn'||cls==='bad'||
+                          (dayType==='feriado'&&!isFuture)||(dayType==='sabado'&&!isFuture);
+      const calClick  = isClickable ? `onclick="openDayModal('${iso}')"` : '';
+      const style     = dayType==='domingo' ? 'style="pointer-events:none;opacity:.5;"' : '';
+      calHtml += `<div class="cal-day ${cls}${extraCls}${todayCls}" ${calClick} ${style}
+          title="${iso}${pct!==null?': '+pct+'%':''}${titleExtra}">
+        <div class="cal-num">${d}</div>${pctHtml}${extraIcon}
       </div>`;
     }
     document.getElementById('calGrid').innerHTML = calHtml;
