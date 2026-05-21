@@ -573,6 +573,25 @@
     .hist-banner .hb-text { flex: 1; }
     .hist-banner .hb-title { font-weight: 800; font-size: 15px; color: #fca5a5; }
     .hist-banner .hb-sub   { font-size: 12px; color: #f87171; margin-top: 2px; }
+    /* ── CIERRE PENDIENTE ── */
+    .cierre-pendiente-banner {
+      background:#fff3e0; border:1px solid #f59e0b; border-radius:10px;
+      padding:10px 16px; margin-bottom:10px;
+      display:flex; align-items:center; gap:10px; font-size:13px;
+    }
+    .cierre-pendiente-banner .cp-icon { font-size:1.3rem; flex-shrink:0; }
+    .cierre-pendiente-banner .cp-text { flex:1; font-weight:700; color:#92400e; }
+    .btn-ir-cierre {
+      background:#f59e0b; color:#fff; border:none; border-radius:8px;
+      padding:7px 13px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap;
+    }
+    /* Cierre button in hist banner */
+    .btn-enviar-cierre {
+      background:#0b1f3a; color:#fff; border:none; border-radius:8px;
+      padding:8px 14px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap;
+    }
+    .btn-enviar-cierre:hover { background:#1e3a5f; }
+
     .btn-exit-hist {
       background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b;
       border-radius: 10px; padding: 10px 16px; font-size: 13px;
@@ -871,6 +890,7 @@
 <div class="wrap">
 
   <!-- HISTORICAL EDIT BANNER -->
+  <div id="cierrePendienteBanner" style="display:none;"></div>
   <div id="histEditBanner" style="display:none;"></div>
 
   <!-- LOCK BANNER -->
@@ -1539,18 +1559,84 @@
     const el = document.getElementById('histEditBanner');
     if (!editingDate) { el.style.display = 'none'; return; }
     el.style.display = 'block';
+    const horarios = getHorarios(editingDate);
+    const tieneSalidas = Object.values(horarios).some(h => h.salida);
     el.innerHTML = `<div class="hist-banner">
-      <span class="hb-icon">⚠️</span>
+      <span class="hb-icon">📅</span>
       <div class="hb-text">
-        <div class="hb-title">MODO EDICIÓN — ${formatDate(editingDate).toUpperCase()}</div>
-        <div class="hb-sub">Estás editando un día pasado. Los cambios se guardarán en el historial y en Google Sheets. Esta vista NO afecta la lista de hoy.</div>
+        <div class="hb-title">CIERRE — ${formatDate(editingDate).toUpperCase()}</div>
+        <div class="hb-sub">Completa horas de salida, sube la foto del listado firmado y envía el reporte de cierre.</div>
       </div>
-      <button class="btn-exit-hist" onclick="exitHistoricalMode()">✕ Volver a hoy</button>
+      <button class="btn-enviar-cierre" onclick="enviarCierreManual()" title="Guarda y envía correo de cierre">
+        📧 Enviar Cierre
+      </button>
+      <button class="btn-exit-hist" onclick="exitHistoricalMode()">✕ Hoy</button>
     </div>`;
   }
 
   // ── Filtro grupo + progreso horarios ──
 
+
+  // ── Cierre pendiente del día anterior ──
+  function renderCierrePendiente() {
+    const banner = document.getElementById('cierrePendienteBanner');
+    if (!banner || editingDate) { if(banner) banner.style.display='none'; return; }
+    const ayer = (() => {
+      const d = new Date(); d.setDate(d.getDate()-1);
+      return d.toISOString().split('T')[0];
+    })();
+    const hist     = readLS(HISTORY_KEY, {});
+    const horarios = readLS(HORARIOS_KEY + ayer, {});
+    const hayAsis  = hist[ayer] && Object.keys(hist[ayer]).length > 0;
+    const haySalidas = Object.values(horarios).some(h => h.salida);
+    if (hayAsis && !haySalidas) {
+      banner.style.display = 'block';
+      banner.innerHTML = `<div class="cierre-pendiente-banner">
+        <span class="cp-icon">⏰</span>
+        <div class="cp-text">Cierre pendiente: ${formatDate(ayer)} — faltan horas de salida y foto del listado firmado</div>
+        <button class="btn-ir-cierre" onclick="irACierreDia('${ayer}')">📅 Ir al cierre</button>
+      </div>`;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  function irACierreDia(fecha) {
+    // Go to that day in edit mode
+    editingDate = fecha;
+    const hist = readLS(HISTORY_KEY, {});
+    draft = { ...hist[fecha] } || {};
+    STAFF.forEach(s => { if (!draft[s.nombre]) draft[s.nombre] = 'presente'; });
+    renderAll();
+    renderHistBanner();
+    renderCierrePendiente();
+    window.scrollTo(0, 0);
+    toast(`📅 Modo cierre — ${formatDate(fecha)}`, 3000);
+  }
+
+  async function enviarCierreManual() {
+    if (!editingDate) return;
+    // First save current state
+    await guardarAsistencia();
+    // Then trigger closure email via backend
+    const fecha = editingDate;
+    const horarios = readLS(HORARIOS_KEY + fecha, {});
+    const fotos    = getPhotos(fecha);
+    try {
+      await fetch(WEB_APP_URL, {
+        method:'POST', headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({
+          action: 'enviarCierreDia',
+          fecha,
+          tieneFotos: fotos.length > 0,
+          cantSalidas: Object.values(horarios).filter(h=>h.salida).length
+        })
+      });
+      toast(`📧 Reporte de cierre enviado — ${formatDate(fecha)}`, 4000);
+    } catch(e) {
+      toast('⚠️ Error enviando cierre — verifica conexión', 4000);
+    }
+  }
 
   // ── Buscador + Filtro grupo pase de lista ──
   function onListaSearch(val) {
@@ -2343,6 +2429,7 @@
     updateSaveSummary();
     updateCaptureProgress();
     renderFilterChips();
+    renderCierrePendiente();
     const displayDate = editingDate || isoToday();
     document.getElementById('fechaLabel').textContent =
       new Date(displayDate + 'T12:00:00').toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long'});
