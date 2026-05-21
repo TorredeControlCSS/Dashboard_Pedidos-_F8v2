@@ -2593,7 +2593,10 @@
         <button class="btn-unlock" onclick="openAdminPanel()">⚙️ Admin</button>
       </div>`;
       // En modo edición histórica, no bloquear el panel — el lock es solo para hoy
-      if (lista && !editingDate) lista.classList.add('list-locked');
+      if (lista) {
+        if (editingDate) lista.classList.remove('list-locked');
+        else             lista.classList.add('list-locked');
+      }
     } else if (after) {
       el.innerHTML = `<div class="lock-banner warning">
         <span class="lb-icon">⏰</span>
