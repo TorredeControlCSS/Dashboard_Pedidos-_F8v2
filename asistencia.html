@@ -724,8 +724,9 @@
       <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Acciones</div>
       <button onclick="adminAbrirLista()" style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">🔓 Abrir lista (desbloquear)</button>
       <button onclick="adminCerrarLista()" style="background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">🔒 Cerrar lista</button>
+      <button onclick="adminAutorizarTardanza()" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">⏰ Autorizar tardanza (reabre 5 min)</button>
       <button onclick="adminEditarDia()" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">📅 Editar día anterior</button>
-      <button onclick="adminCambiarPin()" style="background:#f3f4f6;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">🔑 Cambiar PIN admin</button>
+      <button onclick="adminCambiarPin()" style="background:#f3f4f6;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-align:left;">🔑 Cambiar PIN Jefatura</button>
     </div>
   </div>
 </div>
@@ -1074,9 +1075,9 @@
   const ATTENDANCE_KEY  = 'pase_lista';
   const HISTORY_KEY     = 'historial_asistencia';
   const LOCK_KEY        = 'asistencia_lock_v1';
-  const PIN_KEY         = 'jefatura_pin';
-  const ADMIN_PIN_KEY   = 'admin_pin';           // PIN administrador (implementador)
-  const DEFAULT_ADMIN   = '9999';                // PIN por defecto — cámbialo desde Configuración
+  const PIN_KEY         = 'jefatura_pin';        // PIN único — Jefatura + Admin (mismo)
+  const ADMIN_PIN_KEY   = PIN_KEY;               // Unificado: el PIN de Paola es el de Admin
+  const DEFAULT_ADMIN   = '5555';                // PIN por defecto de Jefatura
   const PHOTOS_KEY      = 'asistencia_fotos_';
   const VAC_KEY         = 'vacaciones_programadas';
   const SALIDAS_KEY     = 'salidas_tempranas_';    // + isoToday()
@@ -1222,19 +1223,21 @@
 
   // ── Lock ──
   function getLock() { const s=readLS(LOCK_KEY,{}); return s.fecha===isoToday()?s:{locked:false}; }
+  let _adminUnlockedThisSession = false; // Previene que GAS re-bloquee tras unlock de Admin
   async function syncLockFromGAS() {
-    // Fetch authoritative lock state from GAS and merge with localStorage
+    // Si Admin desbloqueó en esta sesión, no dejar que GAS lo re-bloquee
+    if (_adminUnlockedThisSession) return;
     try {
       const r = await fetch(WEB_APP_URL + '?file=lista_estado');
       const remote = await r.json();
       if (remote && remote.fecha === isoToday()) {
         const local = getLock();
-        // GAS wins if remote is locked and local isn't, or remote is newer
-        if (remote.locked && !local.locked) {
+        // GAS solo gana si remote está cerrado Y localmente está abierto
+        // Y solo si no fue el Admin quien lo abrió en esta sesión
+        if (remote.locked && !local.locked && local.lockedBy !== 'Admin') {
           writeLS(LOCK_KEY, remote);
           renderAll();
-        } else if (!remote.locked && local.locked && local.lockedBy === 'Sistema (auto-cierre tardanza)') {
-          // Don't override manual locks with stale remote
+          renderFotoGallery();
         }
       }
     } catch(e) { /* silencioso — localStorage como fallback */ }
@@ -1885,11 +1888,17 @@
 
   // ── Admin Panel ──
   let _adminVerified = false;
-  function openAdminPanel() {
+  let _adminContext = '';  // 'tardanza' o ''
+  function openAdminPanel(context='') {
+    _adminContext = context;
     _adminVerified = false;
     document.getElementById('adminPinInput').value = '';
     document.getElementById('adminPinError').textContent = '';
     document.getElementById('adminActions').style.display = 'none';
+    const title = document.querySelector('#adminModal h3');
+    if (title) title.textContent = context === 'tardanza'
+      ? '⏰ Autorizar Tardanza'
+      : '⚙️ Panel Administrador';
     document.getElementById('adminModal').style.display = 'flex';
     setTimeout(()=>document.getElementById('adminPinInput').focus(), 100);
   }
@@ -1899,32 +1908,49 @@
   }
   function verifyAdminPin() {
     const pin     = document.getElementById('adminPinInput').value.trim();
-    const stored  = localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_ADMIN;
+    const stored  = localStorage.getItem(PIN_KEY) || DEFAULT_ADMIN;
     if (pin !== stored) {
       document.getElementById('adminPinError').textContent = '❌ PIN incorrecto';
       document.getElementById('adminPinInput').value = '';
+      document.getElementById('adminPinInput').focus();
       return;
     }
     _adminVerified = true;
     document.getElementById('adminPinError').textContent = '';
+    // Si el contexto es tardanza, ejecutar directamente sin mostrar acciones
+    if (_adminContext === 'tardanza') {
+      adminAutorizarTardanza();
+      return;
+    }
     document.getElementById('adminActions').style.display = 'flex';
   }
   function adminAbrirLista() {
     if (!_adminVerified) return;
-    const l = getLock();
-    l.locked = false; l.fecha = isoToday();
-    writeLS(LOCK_KEY, l);
+    // Escribir unlock en localStorage Y sincronizar con GAS
+    writeLS(LOCK_KEY, {fecha:isoToday(), locked:false, lockedBy:'Admin', lockedAt:''});
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'setListaEstado', fecha:isoToday(), locked:false, lockedBy:'Admin'})
+    }).catch(()=>{});
+    _adminUnlockedThisSession = true;
     closeAdminModal();
-    renderAll();
+    renderAll();        // actualiza banner + lista
+    renderFotoGallery(); // actualiza panel de fotos explícitamente
     toast('🔓 Lista abierta por Administrador', 3000);
   }
   function adminCerrarLista() {
     if (!_adminVerified) return;
     const now = new Date();
     const hora = now.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
-    writeLS(LOCK_KEY, { locked:true, fecha:isoToday(), lockedAt:hora, lockedBy:'ADMIN' });
+    const payload = {locked:true, fecha:isoToday(), lockedAt:hora, lockedBy:'ADMIN'};
+    writeLS(LOCK_KEY, payload);
+    fetch(WEB_APP_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'setListaEstado', ...payload})
+    }).catch(()=>{});
     closeAdminModal();
     renderAll();
+    renderFotoGallery();
     toast('🔒 Lista cerrada por Administrador', 3000);
   }
   function adminEditarDia() {
@@ -1934,11 +1960,28 @@
   }
   function adminCambiarPin() {
     if (!_adminVerified) return;
-    const nuevo = prompt('Nuevo PIN administrador (4-6 dígitos):');
+    const nuevo = prompt('Nuevo PIN de Jefatura (4-6 dígitos):
+(Este PIN se usa para Admin + Tardanzas + Salidas)');
     if (!nuevo || nuevo.length < 4) { toast('❌ PIN muy corto', 2000); return; }
-    localStorage.setItem(ADMIN_PIN_KEY, nuevo.trim());
-    toast('✅ PIN administrador actualizado', 3000);
+    localStorage.setItem(PIN_KEY, nuevo.trim());
+    toast('✅ PIN de Jefatura actualizado', 3000);
     closeAdminModal();
+  }
+  function adminAutorizarTardanza() {
+    if (!_adminVerified) return;
+    closeAdminModal();
+    doUnlock();
+    toast('⏰ Tardanza autorizada — tienes 5 minutos para registrar la entrada. Se re-cerrará automáticamente.', 6000);
+    window._autoReLockTimer = setTimeout(() => {
+      if (!getLock().locked) {
+        doLock('Sistema (auto-cierre tardanza)');
+        toast('🔒 Lista re-cerrada automáticamente', 3000);
+        renderAll();
+        renderFotoGallery();
+      }
+    }, 5 * 60 * 1000);
+    renderAll();
+    renderFotoGallery();
   }
 
   // ── Day Detail Modal ──
@@ -2548,7 +2591,7 @@
       el.innerHTML = `<div class="lock-banner locked">
         <span class="lb-icon">🔒</span>
         <div class="lb-text">CERRADA a las <strong>${lock.lockedAt}</strong> por ${lock.lockedBy}${lock.reason?' · '+lock.reason:''}</div>
-        <button class="btn-unlock" onclick="openUnlockModal('tardanza')">🔓 Tardanza</button>
+        <button class="btn-unlock" onclick="openAdminPanel('tardanza')">⏰ Tardanza</button>
       </div>`;
       if (lista) lista.classList.add('list-locked');
     } else if (after) {
