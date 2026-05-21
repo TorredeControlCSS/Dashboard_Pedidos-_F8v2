@@ -148,8 +148,8 @@
     .st-btn.active-ausente     { background:#b71c1c; border-color:#b71c1c; color:#fff; }
     .list-locked .st-btn { pointer-events:none; opacity:.45; }
     /* Gantt vacaciones */
-    .vac-gantt { overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; display:block; margin-top:10px; }
-    .vac-gantt table { border-collapse:collapse; font-size:10px; min-width:max-content; }
+    .vac-gantt { overflow-x:auto; margin-top:10px; -webkit-overflow-scrolling:touch; width:100%; display:block; }
+    .vac-gantt table { border-collapse:collapse; font-size:10px; table-layout:auto; }
     .vac-gantt .month-header th { background:#f1f5f9; font-size:9px; font-weight:800; color:var(--navy); letter-spacing:.04em; }
     .vac-gantt .month-header th.month-label { text-align:left; padding:3px 6px 3px 0; white-space:nowrap; }
     .vac-gantt th.day-num { padding:2px 1px; text-align:center; color:var(--muted); font-weight:700; font-size:9px; min-width:18px; width:18px; }
@@ -916,7 +916,7 @@
     </div>
 
     <!-- ══ COLUMNA DERECHA ══ -->
-    <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0;overflow:hidden;">
 
       <!-- CAPACIDAD POR GRUPO -->
       <div class="card">
@@ -943,14 +943,14 @@
       </div>
 
       <!-- GANTT VACACIONES -->
-      <div class="card" id="ganttCard" style="display:none;">
+      <div class="card" id="ganttCard" style="display:none;overflow:hidden;min-width:0;">
         <div class="card-head">
           <div>
             <div>🏖️ Cronograma de Vacaciones</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">🟩 Activas · 🟦 Próximas · Hoy marcado con borde</div>
           </div>
         </div>
-        <div class="card-body" style="padding:10px 14px;overflow:hidden;max-width:100%;" id="ganttCardBody">
+        <div class="card-body" style="padding:10px 14px;overflow:hidden;" id="ganttCardBody">
           <div style="color:var(--muted);font-size:13px;">Sin vacaciones activas o próximas.</div>
         </div>
       </div>
