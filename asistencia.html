@@ -2451,11 +2451,14 @@
   async function init(isRefresh=false) {
     if (!isRefresh) document.getElementById("loadOverlay").style.display="flex";
     try {
+      // Feriados — carga independiente, no bloquea el Promise.all principal
+      fetch(`${WEB_APP_URL}?file=feriados`).then(r=>r.json()).then(list=>{
+        FERIADOS = {};
+        (list||[]).forEach(f=>{ if(f.fecha) FERIADOS[f.fecha]={descripcion:f.descripcion,tipo:f.tipo}; });
+        renderHistorico(); // re-render calendar con feriados cargados
+      }).catch(()=>{});
+
       const [staffResp, attendResp, histResp, vacResp, salidasResp, photosResp] = await Promise.all([
-        fetch(`${WEB_APP_URL}?file=feriados`).then(r=>r.json()).then(list=>{
-          FERIADOS = {};
-          (list||[]).forEach(f=>{ if(f.fecha) FERIADOS[f.fecha]={descripcion:f.descripcion,tipo:f.tipo}; });
-        }).catch(()=>{}),
         fetch(`${WEB_APP_URL}?file=staff`).then(r=>r.json()),
         fetch(`${WEB_APP_URL}?file=attendance`).then(r=>r.json()).catch(()=>null),
         fetch(`${WEB_APP_URL}?file=attendance_history&months=3`).then(r=>r.json()).catch(()=>null),
