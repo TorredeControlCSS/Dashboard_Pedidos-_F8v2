@@ -122,6 +122,9 @@
       background:#9ca3af;
     }
     .pr-dot.s-presente    { background:#2e7d32; }
+    .pr-dot.s-sin-estado  { background:#fca5a5; }
+    .person-row.sin-estado { background:#fff8f8; border-left:3px solid #fca5a5; }
+    .person-row.sin-estado .pr-name::after { content:' — marcar estado'; font-size:9px; font-weight:700; color:#dc2626; margin-left:4px; }
     .pr-dot.s-en-ruta     { background:#1565c0; }
     .pr-dot.s-baja-medica { background:#e65100; }
     .pr-dot.s-capacitacion{ background:#7b1fa2; }
@@ -1022,6 +1025,7 @@
           <div style="font-size:11px;color:var(--muted)" id="lastSaveLabel"></div>
         </div>
         <div style="display:flex;gap:8px;">
+          <button onclick="openHorariosBatch()" style="background:#0b1f3a;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">⏱️ Horarios</button>
           <button class="btn-export" onclick="exportHistorial()">📊 Excel</button>
           <button class="btn-save" onclick="guardarAsistencia()">💾 Guardar</button>
         </div>
@@ -1617,7 +1621,7 @@
 
     // Load draft from historical data or default to 'presente'
     STAFF.forEach(s => {
-      draft[s.nombre] = dayData[s.nombre] || 'presente';
+      draft[s.nombre] = dayData[s.nombre] || null;
     });
     // Auto-apply vacation ranges for that date
     getVacaciones().forEach(v => {
@@ -1638,7 +1642,7 @@
     const localAtt   = readLS(ATTENDANCE_KEY, {});
     const today      = isoToday();
     const baseLocal  = localAtt?.fecha === today ? (localAtt.personal || {}) : {};
-    STAFF.forEach(s => { draft[s.nombre] = baseLocal[s.nombre] || 'presente'; });
+    STAFF.forEach(s => { draft[s.nombre] = baseLocal[s.nombre] || null; });
     aplicarVacacionesAutomaticas();
     renderAll();
     renderFotoGallery(); // restaura panel de fotos al estado de hoy
@@ -2516,8 +2520,8 @@
   function openGroupModal(groupLabel) {
     const members = STAFF.filter(s => getStaffGroup(s) === groupLabel);
     if (!members.length) return;
-    const presentes = members.filter(s=>(draft[s.nombre]||'presente')==='presente').length;
-    const enRuta    = members.filter(s=>(draft[s.nombre]||'presente')==='en-ruta').length;
+    const presentes = members.filter(s=>draft[s.nombre]==='presente').length;
+    const enRuta    = members.filter(s=>draft[s.nombre]==='en-ruta').length;
     const total     = members.length;
     const pct       = total>0?Math.round(presentes/total*100):0;
     const color     = pct>=80?'var(--ok)':pct>=60?'#f59e0b':'var(--danger)';
@@ -2535,11 +2539,11 @@
     gmPct.textContent = pct+'%'; gmPct.style.color = color;
     const ORDER = ['presente','en-ruta','salida-temprana','baja-medica','capacitacion','vacaciones','txt','ausente'];
     const sorted = [...members].sort((a,b)=>{
-      const sa=draft[a.nombre]||'presente', sb=draft[b.nombre]||'presente';
+      const sa=draft[a.nombre]||'sin-estado', sb=draft[b.nombre]||'sin-estado';
       return ORDER.indexOf(sa)-ORDER.indexOf(sb);
     });
     document.getElementById('gmBody').innerHTML = sorted.map(s=>{
-      const st    = draft[s.nombre]||'presente';
+      const st    = draft[s.nombre]||'sin-estado';
       const label = STATUS_LABELS[st]||st;
       const func  = getStaffFuncion(s);
       const sal   = readLS(SALIDAS_KEY+isoToday(),[]).find(sl=>sl.nombre===s.nombre);
@@ -2969,7 +2973,7 @@
         if (hasBackendData) {
           draft[s.nombre] = baseBackend[s.nombre] || 'presente';
         } else {
-          draft[s.nombre] = baseLocal[s.nombre] || 'presente';
+          draft[s.nombre] = baseLocal[s.nombre] || null;
         }
       });
 
@@ -3171,9 +3175,10 @@
     const html = Object.keys(grouped).sort().map(group => {
       const members = grouped[group];
       const rows = members.map(s => {
-        const val = draft[s.nombre] || 'presente';
+        const val = draft[s.nombre] || null; // null = sin estado
         total++;
         if (val==='presente'||val==='en-ruta') totalOp++;
+        if (!val) { total--; } // sin estado: no cuenta aún
         const salidas = readLS(SALIDAS_KEY+isoToday(),[]);
         const salidaReg = salidas.find(sl=>sl.nombre===s.nombre);
         const salidaBadge = salidaReg ? `<span class="salida-badge">🚪 ${salidaReg.hora}</span>` : '';
@@ -3195,9 +3200,9 @@
         if (hrClock?.entrada && hrClock?.salida)  { clockCls='btn-clock-done';    clockTip=`✅ ${hrClock.entrada}→${hrClock.salida}`; }
         else if (hrClock?.entrada)                { clockCls='btn-clock-partial';  clockTip=`⏳ Entrada ${hrClock.entrada} — sin salida`; }
         const clockBtn = `<button class="st-btn ${clockCls}" onclick="openHorarioModal('${s.nombre}')" title="${clockTip}">🕐</button>`;
-        return `<div class="person-row">
+        return `<div class="person-row${!val?' sin-estado':''}">
           <div class="pr-top">
-            <div class="pr-dot s-${val}"></div>
+            <div class="pr-dot s-${val||'sin-estado'}"></div>
             <div class="pr-info">
               <span class="person-name">${s.nombre}${salidaBadge}${horaIndicator}</span>
               <span class="person-sub"> · ${s.rol||''}</span>
@@ -3619,6 +3624,225 @@
   }
 
   init();
+
+  // ══════════════════════════════════════════════════════════
+  // PANEL BATCH DE HORARIOS
+  // ══════════════════════════════════════════════════════════
+  let _hbHorarios = {}; // {nombre: {entrada, almSalida, almRegreso, salida, tardanza, salidaTemprana}}
+
+  const ACTIVOS_ESTADOS = ['presente', 'en-ruta'];
+  const INACTIVOS_ESTADOS = ['ausente', 'vacaciones', 'baja-medica', 'capacitacion', 'txt', 'salida-temprana', null];
+
+  function openHorariosBatch() {
+    const targetDate = editingDate || isoToday();
+    const modal = document.getElementById('horariosBatchModal');
+    const lbl   = document.getElementById('hbFechaLabel');
+    if (lbl) lbl.textContent = new Date(targetDate+'T12:00:00')
+      .toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    modal.style.display = 'block';
+    renderHbBody({});
+    // Fetch horarios from GAS
+    const st = document.getElementById('hbStatus');
+    if (st) { st.style.display='block'; st.textContent='⏳ Cargando desde Google Sheets...'; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#eff6ff;color:#1d4ed8;'; }
+    fetch(WEB_APP_URL+'?file=horarios&fecha='+targetDate)
+      .then(r=>r.json())
+      .then(data => {
+        _hbHorarios = data || {};
+        renderHbBody(_hbHorarios);
+        if (st) { st.style.display='block'; st.textContent='✅ Datos cargados desde Google Sheets — edita y presiona Guardar Todo'; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#f0fdf4;color:#166534;'; }
+      })
+      .catch(() => {
+        _hbHorarios = {};
+        renderHbBody({});
+        if (st) { st.style.display='block'; st.textContent='⚠️ Sin conexión — datos no cargados desde Sheets'; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#fef3c7;color:#92400e;'; }
+      });
+  }
+
+  function closeHorariosBatch() {
+    document.getElementById('horariosBatchModal').style.display = 'none';
+  }
+
+  function renderHbBody(horarios) {
+    const tbody = document.getElementById('hbBody');
+    if (!tbody) return;
+    // Group staff by area, sorted
+    const grouped = {};
+    STAFF.forEach(s => {
+      const g = getStaffGroup(s);
+      if (!grouped[g]) grouped[g] = [];
+      grouped[g].push(s);
+    });
+    let html = '';
+    Object.keys(grouped).sort().forEach(group => {
+      html += `<tr><td colspan="8" style="padding:8px 12px;background:#f1f5f9;font-size:11px;font-weight:700;color:#374151;letter-spacing:.5px;text-transform:uppercase;">${group}</td></tr>`;
+      grouped[group].forEach(s => {
+        const estado = draft[s.nombre] || null;
+        const activo = ACTIVOS_ESTADOS.includes(estado);
+        const h = horarios[s.nombre] || {};
+        const tard = h.tardanza ? 'SI' : 'NO';
+        const salT = h.salidaTemprana ? 'SI' : 'NO';
+        const locked = !activo;
+        const lockStyle = locked ? 'background:#f8fafc;opacity:.5;pointer-events:none;' : '';
+        const statusColor = estado === 'presente' ? '#166534' : estado === 'en-ruta' ? '#1e40af' :
+          estado === 'ausente' ? '#991b1b' : estado === 'vacaciones' ? '#065f46' :
+          estado === null ? '#dc2626' : '#92400e';
+        const statusLabel = estado === 'presente' ? '✅ Presente' : estado === 'en-ruta' ? '🚚 En Ruta' :
+          estado === 'ausente' ? '❌ Ausente' : estado === 'vacaciones' ? '🏖️ Vacaciones' :
+          estado === 'baja-medica' ? '🏥 Baja' : estado === 'capacitacion' ? '📚 Cap.' :
+          estado === 'txt' ? '⏱️ TXT' : estado === 'salida-temprana' ? '🚪 S.Temp' : '⚠️ Sin estado';
+        const rowBg = locked ? '#f8fafc' : (estado === null ? '#fff8f8' : '#fff');
+        html += `<tr data-nombre="${s.nombre}" style="background:${rowBg};border-bottom:1px solid #f1f5f9;">
+          <td style="padding:6px 12px;font-size:12px;font-weight:600;">
+            ${s.nombre}<br/>
+            <span style="font-size:10px;color:${statusColor};font-weight:700;">${statusLabel}</span>
+          </td>
+          <td style="padding:4px 8px;text-align:center;">
+            <span style="font-size:10px;color:${statusColor};font-weight:700;">${estado ? '' : '—'}</span>
+          </td>
+          <td style="padding:4px 8px;background:${locked?'#f8fafc':'#f0fdf4'};">
+            <input type="time" class="hb-time" data-field="entrada" data-nombre="${s.nombre}"
+              value="${h.entrada||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','entrada',this.value)" />
+          </td>
+          <td style="padding:4px 8px;text-align:center;background:${locked?'#f8fafc':'#fef3c7'};">
+            <button onclick="hbToggleBool('${s.nombre}','tardanza')" id="hbTard_${s.nombre}"
+              style="font-size:11px;font-weight:700;border:2px solid ${h.tardanza?'#f59e0b':'#e5e7eb'};border-radius:6px;padding:3px 8px;cursor:pointer;background:${h.tardanza?'#fef3c7':'#fff'};color:${h.tardanza?'#92400e':'#94a3b8'};${lockStyle}"
+              ${locked?'disabled':''}>${h.tardanza?'SI':'NO'}</button>
+          </td>
+          <td style="padding:4px 8px;">
+            <input type="time" class="hb-time" data-nombre="${s.nombre}"
+              value="${h.almSalida||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','almSalida',this.value)" />
+          </td>
+          <td style="padding:4px 8px;">
+            <input type="time" class="hb-time" data-nombre="${s.nombre}"
+              value="${h.almRegreso||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','almRegreso',this.value)" />
+          </td>
+          <td style="padding:4px 8px;background:${locked?'#f8fafc':'#fff5f5'};">
+            <input type="time" class="hb-time" data-nombre="${s.nombre}"
+              value="${h.salida||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','salida',this.value)" />
+          </td>
+          <td style="padding:4px 8px;text-align:center;">
+            <button onclick="hbToggleBool('${s.nombre}','salidaTemprana')" id="hbSalT_${s.nombre}"
+              style="font-size:11px;font-weight:700;border:2px solid ${h.salidaTemprana?'#f87171':'#e5e7eb'};border-radius:6px;padding:3px 8px;cursor:pointer;background:${h.salidaTemprana?'#fee2e2':'#fff'};color:${h.salidaTemprana?'#991b1b':'#94a3b8'};${lockStyle}"
+              ${locked?'disabled':''}>${h.salidaTemprana?'SI':'NO'}</button>
+          </td>
+        </tr>`;
+      });
+    });
+    tbody.innerHTML = html;
+  }
+
+  function hbSetField(nombre, field, value) {
+    if (!_hbHorarios[nombre]) _hbHorarios[nombre] = {};
+    _hbHorarios[nombre][field] = value;
+  }
+
+  function hbToggleBool(nombre, field) {
+    if (!_hbHorarios[nombre]) _hbHorarios[nombre] = {};
+    _hbHorarios[nombre][field] = !_hbHorarios[nombre][field];
+    // Re-render just this row's button
+    const val = _hbHorarios[nombre][field];
+    const isTard = field === 'tardanza';
+    const btn = document.getElementById(isTard ? `hbTard_${nombre}` : `hbSalT_${nombre}`);
+    if (btn) {
+      btn.textContent = val ? 'SI' : 'NO';
+      btn.style.background   = val ? (isTard?'#fef3c7':'#fee2e2') : '#fff';
+      btn.style.borderColor  = val ? (isTard?'#f59e0b':'#f87171') : '#e5e7eb';
+      btn.style.color        = val ? (isTard?'#92400e':'#991b1b') : '#94a3b8';
+    }
+  }
+
+  async function saveAllHorarios() {
+    const targetDate = editingDate || isoToday();
+    const btn = document.getElementById('hbSaveBtn');
+    const st  = document.getElementById('hbStatus');
+    if (btn) { btn.disabled=true; btn.textContent='⏳ Guardando...'; }
+    if (st)  { st.style.display='block'; st.textContent='⏳ Guardando en Google Sheets...'; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#eff6ff;color:#1d4ed8;'; }
+    // Build batch records — only activos with at least one time
+    const records = STAFF
+      .filter(s => ACTIVOS_ESTADOS.includes(draft[s.nombre]))
+      .map(s => {
+        const h = _hbHorarios[s.nombre] || {};
+        return {
+          nombre: s.nombre,
+          entrada:        h.entrada        || '',
+          almSalida:      h.almSalida      || '',
+          almRegreso:     h.almRegreso     || '',
+          salida:         h.salida         || '',
+          tardanza:       h.tardanza       ? 'SI' : 'NO',
+          salidaTemprana: h.salidaTemprana ? 'SI' : 'NO',
+          obs:            h.obs            || ''
+        };
+      });
+    try {
+      const resp = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'saveBatchHorarios', fecha: targetDate, records })
+      }).then(r=>r.json());
+      if (resp.result === 'success') {
+        if (st) { st.textContent='✅ Guardado en Google Sheets — '+new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'}); st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#f0fdf4;color:#166534;'; }
+        toast('✅ Horarios guardados en Google Sheets', 3000);
+        // Update local cache
+        const hAll = getHorarios(targetDate);
+        records.forEach(r => { hAll[r.nombre] = r; });
+        saveHorarios(hAll, targetDate);
+        renderLista();
+      } else {
+        throw new Error(resp.msg || 'Error');
+      }
+    } catch(e) {
+      if (st) { st.textContent='❌ Error: '+e.message; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#fff5f5;color:#991b1b;'; }
+      toast('❌ Error al guardar: '+e.message, 4000);
+    } finally {
+      if (btn) { btn.disabled=false; btn.textContent='💾 Guardar Todo en Sheets'; }
+    }
+  }
+
 </script>
+<div id="horariosBatchModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;overflow-y:auto;padding:16px;">
+  <div style="background:#fff;border-radius:16px;max-width:900px;margin:0 auto;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <div style="background:#0b1f3a;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="color:#fff;font-size:17px;font-weight:700;">⏱️ Control de Horarios</div>
+        <div id="hbFechaLabel" style="color:rgba(255,255,255,.6);font-size:12px;margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="saveAllHorarios()" id="hbSaveBtn"
+          style="background:#f59e0b;color:#0b1f3a;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;">
+          💾 Guardar Todo en Sheets
+        </button>
+        <button onclick="closeHorariosBatch()"
+          style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div id="hbStatus" style="display:none;font-size:12px;padding:8px 24px;"></div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f8fafc;position:sticky;top:0;z-index:1;">
+            <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #e5e7eb;min-width:160px;">NOMBRE</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:70px;color:#374151;">ESTADO</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:90px;background:#f0fdf4;color:#166534;">ENTRADA</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:70px;background:#fef3c7;color:#92400e;">TARDANZA</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:90px;">ALM. SALIDA</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:90px;">ALM. REGRESO</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:90px;background:#fff5f5;color:#991b1b;">SALIDA</th>
+            <th style="padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;min-width:70px;">SAL.TEMP.</th>
+          </tr>
+        </thead>
+        <tbody id="hbBody"></tbody>
+      </table>
+    </div>
+    <div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:11px;color:#64748b;">
+      ⬜ Campos bloqueados = persona ausente/vacaciones/baja (no requiere horario) &nbsp;|&nbsp;
+      🟩 Campos activos = presente/en ruta
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
