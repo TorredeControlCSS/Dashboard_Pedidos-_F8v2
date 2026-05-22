@@ -946,7 +946,7 @@
         <h3>📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
         <div class="foto-add-bar">
           <select id="fotoAreaSel" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
-            <option value="MQ">MQ — Medico Quirúrgico</option>
+            <option value="MQ">MQ — Medicamentos Controlados</option>
             <option value="MED">MED — Medicamentos General</option>
             <option value="LAB">LAB — Laboratorio</option>
             <option value="URG">URG — Urgencias</option>
@@ -958,6 +958,8 @@
             <option value="JEF">JEF — Jefatura</option>
             <option value="ADM">ADM — Administrativo</option>
           </select>
+          <button id="fotoTipoToggle" onclick="toggleFotoTipo()"
+            style="border:2px solid #86efac;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;background:#dcfce7;color:#166534;">APERTURA</button>
           <label class="foto-btn cam">
             📷 Capturar con cámara
             <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAdd(this, getFotoLabel())" />
@@ -1302,13 +1304,30 @@
 
   // ── Photos (multi) ──
   function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
-  function getFotoLabel() {
-    const sel = document.getElementById('fotoAreaSel');
-    const area = sel ? sel.value : 'LISTA';
-    const date = currentFotoDate().replace(/-/g, '');
-    const existing = getPhotos(currentFotoDate()).filter(p => p.label && p.label.startsWith(area + '_'));
-    const seq = existing.length + 1;
-    return `${area}_${date}_${seq}`;
+  let _fotoTipo="A";
+  function toggleFotoTipo(){
+    _fotoTipo=_fotoTipo==="A"?"C":"A";
+    const b=document.getElementById("fotoTipoToggle");
+    if(!b)return;
+    b.textContent=_fotoTipo==="A"?"APERTURA":"CIERRE";
+    b.style.background=_fotoTipo==="A"?"#dcfce7":"#fef3c7";
+    b.style.color=_fotoTipo==="A"?"#166534":"#92400e";
+    b.style.borderColor=_fotoTipo==="A"?"#86efac":"#fde68a";
+  }
+  function initFotoTipo(){
+    _fotoTipo=(getLock().locked||editingDate)?"C":"A";
+    const b=document.getElementById("fotoTipoToggle");
+    if(!b)return;
+    b.textContent=_fotoTipo==="A"?"APERTURA":"CIERRE";
+    b.style.background=_fotoTipo==="A"?"#dcfce7":"#fef3c7";
+    b.style.color=_fotoTipo==="A"?"#166534":"#92400e";
+    b.style.borderColor=_fotoTipo==="A"?"#86efac":"#fde68a";
+  }
+  function getFotoLabel(){
+    const sel=document.getElementById("fotoAreaSel");
+    const area=sel?sel.value:"LISTA";
+    const date=currentFotoDate().replace(/-/g,"");
+    return area+"_"+date+"_"+_fotoTipo;
   }
   function currentFotoDate() { return editingDate || isoToday(); }
   function savePhotos(photos, date=isoToday()) { try { writeLS(PHOTOS_KEY+date,photos); return true; } catch(e){ return false; } }
@@ -2653,6 +2672,7 @@
   }
 
   function renderFotoGallery() {
+    initFotoTipo();
     const today = isoToday();
     const activeDate = editingDate || today;  // histórico o hoy
     const photos = getPhotos(activeDate);
@@ -2744,6 +2764,7 @@
           <div class="foto-zoom-icon">🔍</div>
         </div>
         <div class="foto-info">
+          ${p.label&&p.label.endsWith("_C")?'<div style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block;">CIERRE</div>':p.label&&p.label.endsWith("_A")?'<div style="font-size:10px;font-weight:700;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block;">APERTURA</div>':""}
           <input class="foto-label-input" value="${p.label || ''}" placeholder="Etiqueta (ej: Grupo 1, G2-Solución...)"
             onchange="updatePhotoLabel('${p.id}', this.value)" />
           <div class="foto-status-text">${p.driveUrl
