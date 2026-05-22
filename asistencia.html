@@ -949,8 +949,8 @@
         <h3>📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
         <div class="foto-add-bar">
           <select id="fotoAreaSel" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
-            <option value="MQ">MQ — Medico Quirúrgico</option>
-            <option value="MED">MED — Medicamentos</option>
+            <option value="MQ">MQ — Medicamentos Controlados</option>
+            <option value="MED">MED — Medicamentos General</option>
             <option value="LAB">LAB — Laboratorio</option>
             <option value="URG">URG — Urgencias</option>
             <option value="MOD">MOD — Módulo</option>
@@ -1308,6 +1308,14 @@
 
   // ── Photos (multi) ──
   function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
+  function toTimeInput(val) {
+    // Sanitize time value for <input type="time"> — needs HH:mm format
+    if (!val) return '';
+    const s = String(val).trim();
+    if (s.includes('T')) { const m = s.match(/T(\d{2}:\d{2})/); return m ? m[1] : ''; }
+    if (/^\d{1,2}:\d{2}/.test(s)) return s.slice(0,5).padStart(5,'0');
+    return '';
+  }
   let _fotoTipo="A";
   function toggleFotoTipo(){
     _fotoTipo=_fotoTipo==="A"?"C":"A";
@@ -1851,10 +1859,10 @@
     document.getElementById('hmPinError').textContent = '';
 
     function populateHm(h, source) {
-      document.getElementById('hmEntrada').value    = h.entrada    || '';
-      document.getElementById('hmAlmSalida').value  = h.almSalida  || '';
-      document.getElementById('hmAlmRegreso').value = h.almRegreso || '';
-      document.getElementById('hmSalida').value     = h.salida     || '';
+      document.getElementById('hmEntrada').value    = toTimeInput(h.entrada);
+      document.getElementById('hmAlmSalida').value  = toTimeInput(h.almSalida);
+      document.getElementById('hmAlmRegreso').value = toTimeInput(h.almRegreso);
+      document.getElementById('hmSalida').value     = toTimeInput(h.salida);
       document.getElementById('hmObs').value        = h.obs        || '';
       _hmTardanza = !!(h.tardanza || h.TARDANZA === 'SI');
       _hmTemprana = !!(h.salidaTemprana || h.SALIDA_TEMPRANA === 'SI');
@@ -1957,6 +1965,7 @@
     const btnSave = document.getElementById('hmBtnSave');
     const st = document.getElementById('hmGasStatus');
     if (btnSave) { btnSave.disabled=true; btnSave.textContent='Guardando...'; }
+    const resetSaveBtn = () => { if (btnSave) { btnSave.disabled=false; btnSave.textContent='💾 Guardar en Sheets'; } };
     if (st) { st.style.display='block'; st.textContent='Guardando en Google Sheets...'; st.style.cssText='font-size:11px;padding:6px 16px;background:#eff6ff;color:#1d4ed8;border-bottom:1px solid #e5e7eb;display:block;'; }
     const nombre    = _horarioTarget;
     const entrada   = document.getElementById('hmEntrada').value;
@@ -1980,7 +1989,7 @@
         writeLS(SALIDAS_KEY+isoToday(), salidas);
         fetch(WEB_APP_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
           body: JSON.stringify({ action:'saveSalidaTemprana', nombre, hora, autorizadoPor:'PAOLA MORENO', fecha:isoToday() })
-        }).catch(()=>{});
+        }).catch((e)=>{ resetSaveBtn(); toast("❌ Error al guardar horario", 3000); });
       }
     }
 
@@ -2001,6 +2010,7 @@
       })
     }).catch(()=>{});
 
+    resetSaveBtn();
     closeHorarioModal();
     renderAll();
     const parts = [entrada&&`entrada ${entrada}`, _hmTardanza&&'⚠️ tardanza', almSalida&&`alm ${almSalida}-${almRegreso||'?'}`, salida&&`salida ${salida}`].filter(Boolean);
@@ -3701,8 +3711,8 @@
           </td>
           <td style="padding:4px 8px;background:${locked?'#f8fafc':'#f0fdf4'};">
             <input type="time" class="hb-time" data-field="entrada" data-nombre="${s.nombre}"
-              value="${h.entrada||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
-              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','entrada',this.value)" />
+              value="${toTimeInput(h.entrada)}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} onchange="hbSetField('${s.nombre}','entrada',this.value)" />
           </td>
           <td style="padding:4px 8px;text-align:center;background:${locked?'#f8fafc':'#fef3c7'};">
             <button onclick="hbToggleBool('${s.nombre}','tardanza')" id="hbTard_${s.nombre}"
@@ -3711,18 +3721,18 @@
           </td>
           <td style="padding:4px 8px;">
             <input type="time" class="hb-time" data-nombre="${s.nombre}"
-              value="${h.almSalida||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
-              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','almSalida',this.value)" />
+              value="${toTimeInput(h.almSalida)}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} onchange="hbSetField('${s.nombre}','almSalida',this.value)" />
           </td>
           <td style="padding:4px 8px;">
             <input type="time" class="hb-time" data-nombre="${s.nombre}"
-              value="${h.almRegreso||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
-              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','almRegreso',this.value)" />
+              value="${toTimeInput(h.almRegreso)}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} onchange="hbSetField('${s.nombre}','almRegreso',this.value)" />
           </td>
           <td style="padding:4px 8px;background:${locked?'#f8fafc':'#fff5f5'};">
             <input type="time" class="hb-time" data-nombre="${s.nombre}"
-              value="${h.salida||''}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
-              ${locked?'disabled':''} oninput="hbSetField('${s.nombre}','salida',this.value)" />
+              value="${toTimeInput(h.salida)}" style="width:85px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;${lockStyle}"
+              ${locked?'disabled':''} onchange="hbSetField('${s.nombre}','salida',this.value)" />
           </td>
           <td style="padding:4px 8px;text-align:center;">
             <button onclick="hbToggleBool('${s.nombre}','salidaTemprana')" id="hbSalT_${s.nombre}"
