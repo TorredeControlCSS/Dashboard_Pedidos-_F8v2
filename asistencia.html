@@ -1588,6 +1588,7 @@
     });
 
     renderAll();
+    renderFotoGallery(); // desbloquea panel de fotos para fecha histórica
     renderVacPanel();
     toast(`📅 Editando asistencia del ${formatDate(fecha)} — guarda cuando termines`, 5000);
   }
@@ -1601,6 +1602,7 @@
     STAFF.forEach(s => { draft[s.nombre] = baseLocal[s.nombre] || 'presente'; });
     aplicarVacacionesAutomaticas();
     renderAll();
+    renderFotoGallery(); // restaura panel de fotos al estado de hoy
     renderVacPanel();
     toast('✅ Regresaste a la vista de hoy', 2500);
   }
@@ -1665,6 +1667,7 @@
     draft = { ...hist[fecha] } || {};
     STAFF.forEach(s => { if (!draft[s.nombre]) draft[s.nombre] = 'presente'; });
     renderAll();
+    renderFotoGallery(); // desbloquea panel de fotos para modo cierre
     renderHistBanner();
     renderCierrePendiente();
     window.scrollTo(0, 0);
@@ -2529,15 +2532,26 @@
         canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
         const compressed = canvas.toDataURL('image/jpeg',0.78);
         const today = isoToday();
-        const photos = getPhotos(currentFotoDate());
+        const activeDate2 = currentFotoDate();
+        const photos = getPhotos(activeDate2);
+        const finalLabel = label || `Lista ${photos.length+1}`;
+        // Si ya existe una foto con la misma etiqueta → reemplazar (lógica de cierre)
+        const existingIdx = photos.findIndex(p => p.label && p.label.trim().toLowerCase() === finalLabel.trim().toLowerCase());
         const id = Date.now().toString(36) + Math.random().toString(36).slice(2,5);
-        photos.push({ id, label: label || `Lista ${photos.length+1}`, base64: compressed, driveUrl: null, ts: new Date().toISOString() });
-        if (!savePhotos(photos, today)) {
+        if (existingIdx >= 0) {
+          // Reemplazar: mantener mismo id para no romper Drive reference, actualizar base64
+          const old = photos[existingIdx];
+          photos[existingIdx] = { id, label: finalLabel, base64: compressed, driveUrl: null, ts: new Date().toISOString() };
+          toast('🔄 Foto actualizada — reemplazó la anterior con la misma etiqueta', 3000);
+        } else {
+          photos.push({ id, label: finalLabel, base64: compressed, driveUrl: null, ts: new Date().toISOString() });
+        }
+        if (!savePhotos(photos, activeDate2)) {
           toast('⚠️ Foto muy grande para almacenar — intenta con resolución menor');
           return;
         }
         renderFotoGallery();
-        uploadPhotoToDrive(id, compressed, label, currentFotoDate(), photos.length);
+        uploadPhotoToDrive(id, compressed, finalLabel, activeDate2, photos.length);
       };
       img.src = e.target.result;
     };
@@ -2671,7 +2685,6 @@
         });
       return;
     }
-    
     el.innerHTML = photos.map(p => `
       <div class="foto-item">
         <div class="foto-item-wrap" onclick="openLightbox('${p.id}')" title="Toca para ampliar">
