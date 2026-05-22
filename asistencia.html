@@ -3710,6 +3710,30 @@
       });
   }
 
+  function hbFiltrar(q) {
+  const val = q.trim().toLowerCase();
+  document.querySelectorAll('#hbBody tr').forEach(row => {
+    if (row.cells.length === 1) {
+      // Es un encabezado de grupo — mostrar/ocultar según si tiene filas visibles
+      row.style.display = '';
+      return;
+    }
+    const nombre = (row.dataset.nombre || '').toLowerCase();
+    row.style.display = (!val || nombre.includes(val)) ? '' : 'none';
+  });
+  // Ocultar encabezados de grupo si todos sus miembros están ocultos
+  document.querySelectorAll('#hbBody tr').forEach(row => {
+    if (row.cells.length !== 1) return;
+    let next = row.nextElementSibling;
+    let tieneVisible = false;
+    while (next && next.cells.length !== 1) {
+      if (next.style.display !== 'none') tieneVisible = true;
+      next = next.nextElementSibling;
+    }
+    row.style.display = tieneVisible ? '' : 'none';
+  });
+}
+  
   function closeHorariosBatch() {
     document.getElementById('horariosBatchModal').style.display = 'none';
   }
@@ -3870,6 +3894,11 @@
     <div style="background:#0b1f3a;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div style="color:#fff;font-size:17px;font-weight:700;">⏱️ Control de Horarios</div>
+        <input id="hbSearch" type="text" placeholder="🔍 Buscar persona..."
+          oninput="hbFiltrar(this.value)"
+          style="margin-top:6px;width:100%;border:1px solid rgba(255,255,255,.3);border-radius:8px;
+            padding:6px 10px;font-size:13px;background:rgba(255,255,255,.12);color:#fff;
+            outline:none;" />
         <div id="hbFechaLabel" style="color:rgba(255,255,255,.6);font-size:12px;margin-top:2px;"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
