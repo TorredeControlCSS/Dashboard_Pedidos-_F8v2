@@ -946,9 +946,22 @@
       <div class="foto-box" id="fotoBox">
         <h3>📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
         <div class="foto-add-bar">
+          <select id="fotoAreaSel" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
+            <option value="MQ">MQ — Medicamentos Controlados</option>
+            <option value="MED">MED — Medicamentos General</option>
+            <option value="LAB">LAB — Laboratorio</option>
+            <option value="URG">URG — Urgencias</option>
+            <option value="MOD">MOD — Módulo</option>
+            <option value="EMP">EMP — Empaque</option>
+            <option value="DIST">DIST — Distribución</option>
+            <option value="REC">REC — Recepción</option>
+            <option value="VEN">VEN — Vencidos</option>
+            <option value="JEF">JEF — Jefatura</option>
+            <option value="ADM">ADM — Administrativo</option>
+          </select>
           <label class="foto-btn cam">
             📷 Capturar con cámara
-            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAdd(this,'Cámara')" />
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAdd(this, getFotoLabel())" />
           </label>
           <label class="foto-btn file">
             📁 Cargar archivo
@@ -1290,6 +1303,14 @@
 
   // ── Photos (multi) ──
   function getPhotos(date=isoToday()) { return readLS(PHOTOS_KEY+date,[]); }
+  function getFotoLabel() {
+    const sel = document.getElementById('fotoAreaSel');
+    const area = sel ? sel.value : 'LISTA';
+    const date = currentFotoDate().replace(/-/g, '');
+    const existing = getPhotos(currentFotoDate()).filter(p => p.label && p.label.startsWith(area + '_'));
+    const seq = existing.length + 1;
+    return `${area}_${date}_${seq}`;
+  }
   function currentFotoDate() { return editingDate || isoToday(); }
   function savePhotos(photos, date=isoToday()) { try { writeLS(PHOTOS_KEY+date,photos); return true; } catch(e){ return false; } }
 
@@ -2514,7 +2535,9 @@
   }
   function handlePhotoAddMultiple(input) {
     const files = Array.from(input.files); if (!files.length) return;
-    files.forEach((f, i) => compressAndAdd(f, `Lista ${getPhotos(currentFotoDate()).length + i + 1}`));
+    const areaBase = getFotoLabel().replace(/_\d+$/, ''); // quita el secuencial
+  const startSeq = getPhotos(currentFotoDate()).filter(p => p.label && p.label.startsWith(areaBase.split('_')[0]+'_')).length + 1;
+  files.forEach((f, i) => compressAndAdd(f, `${areaBase.split('_')[0]}_${currentFotoDate().replace(/-/g,'')}_${startSeq + i}`));
     input.value = '';
   }
 
