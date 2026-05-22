@@ -401,7 +401,12 @@
       z-index: 600; flex-direction: column; gap: 12px; padding: 8px;
     }
     #lightbox img {
-      max-width: 98vw; max-height: 94vh; cursor: zoom-in; transition: transform .2s; transform-origin: center center;
+      max-width: 98vw; max-height: 94vh;
+      border-radius: 10px; object-fit: contain;
+      box-shadow: 0 4px 32px rgba(0,0,0,.5);
+      cursor: zoom-in;
+      transition: transform .2s;
+      transform-origin: center center;
       border-radius: 10px; object-fit: contain;
       box-shadow: 0 4px 32px rgba(0,0,0,.5);
     }
@@ -669,6 +674,7 @@
     <button class="lb-close" onclick="closeLightbox()">✕</button>
   </div>
   <div id="lbSpinner" class="lb-spinner" style="display:none;">⏳ Cargando imagen...</div>
+  <div style="color:rgba(255,255,255,.4);font-size:11px;text-align:center;">Toca la foto para ampliar · Toca el fondo para cerrar</div>
   <img id="lightboxImg" alt="" style="display:none;" onclick="toggleLbZoom(event)" />
 </div>
 
@@ -1864,8 +1870,9 @@
       document.getElementById('hmAlmRegreso').value = toTimeInput(h.almRegreso);
       document.getElementById('hmSalida').value     = toTimeInput(h.salida);
       document.getElementById('hmObs').value        = h.obs        || '';
-      _hmTardanza = !!(h.tardanza || h.TARDANZA === 'SI');
-      _hmTemprana = !!(h.salidaTemprana || h.SALIDA_TEMPRANA === 'SI');
+      // Fix: 'NO' string is truthy in JS — compare explicitly
+      _hmTardanza = h.tardanza === true || h.tardanza === 'SI' || h.TARDANZA === 'SI';
+      _hmTemprana = h.salidaTemprana === true || h.salidaTemprana === 'SI' || h.SALIDA_TEMPRANA === 'SI';
       updateHmToggles();
       const hmEl = document.getElementById('hmBtnEliminar');
       if (hmEl) hmEl.style.display = h.entrada ? 'block' : 'none';
@@ -2906,17 +2913,20 @@
   }
 
   let _lbZoomed = false;
-function toggleLbZoom(e) {
-  if (e) e.stopPropagation();
-  const img = document.getElementById('lightboxImg');
-  _lbZoomed = !_lbZoomed;
-  img.style.transform  = _lbZoomed ? 'scale(2)' : 'scale(1)';
-  img.style.cursor     = _lbZoomed ? 'zoom-out' : 'zoom-in';
-  img.style.maxHeight  = _lbZoomed ? 'none' : '94vh';
-  img.style.maxWidth   = _lbZoomed ? 'none' : '98vw';
-}
-
+  function toggleLbZoom(e) {
+    if (e) e.stopPropagation();
+    const img = document.getElementById('lightboxImg');
+    _lbZoomed = !_lbZoomed;
+    img.style.transform = _lbZoomed ? 'scale(2)' : 'scale(1)';
+    img.style.cursor = _lbZoomed ? 'zoom-out' : 'zoom-in';
+    img.style.maxHeight = _lbZoomed ? 'none' : '94vh';
+    img.style.maxWidth  = _lbZoomed ? 'none' : '98vw';
+    img.style.zIndex    = _lbZoomed ? '1' : '';
+  }
   function closeLightbox() {
+    _lbZoomed = false;
+    const imgLb = document.getElementById('lightboxImg');
+    if (imgLb) { imgLb.style.transform='scale(1)'; imgLb.style.cursor='zoom-in'; imgLb.style.maxHeight='94vh'; imgLb.style.maxWidth='98vw'; }
     document.getElementById('lightbox').style.display = 'none';
     document.getElementById('lightboxImg').src = '';
     _currentLbPhoto = null;
@@ -3720,7 +3730,7 @@ function toggleLbZoom(e) {
         if (st) { st.style.display='block'; st.textContent='⚠️ Sin conexión — datos no cargados desde Sheets'; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#fef3c7;color:#92400e;'; }
       });
   }
-
+  
   function hbFiltrar(q) {
   const val = q.trim().toLowerCase();
   document.querySelectorAll('#hbBody tr').forEach(row => {
@@ -3739,7 +3749,7 @@ function toggleLbZoom(e) {
     row.style.display = tieneVisible ? '' : 'none';
   });
 }
-  
+          
   function closeHorariosBatch() {
     document.getElementById('horariosBatchModal').style.display = 'none';
   }
@@ -3788,8 +3798,8 @@ function toggleLbZoom(e) {
           </td>
           <td style="padding:4px 8px;text-align:center;background:${locked?'#f8fafc':'#fef3c7'};">
             <button onclick="hbToggleBool('${s.nombre}','tardanza')" id="hbTard_${s.nombre}"
-              style="font-size:11px;font-weight:700;border:2px solid ${h.tardanza?'#f59e0b':'#e5e7eb'};border-radius:6px;padding:3px 8px;cursor:pointer;background:${h.tardanza?'#fef3c7':'#fff'};color:${h.tardanza?'#92400e':'#94a3b8'};${lockStyle}"
-              ${locked?'disabled':''}>${h.tardanza?'SI':'NO'}</button>
+              style="font-size:11px;font-weight:700;border:2px solid ${(h.tardanza===true||h.tardanza==='SI')?'#f59e0b':'#e5e7eb'};border-radius:6px;padding:3px 8px;cursor:pointer;background:${(h.tardanza===true||h.tardanza==='SI')?'#fef3c7':'#fff'};color:${(h.tardanza===true||h.tardanza==='SI')?'#92400e':'#94a3b8'};${lockStyle}"
+              ${locked?'disabled':''}>${(h.tardanza===true||h.tardanza==='SI')?'SI':'NO'}</button>
           </td>
           <td style="padding:4px 8px;">
             <input type="time" class="hb-time" data-nombre="${s.nombre}"
@@ -3808,8 +3818,8 @@ function toggleLbZoom(e) {
           </td>
           <td style="padding:4px 8px;text-align:center;">
             <button onclick="hbToggleBool('${s.nombre}','salidaTemprana')" id="hbSalT_${s.nombre}"
-              style="font-size:11px;font-weight:700;border:2px solid ${h.salidaTemprana?'#f87171':'#e5e7eb'};border-radius:6px;padding:3px 8px;cursor:pointer;background:${h.salidaTemprana?'#fee2e2':'#fff'};color:${h.salidaTemprana?'#991b1b':'#94a3b8'};${lockStyle}"
-              ${locked?'disabled':''}>${h.salidaTemprana?'SI':'NO'}</button>
+              style="font-size:11px;font-weight:700;border:2px solid ${(h.salidaTemprana===true||h.salidaTemprana==='SI')?'#f87171':'#e5e7eb'};border-radius:6px;padding:3px 8px;cursor:pointer;background:${(h.salidaTemprana===true||h.salidaTemprana==='SI')?'#fee2e2':'#fff'};color:${(h.salidaTemprana===true||h.salidaTemprana==='SI')?'#991b1b':'#94a3b8'};${lockStyle}"
+              ${locked?'disabled':''}>${(h.salidaTemprana===true||h.salidaTemprana==='SI')?'SI':'NO'}</button>
           </td>
         </tr>`;
       });
