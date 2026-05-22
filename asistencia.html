@@ -949,8 +949,8 @@
         <h3>📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
         <div class="foto-add-bar">
           <select id="fotoAreaSel" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
-            <option value="MQ">MQ — Medico Quirúrgico</option>
-            <option value="MED">MED — Medicamentos</option>
+            <option value="MQ">MQ — Medicamentos Controlados</option>
+            <option value="MED">MED — Medicamentos General</option>
             <option value="LAB">LAB — Laboratorio</option>
             <option value="URG">URG — Urgencias</option>
             <option value="MOD">MOD — Módulo</option>
@@ -1114,7 +1114,7 @@
   const VAC_KEY         = 'vacaciones_programadas';
   const SALIDAS_KEY     = 'salidas_tempranas_';    // + isoToday()
   const HORARIOS_KEY    = 'horarios_asistencia_';   // + isoToday()
-  const HORA_LIMITE_TARDANZA = '07:30'; // después de esta hora = tardanza
+  const HORA_LIMITE_TARDANZA = '07:31'; // después de esta hora = tardanza
   const CUTOFF_H = 7, CUTOFF_M = 45;
 
   const GROUP_COLORS = {
@@ -1796,7 +1796,7 @@
     }).join('');
   }
   function updateCaptureProgress() {
-    const horarios = getHorarios();
+    const horarios = getHorarios(editingDate || isoToday());
     const done = STAFF.filter(s => horarios[s.nombre]?.entrada).length;
     const total = STAFF.length;
     const prog = document.getElementById('captureProgress');
@@ -1833,7 +1833,7 @@
 
   function eliminarHorario() {
     if (!confirm(`¿Eliminar el registro de horario de ${_horarioTarget}?\nEsta acción no se puede deshacer.`)) return;
-    const horarios = getHorarios();
+    const horarios = getHorarios(editingDate || isoToday());
     delete horarios[_horarioTarget];
     saveHorarios(horarios);
     // Sync al backend
@@ -2714,7 +2714,7 @@
   function removePhoto(id) {
     const today = isoToday();
     const photos = getPhotos(currentFotoDate()).filter(p => p.id !== id);
-    savePhotos(photos, today);
+    savePhotos(photos, currentFotoDate());
     renderFotoGallery();
   }
 
@@ -2722,7 +2722,7 @@
     const today = isoToday();
     const photos = getPhotos(currentFotoDate());
     const p = photos.find(p => p.id === id);
-    if (p) { p.label = newLabel; savePhotos(photos, today); }
+    if (p) { p.label = newLabel; savePhotos(photos, currentFotoDate()); }
   }
 
   function renderFotoGallery() {
@@ -3219,7 +3219,7 @@
       countEl.style.display = 'none';
     }
 
-    const horarios = getHorarios(); // single read for all rows
+    const horarios = getHorarios(editingDate || isoToday()); // usa fecha correcta en modo histórico
     const grouped = {};
     staffFiltered.forEach(s => { const g=getStaffGroup(s); if (!grouped[g]) grouped[g]=[]; grouped[g].push(s); });
     const lock = getLock();
@@ -3710,30 +3710,6 @@
       });
   }
 
-  function hbFiltrar(q) {
-  const val = q.trim().toLowerCase();
-  document.querySelectorAll('#hbBody tr').forEach(row => {
-    if (row.cells.length === 1) {
-      // Es un encabezado de grupo — mostrar/ocultar según si tiene filas visibles
-      row.style.display = '';
-      return;
-    }
-    const nombre = (row.dataset.nombre || '').toLowerCase();
-    row.style.display = (!val || nombre.includes(val)) ? '' : 'none';
-  });
-  // Ocultar encabezados de grupo si todos sus miembros están ocultos
-  document.querySelectorAll('#hbBody tr').forEach(row => {
-    if (row.cells.length !== 1) return;
-    let next = row.nextElementSibling;
-    let tieneVisible = false;
-    while (next && next.cells.length !== 1) {
-      if (next.style.display !== 'none') tieneVisible = true;
-      next = next.nextElementSibling;
-    }
-    row.style.display = tieneVisible ? '' : 'none';
-  });
-}
-  
   function closeHorariosBatch() {
     document.getElementById('horariosBatchModal').style.display = 'none';
   }
@@ -3839,7 +3815,7 @@
     if (st)  { st.style.display='block'; st.textContent='⏳ Guardando en Google Sheets...'; st.style.cssText='display:block;font-size:12px;padding:8px 24px;background:#eff6ff;color:#1d4ed8;'; }
     // Read valores DIRECTO del DOM — todos los presentes/en-ruta, con o sin horas
     const records = [];
-    STAFF.filter(s => ACTIVOS_ESTADOS.includes(draft[s.nombre])).forEach(s => {
+    STAFF.filter(s => draft[s.nombre] !== null && draft[s.nombre] !== undefined).forEach(s => {
       const row = document.querySelector('tr[data-nombre="'+s.nombre+'"]');
       if (!row) return;
       const inputs = row.querySelectorAll('input[type="time"]');
@@ -3854,6 +3830,7 @@
       const h = _hbHorarios[s.nombre] || {};
       records.push({
         nombre: s.nombre,
+        estado:         draft[s.nombre] || '',
         entrada:        entrada   || h.entrada   || '',
         almSalida:      almSalida || h.almSalida || '',
         almRegreso:     almRegreso|| h.almRegreso|| '',
@@ -3894,11 +3871,6 @@
     <div style="background:#0b1f3a;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div style="color:#fff;font-size:17px;font-weight:700;">⏱️ Control de Horarios</div>
-        <input id="hbSearch" type="text" placeholder="🔍 Buscar persona..."
-          oninput="hbFiltrar(this.value)"
-          style="margin-top:6px;width:100%;border:1px solid rgba(255,255,255,.3);border-radius:8px;
-            padding:6px 10px;font-size:13px;background:rgba(255,255,255,.12);color:#fff;
-            outline:none;" />
         <div id="hbFechaLabel" style="color:rgba(255,255,255,.6);font-size:12px;margin-top:2px;"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
