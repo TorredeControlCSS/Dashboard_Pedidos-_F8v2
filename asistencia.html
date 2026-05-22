@@ -2648,9 +2648,30 @@
           .catch(() => { el.innerHTML = '<div class="foto-empty">Sin fotos cargadas</div>'; });
         return;
       }
-      el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
+      // Sin fotos locales — buscar en Drive (cubre tablet/laptop distintos)
+      el.innerHTML = '<div class="foto-empty" style="color:#6b7280;font-size:12px;">⏳ Buscando fotos en Drive...</div>';
+      fetch(`${WEB_APP_URL}?file=photos&fecha=${activeDate}`)
+        .then(r => r.json())
+        .then(drivePhotos => {
+          if (drivePhotos && drivePhotos.length) {
+            const cached = drivePhotos.map(p => ({
+              id: p.id || activeDate + '_' + Math.random().toString(36).slice(2),
+              label: p.label || 'Lista',
+              base64: null,
+              driveUrl: p.driveUrl
+            }));
+            savePhotos(cached, activeDate);
+            renderFotoGallery();
+          } else {
+            el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
+          }
+        })
+        .catch(() => {
+          el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
+        });
       return;
     }
+    
     el.innerHTML = photos.map(p => `
       <div class="foto-item">
         <div class="foto-item-wrap" onclick="openLightbox('${p.id}')" title="Toca para ampliar">
