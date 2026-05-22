@@ -780,80 +780,79 @@
 
 <!-- MODAL HORARIO DE ASISTENCIA -->
 <div id="horarioModal" onclick="if(event.target.id==='horarioModal')closeHorarioModal()">
-  <div class="hm-box">
+  <div class="hm-box" style="max-width:680px;width:100%;">
     <div class="hm-head">
-      <h3 id="hmNombre">—</h3>
+      <div>
+        <h3 id="hmNombre" style="margin:0;font-size:16px;">—</h3>
+        <div id="hmFechaLabel" style="font-size:12px;color:var(--muted);margin-top:2px;">—</div>
+      </div>
       <button class="hm-close" onclick="closeHorarioModal()">✕</button>
     </div>
-    <div class="hm-body">
-      <!-- Entrada -->
-      <div class="hm-field">
-        <label>🟢 Hora de Entrada</label>
-        <div class="hm-row">
-          <input class="hm-time" type="time" id="hmEntrada" placeholder="--:--" />
-          <button class="btn-ahora" onclick="setAhora('hmEntrada')">Ahora</button>
-        </div>
-      </div>
-      <!-- Tardanza toggle -->
-      <div class="hm-toggle-row" id="hmTardanzaRow" onclick="toggleHmTardanza()">
-        <span class="hm-toggle-icon">⏰</span>
-        <div style="flex:1">
-          <div class="hm-toggle-label">Tardanza</div>
-          <div class="hm-toggle-sub" id="hmTardanzaSub">Se detecta automáticamente si la entrada supera el límite</div>
-        </div>
-        <div class="hm-toggle-check" id="hmTardanzaCheck">✓</div>
-      </div>
-      <div class="hm-sep"></div>
-      <!-- Almuerzo -->
-      <div class="hm-field">
-        <label>🍽️ Salida Almuerzo</label>
-        <div class="hm-row">
-          <input class="hm-time" type="time" id="hmAlmSalida" placeholder="--:--" />
-          <button class="btn-ahora" onclick="setAhora('hmAlmSalida')">Ahora</button>
-        </div>
-      </div>
-      <div class="hm-field">
-        <label>↩️ Regreso Almuerzo</label>
-        <div class="hm-row">
-          <input class="hm-time" type="time" id="hmAlmRegreso" placeholder="--:--" />
-          <button class="btn-ahora" onclick="setAhora('hmAlmRegreso')">Ahora</button>
-        </div>
-      </div>
-      <div class="hm-sep"></div>
-      <!-- Salida -->
-      <div class="hm-field">
-        <label>🔴 Hora de Salida</label>
-        <div class="hm-row">
-          <input class="hm-time" type="time" id="hmSalida" placeholder="--:--" />
-          <button class="btn-ahora" onclick="setAhora('hmSalida')">Ahora</button>
-        </div>
-      </div>
-      <!-- Salida temprana (requiere PIN) -->
-      <div class="hm-toggle-row" id="hmTempranaRow" onclick="toggleHmTemprana()">
-        <span class="hm-toggle-icon">🚪</span>
-        <div style="flex:1">
-          <div class="hm-toggle-label">Salida Temprana Autorizada</div>
-          <div class="hm-toggle-sub">Requiere PIN de Jefatura</div>
-        </div>
-        <div class="hm-toggle-check" id="hmTempranaCheck">✓</div>
-      </div>
-      <div id="hmPinRow" class="hm-pin-row" style="display:none;">
-        <label>PIN de Jefatura</label>
-        <input class="hm-pin-input" type="password" id="hmPinInput" maxlength="4" inputmode="numeric" placeholder="••••" />
+    <!-- Status bar: muestra si está cargando desde GAS o guardado -->
+    <div id="hmGasStatus" style="font-size:11px;padding:6px 16px;background:#f0fdf4;color:#166534;border-bottom:1px solid #e5e7eb;display:none;"></div>
+    <div class="hm-body" style="padding:0;">
+      <!-- Tabla estilo CONTROL_ASISTENCIA -->
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#0b1f3a;color:rgba(255,255,255,.85);">
+            <th style="padding:8px 10px;font-size:11px;font-weight:600;text-align:center;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,.1);">ENTRADA</th>
+            <th style="padding:8px 10px;font-size:11px;font-weight:600;text-align:center;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,.1);">TARDANZA</th>
+            <th style="padding:8px 10px;font-size:11px;font-weight:600;text-align:center;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,.1);">ALM. SALIDA</th>
+            <th style="padding:8px 10px;font-size:11px;font-weight:600;text-align:center;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,.1);">ALM. REGRESO</th>
+            <th style="padding:8px 10px;font-size:11px;font-weight:600;text-align:center;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,.1);">SALIDA</th>
+            <th style="padding:8px 10px;font-size:11px;font-weight:600;text-align:center;letter-spacing:.5px;">SAL. TEMP.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#f8fafc;">
+            <td style="padding:10px;text-align:center;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+              <input class="hm-time" type="time" id="hmEntrada" style="width:90px;text-align:center;" />
+              <br/><button class="btn-ahora" onclick="setAhora('hmEntrada')" style="margin-top:4px;font-size:10px;padding:2px 8px;">Ahora</button>
+            </td>
+            <td style="padding:10px;text-align:center;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+              <div id="hmTardanzaRow" onclick="toggleHmTardanza()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div id="hmTardanzaCheck" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;border:2px solid #e5e7eb;background:#fff;transition:.2s;">—</div>
+                <div id="hmTardanzaSub" style="font-size:10px;color:var(--muted);">Auto</div>
+              </div>
+            </td>
+            <td style="padding:10px;text-align:center;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+              <input class="hm-time" type="time" id="hmAlmSalida" style="width:90px;text-align:center;" />
+              <br/><button class="btn-ahora" onclick="setAhora('hmAlmSalida')" style="margin-top:4px;font-size:10px;padding:2px 8px;">Ahora</button>
+            </td>
+            <td style="padding:10px;text-align:center;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+              <input class="hm-time" type="time" id="hmAlmRegreso" style="width:90px;text-align:center;" />
+              <br/><button class="btn-ahora" onclick="setAhora('hmAlmRegreso')" style="margin-top:4px;font-size:10px;padding:2px 8px;">Ahora</button>
+            </td>
+            <td style="padding:10px;text-align:center;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+              <input class="hm-time" type="time" id="hmSalida" style="width:90px;text-align:center;" />
+              <br/><button class="btn-ahora" onclick="setAhora('hmSalida')" style="margin-top:4px;font-size:10px;padding:2px 8px;">Ahora</button>
+            </td>
+            <td style="padding:10px;text-align:center;border-bottom:1px solid #e5e7eb;">
+              <div id="hmTempranaRow" onclick="toggleHmTemprana()" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div id="hmTempranaCheck" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;border:2px solid #e5e7eb;background:#fff;transition:.2s;">—</div>
+                <div style="font-size:10px;color:var(--muted);">Con PIN</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- PIN salida temprana -->
+      <div id="hmPinRow" class="hm-pin-row" style="display:none;margin:8px 16px;">
+        <label>PIN de Jefatura — Salida Temprana</label>
+        <input class="hm-pin-input" type="password" id="hmPinInput" maxlength="6" inputmode="numeric" placeholder="••••" />
         <div class="hm-pin-error" id="hmPinError"></div>
       </div>
-      <div class="hm-sep"></div>
       <!-- Observaciones -->
-      <div class="hm-field">
-        <label>📝 Observaciones</label>
-        <textarea class="hm-obs" id="hmObs" placeholder="Ej: llegó tarde por transporte, permiso médico..."></textarea>
+      <div style="padding:10px 16px 4px;">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">📝 Observaciones</label>
+        <textarea class="hm-obs" id="hmObs" placeholder="Ej: llegó tarde por transporte, permiso médico..." style="margin-top:4px;height:56px;"></textarea>
       </div>
     </div>
     <div class="hm-footer">
       <button class="btn-hm-cancel" onclick="closeHorarioModal()">Cancelar</button>
       <button class="btn-hm-cancel" onclick="limpiarHorario()" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🗑️ Limpiar</button>
       <button id="hmBtnEliminar" class="btn-hm-cancel" onclick="eliminarHorario()" style="display:none;background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;">❌ Eliminar</button>
-      <button class="btn-hm-save" onclick="saveHorario()">💾 Guardar registro</button>
+      <button class="btn-hm-save" id="hmBtnSave" onclick="saveHorario()">💾 Guardar en Sheets</button>
     </div>
   </div>
 </div>
@@ -948,7 +947,7 @@
         <div class="foto-add-bar">
           <select id="fotoAreaSel" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
             <option value="MQ">MQ — Medico Quirúrgico</option>
-            <option value="MED">MED — Medicamentos</option>
+            <option value="MED">MED — Medicamentos General</option>
             <option value="LAB">LAB — Laboratorio</option>
             <option value="URG">URG — Urgencias</option>
             <option value="MOD">MOD — Módulo</option>
@@ -996,7 +995,7 @@
         </div>
         <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:#f8fafc;">
           <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:0 10px;transition:border-color .15s;" id="searchWrap">
-            <span style="font-size:14px;color:var(--muted);">🔍</span>
+            <span style="font-size:14px;color:var(--muted);cursor:pointer;" onclick="document.getElementById('listaSearch').focus()">🔍</span>
             <input id="listaSearch" type="text" placeholder="Buscar persona..." autocomplete="off"
               style="flex:1;border:none;outline:none;font-size:14px;padding:9px 0;background:transparent;"
               oninput="onListaSearch(this.value)"
@@ -1820,12 +1819,15 @@
     _horarioTarget = nombre;
     _hmTardanza    = false;
     _hmTemprana    = false;
+    const targetDate = editingDate || isoToday();
     document.getElementById('hmNombre').textContent = nombre;
+    const fechaEl = document.getElementById('hmFechaLabel');
+    if (fechaEl) fechaEl.textContent = new Date(targetDate+'T12:00:00').toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' — Control de Asistencia';
     document.getElementById('hmPinRow').style.display = 'none';
     document.getElementById('hmPinInput').value = '';
     document.getElementById('hmPinError').textContent = '';
 
-    function populateHm(h) {
+    function populateHm(h, source) {
       document.getElementById('hmEntrada').value    = h.entrada    || '';
       document.getElementById('hmAlmSalida').value  = h.almSalida  || '';
       document.getElementById('hmAlmRegreso').value = h.almRegreso || '';
@@ -1834,35 +1836,53 @@
       _hmTardanza = !!(h.tardanza || h.TARDANZA === 'SI');
       _hmTemprana = !!(h.salidaTemprana || h.SALIDA_TEMPRANA === 'SI');
       updateHmToggles();
-      const hmEliminar = document.getElementById('hmBtnEliminar');
-      if (hmEliminar) hmEliminar.style.display = h.entrada ? 'block' : 'none';
+      const hmEl = document.getElementById('hmBtnEliminar');
+      if (hmEl) hmEl.style.display = h.entrada ? 'block' : 'none';
+      const st = document.getElementById('hmGasStatus');
+      if (st && source) {
+        st.style.display = 'block';
+        if (source === 'gas') {
+          st.textContent = '✅ Cargado desde Google Sheets — ' + new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+          st.style.cssText = 'font-size:11px;padding:6px 16px;background:#f0fdf4;color:#166534;border-bottom:1px solid #e5e7eb;display:block;';
+        } else {
+          st.textContent = '⚠️ Cargado desde cache local (sin conexion al servidor)';
+          st.style.cssText = 'font-size:11px;padding:6px 16px;background:#fef3c7;color:#92400e;border-bottom:1px solid #e5e7eb;display:block;';
+        }
+      }
     }
 
-    const targetDate = editingDate || isoToday();
-
-    // Si hay datos en localStorage para esta fecha, úsalos primero
+    // Mostrar modal inmediatamente con cache local (rapido)
     const localH = getHorarios(targetDate)[nombre] || {};
-    populateHm(localH);
+    if (Object.keys(localH).length) populateHm(localH, 'local');
     document.getElementById('horarioModal').style.display = 'flex';
-    setTimeout(() => document.getElementById('hmEntrada').focus(), 100);
 
-    // Si es fecha histórica, buscar también en GAS (tiene prioridad si hay datos)
-    if (editingDate) {
-      fetch(`${WEB_APP_URL}?file=horarios&fecha=${editingDate}`)
-        .then(r => r.json())
-        .then(resp => {
-          if (resp && resp[nombre]) {
-            const gasH = resp[nombre];
-            // GAS tiene prioridad — sobrescribir con datos reales del backend
-            populateHm(gasH);
-            // Guardar en localStorage para próxima vez
-            const hAll = getHorarios(editingDate);
-            hAll[nombre] = gasH;
-            saveHorarios(hAll, editingDate);
-          }
-        })
-        .catch(() => {}); // silencioso — datos locales como fallback
+    // Consultar GAS (fuente autoritativa) siempre
+    const st = document.getElementById('hmGasStatus');
+    if (st) {
+      st.style.display = 'block';
+      st.textContent = '⏳ Consultando Google Sheets...';
+      st.style.cssText = 'font-size:11px;padding:6px 16px;background:#eff6ff;color:#1d4ed8;border-bottom:1px solid #e5e7eb;display:block;';
     }
+    fetch(WEB_APP_URL+'?file=horarios&fecha='+targetDate)
+      .then(r => r.json())
+      .then(resp => {
+        if (resp && resp[nombre]) {
+          populateHm(resp[nombre], 'gas');
+          const hAll = getHorarios(targetDate);
+          hAll[nombre] = resp[nombre];
+          saveHorarios(hAll, targetDate);
+        } else {
+          if (Object.keys(localH).length) { populateHm(localH, 'local'); }
+          else {
+            if (st) { st.textContent = 'Sin registro en Google Sheets para este dia'; st.style.cssText = 'font-size:11px;padding:6px 16px;background:#f8fafc;color:#64748b;border-bottom:1px solid #e5e7eb;display:block;'; }
+          }
+        }
+        setTimeout(() => document.getElementById('hmEntrada').focus(), 200);
+      })
+      .catch(() => {
+        populateHm(localH, Object.keys(localH).length ? 'local' : null);
+        setTimeout(() => document.getElementById('hmEntrada').focus(), 200);
+      });
   }
 
   function closeHorarioModal() {
@@ -1893,21 +1913,28 @@
   }
 
   function updateHmToggles() {
-    const tardRow   = document.getElementById('hmTardanzaRow');
-    const tardCheck = document.getElementById('hmTardanzaCheck');
-    const tempRow   = document.getElementById('hmTempranaRow');
-    const tempCheck = document.getElementById('hmTempranaCheck');
-
-    tardRow.className   = 'hm-toggle-row' + (_hmTardanza?' active-tardanza':'');
-    tardCheck.className = 'hm-toggle-check' + (_hmTardanza?' checked':'');
-    tempRow.className   = 'hm-toggle-row' + (_hmTemprana?' active-temprana':'');
-    tempCheck.className = 'hm-toggle-check' + (_hmTemprana?' checked':'');
-    document.getElementById('hmTardanzaSub').textContent = _hmTardanza
-      ? '⚠️ Marcada como tardanza'
-      : 'Se detecta automáticamente al registrar entrada';
+    const tc = document.getElementById('hmTardanzaCheck');
+    const pc = document.getElementById('hmTempranaCheck');
+    if (tc) {
+      tc.textContent = _hmTardanza ? 'TAR' : 'NO';
+      tc.style.background  = _hmTardanza ? '#fef3c7' : '#f1f5f9';
+      tc.style.borderColor = _hmTardanza ? '#f59e0b' : '#e5e7eb';
+      tc.style.color       = _hmTardanza ? '#92400e' : '#94a3b8';
+    }
+    if (pc) {
+      pc.textContent = _hmTemprana ? 'SI' : 'NO';
+      pc.style.background  = _hmTemprana ? '#fee2e2' : '#f1f5f9';
+      pc.style.borderColor = _hmTemprana ? '#f87171' : '#e5e7eb';
+      pc.style.color       = _hmTemprana ? '#991b1b' : '#94a3b8';
+    }
+    document.getElementById('hmPinRow').style.display = _hmTemprana ? 'flex' : 'none';
   }
 
   async function saveHorario() {
+    const btnSave = document.getElementById('hmBtnSave');
+    const st = document.getElementById('hmGasStatus');
+    if (btnSave) { btnSave.disabled=true; btnSave.textContent='Guardando...'; }
+    if (st) { st.style.display='block'; st.textContent='Guardando en Google Sheets...'; st.style.cssText='font-size:11px;padding:6px 16px;background:#eff6ff;color:#1d4ed8;border-bottom:1px solid #e5e7eb;display:block;'; }
     const nombre    = _horarioTarget;
     const entrada   = document.getElementById('hmEntrada').value;
     const almSalida = document.getElementById('hmAlmSalida').value;
