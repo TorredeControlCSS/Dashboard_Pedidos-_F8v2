@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Incidencias · CEDIS PANAMÁ</title>
+  <link rel="icon" href="./favicon.ico?v=1">
   <link rel="manifest" href="./manifest-incidencias.json">
-  <meta name="theme-color" content="#0B1F3A">
+  <meta name="theme-color" content="#0b1f3a">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Incidencias CSS">
@@ -58,12 +60,11 @@
       flex-shrink: 0;
     }
     .hdr-badge {
-      width: 38px; height: 38px; border-radius: 10px;
-      background: var(--gold);
+      width: 40px; height: 40px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 17px; font-weight: 900; color: var(--navy);
-      flex-shrink: 0; letter-spacing: -.5px;
+      flex-shrink: 0;
     }
+    .hdr-badge img { width: 40px; height: 40px; object-fit: contain; }
     .hdr-txt h1 { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
     .hdr-txt p  { font-size: 10.5px; color: #94a3b8; margin-top: 1px; }
     .hdr-back {
@@ -119,12 +120,10 @@
     }
     #scr-splash.active { display: flex; }
     .spl-logo {
-      width: 84px; height: 84px; border-radius: 24px;
-      background: var(--gold);
+      width: 90px; height: 90px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 38px; font-weight: 900; color: var(--navy);
-      letter-spacing: -1px;
     }
+    .spl-logo img { width: 90px; height: 90px; object-fit: contain; }
     .spl-title { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -.5px; }
     .spl-sub   { font-size: 13px; color: #475569; }
     .spl-dots  { display: flex; gap: 7px; margin-top: 6px; }
@@ -158,6 +157,12 @@
     .pin-dot.on { background: var(--navy); border-color: var(--navy); transform: scale(1.12); }
     .pin-dot.err { border-color: var(--danger); animation: shake .3s ease; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    /* Spinner while GAS validates */
+    .pin-spinner { display:none; justify-content:center; align-items:center; gap:8px; margin:2px 0 6px; }
+    .pin-spinner.show { display:flex; }
+    .pin-spin-ring { width:18px; height:18px; border:2.5px solid rgba(11,31,58,.12); border-top-color:var(--navy); border-radius:50%; animation:rot .7s linear infinite; }
+    .pin-spin-txt  { font-size:12px; color:var(--navy); font-weight:600; }
+    @keyframes rot { to{transform:rotate(360deg)} }
     .pin-err {
       min-height: 22px; text-align: center;
       font-size: 12.5px; font-weight: 600; color: var(--danger);
@@ -355,12 +360,19 @@
     }
     .estado-badge.pend { background: var(--gold-light); color: #92400E; }
     .conf-time { font-size: 11px; color: #9CA3AF; text-align: center; margin-top: 14px; }
+    /* Two-button confirm actions */
     .btn-nuevo {
-      width: 100%; background: var(--bg);
+      width: 100%; background: var(--navy); color: #fff;
+      border: none; border-radius: var(--r-md); padding: 16px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      min-height: var(--touch); flex-shrink: 0; margin-bottom: 10px;
+    }
+    .btn-salir {
+      width: 100%; background: transparent;
       border: 1.5px solid var(--border);
-      border-radius: var(--r-md); padding: 15px;
-      font-size: 14px; font-weight: 700; color: var(--navy);
-      cursor: pointer; min-height: var(--touch); flex-shrink: 0;
+      border-radius: var(--r-md); padding: 13px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer; min-height: 46px; flex-shrink: 0;
     }
   </style>
 </head>
@@ -370,7 +382,7 @@
      SPLASH
 ════════════════════════════════════════ -->
 <div id="scr-splash" class="screen active">
-  <div class="spl-logo">C</div>
+  <div class="spl-logo"><img src="./icons/icon-512.png" alt="CSS Logo"></div>
   <div class="spl-title">CEDIS PANAMÁ</div>
   <div class="spl-sub">Sistema de Incidencias · Torre de Control</div>
   <div class="spl-dots">
@@ -385,7 +397,7 @@
 ════════════════════════════════════════ -->
 <div id="scr-pin" class="screen">
   <div class="hdr">
-    <div class="hdr-badge">C</div>
+    <div class="hdr-badge"><img src="./icons/icon-512.png" alt="CSS Logo"></div>
     <div class="hdr-txt">
       <h1>CEDIS PANAMÁ · CSS</h1>
       <p>Reporte de Incidencias</p>
@@ -399,6 +411,10 @@
       <div class="pin-dot" id="d1"></div>
       <div class="pin-dot" id="d2"></div>
       <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-spinner" id="pin-spinner">
+      <div class="pin-spin-ring"></div>
+      <span class="pin-spin-txt">Verificando...</span>
     </div>
     <div class="pin-err" id="pin-err"></div>
     <div class="pin-grid">
@@ -420,7 +436,7 @@
 ════════════════════════════════════════ -->
 <div id="scr-vac" class="screen">
   <div class="hdr">
-    <div class="hdr-badge">C</div>
+    <div class="hdr-badge"><img src="./icons/icon-512.png" alt="CSS Logo"></div>
     <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Reporte de Incidencias</p></div>
     <button class="hdr-back" onclick="goPin()">← Salir</button>
   </div>
@@ -444,7 +460,7 @@
 ════════════════════════════════════════ -->
 <div id="scr-sel" class="screen">
   <div class="hdr">
-    <div class="hdr-badge">C</div>
+    <div class="hdr-badge"><img src="./icons/icon-512.png" alt="CSS Logo"></div>
     <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Reporte de Incidencias</p></div>
     <button class="hdr-back" onclick="goPin()">← Salir</button>
   </div>
@@ -462,7 +478,7 @@
 ════════════════════════════════════════ -->
 <div id="scr-form" class="screen">
   <div class="hdr">
-    <div class="hdr-badge">C</div>
+    <div class="hdr-badge"><img src="./icons/icon-512.png" alt="CSS Logo"></div>
     <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Detalle del reporte</p></div>
     <button class="hdr-back" onclick="go('scr-sel')">← Atrás</button>
   </div>
@@ -481,19 +497,19 @@
       </div>
     </div>
     <div class="fg" id="att-fg" style="display:none">
-      <label class="flbl">Nota médica (foto)</label>
+      <label class="flbl" id="att-flbl">Evidencia / Documento (foto)</label>
       <div class="att-box" onclick="document.getElementById('photo-in').click()">
         <div class="att-ico">📎</div>
         <div class="att-txt">
-          <strong>Adjuntar nota médica</strong>
+          <strong id="att-title">Adjuntar foto o documento</strong>
           <span>Toca para abrir galería o cámara</span>
         </div>
         <div class="att-ok" id="att-ok">✓ Lista</div>
       </div>
-      <img id="photo-prev" alt="Vista previa nota médica">
+      <img id="photo-prev" alt="Vista previa">
       <input type="file" id="photo-in" accept="image/*" style="display:none" onchange="loadPhoto(event)">
     </div>
-    <button class="btn-send" id="btn-send" onclick="submit()" disabled>
+    <button class="btn-send" id="btn-send" onclick="doSubmit()" disabled>
       <span>Enviar Reporte</span><span class="g">→</span>
     </button>
     <div class="send-notice">Paola recibirá notificación inmediata en el dashboard</div>
@@ -514,7 +530,7 @@
 ════════════════════════════════════════ -->
 <div id="scr-confirm" class="screen">
   <div class="hdr">
-    <div class="hdr-badge">C</div>
+    <div class="hdr-badge"><img src="./icons/icon-512.png" alt="CSS Logo"></div>
     <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Reporte de Incidencias</p></div>
   </div>
   <div class="sbody">
@@ -528,7 +544,8 @@
       <div class="conf-rows" id="cr"></div>
       <div class="conf-time" id="ctime"></div>
     </div>
-    <button class="btn-nuevo" onclick="goPin()">+ Nuevo reporte</button>
+    <button class="btn-nuevo" onclick="reportarOtra()">+ Reportar otra incidencia</button>
+    <button class="btn-salir" onclick="goPin()">Cerrar sesión</button>
   </div>
 </div>
 
@@ -541,16 +558,33 @@ const QUEUE_KEY = 'cedis_incidencias_q';
 
 /* ── TIPOS ────────────────────────────────────────────────── */
 const TIPOS = [
-  { k:'baja-medica',  lbl:'Baja Médica',          dsc:'Por enfermedad — adjunta nota médica',        em:'🏥', bg:'#FEF2F2', est:'baja-medica', att:true,  hr:false },
-  { k:'capacitacion', lbl:'Capacitación',          dsc:'Autorizada por jefatura',                    em:'🎓', bg:'#EFF6FF', est:'capacitacion',att:false, hr:false },
-  { k:'txt',          lbl:'TXT — Tiempo × Tiempo', dsc:'Compensación de horas acumuladas',           em:'⏱', bg:'#F0FDF4', est:'txt',         att:false, hr:false },
-  { k:'articulo16',   lbl:'Artículo 16 CSS',       dsc:'Derecho según reglamento institucional CSS', em:'⚖️', bg:'#FFFBEB', est:'ausente',     att:false, hr:false },
-  { k:'ausencia',     lbl:'Ausencia',              dsc:'Indica el motivo en la nota',                em:'📋', bg:'#FAF5FF', est:'ausente',     att:false, hr:false },
-  { k:'tardanza',     lbl:'Tardanza anticipada',   dsc:'Avisas que llegarás tarde',                  em:'⏰', bg:'#FFF7ED', est:'presente',    att:false, hr:true  },
+  { k:'baja-medica',  lbl:'Baja Médica',          dsc:'Por enfermedad — adjunta nota médica',          em:'🏥', bg:'#FEF2F2', est:'baja-medica',  att:true,  hr:false, attLbl:'Foto de nota médica' },
+  { k:'capacitacion', lbl:'Capacitación',          dsc:'Autorizada por jefatura — adjunta evidencia',   em:'🎓', bg:'#EFF6FF', est:'capacitacion', att:true,  hr:false, attLbl:'Foto / confirmación de capacitación' },
+  { k:'txt',          lbl:'TXT — Tiempo × Tiempo', dsc:'Compensación de horas acumuladas',              em:'⏱', bg:'#F0FDF4', est:'txt',          att:false, hr:false, attLbl:'' },
+  { k:'articulo16',   lbl:'Artículo 16 CSS',       dsc:'Derecho según reglamento institucional CSS',    em:'⚖️', bg:'#FFFBEB', est:'ausente',     att:false, hr:false, attLbl:'' },
+  { k:'ausencia',     lbl:'Ausencia',              dsc:'Indica el motivo en la nota',                   em:'📋', bg:'#FAF5FF', est:'ausente',     att:false, hr:false, attLbl:'' },
+  { k:'tardanza',     lbl:'Tardanza anticipada',   dsc:'Llegaré tarde — indica hora estimada',           em:'⏰', bg:'#FFF7ED', est:'presente',    att:true,  hr:true,  attLbl:'Evidencia del motivo (opcional)' },
 ];
 
 /* ── STATE ────────────────────────────────────────────────── */
 let S = { pin:'', user:null, tipo:null, photo:null, offline:false };
+
+/* ── PIN CACHE — sessionStorage, 8 horas ─────────────────── */
+const PCACHE_KEY = 'cedis_pin_v1';
+const PCACHE_TTL = 8 * 3600 * 1000;
+function pinCacheGet(p) {
+  try {
+    const c = JSON.parse(sessionStorage.getItem(PCACHE_KEY)||'null');
+    if (!c || c.pin !== p || Date.now()-c.ts > PCACHE_TTL) return null;
+    return c;
+  } catch { return null; }
+}
+function pinCacheSet(p, d) {
+  try { sessionStorage.setItem(PCACHE_KEY, JSON.stringify({...d, pin:p, ts:Date.now()})); } catch {}
+}
+
+/* ── PRE-WARM GAS (reduce cold-start latency) ────────────── */
+function prewarm() { fetch(`${GAS}?file=personal_status&_w=${Date.now()}`).catch(()=>{}); }
 
 /* ── QUEUE ────────────────────────────────────────────────── */
 const Q = {
@@ -604,15 +638,19 @@ function setOffline(v) {
 /* ── PIN LOGIC ────────────────────────────────────────────── */
 let pin='';
 
-function dots(p) {
-  for(let i=0;i<4;i++)document.getElementById(`d${i}`).classList.toggle('on',i<p.length);
+function dots(p) { for(let i=0;i<4;i++) document.getElementById(`d${i}`).classList.toggle('on',i<p.length); }
+
+/* Spinner on the PIN screen while waiting for GAS */
+function setSpinner(v) {
+  const sp=document.getElementById('pin-spinner');
+  if(sp) sp.classList.toggle('show',v);
+  document.querySelectorAll('.pk').forEach(k=>{ k.style.pointerEvents=v?'none':''; });
 }
+
 function pinErr(msg) {
   document.getElementById('pin-err').textContent=msg;
-  if(msg) {
-    document.querySelectorAll('.pin-dot').forEach(d=>{ d.classList.add('err'); setTimeout(()=>d.classList.remove('err'),400); });
-    pin=''; dots('');
-  }
+  document.querySelectorAll('.pin-dot').forEach(d=>{ d.classList.add('err'); setTimeout(()=>d.classList.remove('err'),400); });
+  pin=''; dots(''); setSpinner(false);
 }
 
 document.querySelectorAll('.pk[data-v]').forEach(k=>{
@@ -622,20 +660,36 @@ document.querySelectorAll('.pk[data-v]').forEach(k=>{
     document.getElementById('pin-err').textContent='';
     if(pin.length<4) return;
 
-    await new Promise(r=>setTimeout(r,180));
+    // 4th digit → show spinner immediately so user knows it's working
+    setSpinner(true);
+    await new Promise(r=>setTimeout(r,100));
     const p=pin; pin=''; dots('');
 
-    // Offline: allow gracefully
-    if(!navigator.onLine){
-      S.pin=p; S.user={nombre:'(Sin conexión)',cargo:'Modo offline',onVacation:false};
-      S.offline=true;
-      buildList(); chip('sel-chip',S.user); setOffline(true); go('scr-sel'); return;
+    // 1. Cache hit → instant access (no network)
+    const cached=pinCacheGet(p);
+    if(cached){
+      setSpinner(false); S.pin=p; S.user=cached;
+      if(cached.onVacation&&cached.vacBlocked){
+        chip('vac-chip',cached);
+        document.getElementById('vac-until').textContent=`Reintegro: ${cached.vacUntil||'—'}`;
+        go('scr-vac'); return;
+      }
+      buildList(); chip('sel-chip',cached); go('scr-sel'); return;
     }
 
+    // 2. Offline → allow in with graceful degradation
+    if(!navigator.onLine){
+      setSpinner(false); S.pin=p; S.user={nombre:'(Sin conexión)',cargo:'Modo offline',onVacation:false};
+      S.offline=true; buildList(); chip('sel-chip',S.user); setOffline(true); go('scr-sel'); return;
+    }
+
+    // 3. Network validation
     try {
       const res=await fetch(`${GAS}?file=validate_pin&pin=${encodeURIComponent(p)}&_=${Date.now()}`);
       const d=await res.json();
+      setSpinner(false);
       if(d.result==='error'){ pinErr(d.msg||'PIN incorrecto. Intenta nuevamente.'); return; }
+      pinCacheSet(p,d);
       S.pin=p; S.user=d;
       if(d.onVacation&&d.vacBlocked){
         chip('vac-chip',d);
@@ -644,10 +698,9 @@ document.querySelectorAll('.pk[data-v]').forEach(k=>{
       }
       buildList(); chip('sel-chip',d); go('scr-sel');
     } catch {
-      // Network error → offline mode
+      setSpinner(false);
       S.pin=p; S.user={nombre:'(Sin conexión)',cargo:'Modo offline',onVacation:false};
-      S.offline=true;
-      buildList(); chip('sel-chip',S.user); setOffline(true); go('scr-sel');
+      S.offline=true; buildList(); chip('sel-chip',S.user); setOffline(true); go('scr-sel');
     }
   });
 });
@@ -660,7 +713,7 @@ document.getElementById('pk-del').addEventListener('click',()=>{
 
 function goPin(){
   S={pin:'',user:null,tipo:null,photo:null,offline:false};
-  pin=''; dots('');
+  pin=''; dots(''); setSpinner(false);
   document.getElementById('pin-err').textContent='';
   go('scr-pin');
 }
@@ -698,6 +751,9 @@ function goForm(){
   document.getElementById('att-ok').style.display='none';
   document.getElementById('hora-fg').style.display=t.hr?'block':'none';
   document.getElementById('att-fg').style.display=t.att?'block':'none';
+  if(t.att && t.attLbl) document.getElementById('att-title').textContent=t.attLbl;
+  // Also reset file input so same file can be re-selected
+  document.getElementById('photo-in').value='';
   setOffline(S.offline||!navigator.onLine);
   go('scr-form');
 }
@@ -720,7 +776,7 @@ function loadPhoto(ev){
 }
 
 /* ── SUBMIT ───────────────────────────────────────────────── */
-async function submit(){
+async function doSubmit(){
   const t=S.tipo;
   const nota=document.getElementById('nota').value.trim();
   const hora=document.getElementById('hora-in')?.value||'';
@@ -732,29 +788,23 @@ async function submit(){
 
   const payload={
     action:'reportIncidencia',
-    pin:S.pin,
-    tipo:t.k,
-    estado:t.est,
-    nota:notaFinal,
-    fecha:todayISO(),
+    pin:S.pin, tipo:t.k, estado:t.est,
+    nota:notaFinal, fecha:todayISO(),
     horaEstimada:hora,
     timestamp:new Date().toISOString(),
     fotoData:S.photo||null
   };
 
-  if(!navigator.onLine||S.offline){
-    Q.add(payload); showConfirm(t,notaFinal,true); return;
-  }
+  if(!navigator.onLine||S.offline){ Q.add(payload); showConfirm(t,notaFinal,true); return; }
 
   go('scr-sending');
   try {
     const r=await fetch(GAS,{method:'POST',body:JSON.stringify(payload)});
     const d=await r.json();
-    showConfirm(t,notaFinal,d.result!=='success');
-    if(d.result!=='success') Q.add(payload);
-  } catch {
-    Q.add(payload); showConfirm(t,notaFinal,true);
-  }
+    const failed=d.result!=='success';
+    if(failed) Q.add(payload);
+    showConfirm(t,notaFinal,failed);
+  } catch { Q.add(payload); showConfirm(t,notaFinal,true); }
 }
 
 function showConfirm(t,nota,isOffline){
@@ -766,7 +816,7 @@ function showConfirm(t,nota,isOffline){
   document.getElementById('ct').textContent=isOffline?'Guardado localmente':'Reporte enviado';
   document.getElementById('cs').textContent=isOffline
     ?'Se enviará automáticamente cuando se restaure la conexión.'
-    :'Tu incidencia fue registrada en el sistema de la Torre de Control.';
+    :'Tu incidencia quedó registrada en el sistema de la Torre de Control.';
   const badge=`<span class="estado-badge${isOffline?' pend':''}">${t.em} ${t.est}</span>`;
   document.getElementById('cr').innerHTML=`
     <div class="conf-row"><span>Colaborador</span><b>${nombre}</b></div>
@@ -778,19 +828,20 @@ function showConfirm(t,nota,isOffline){
   go('scr-confirm');
 }
 
+/* Reportar otra — mantiene sesión activa, vuelve al selector */
+function reportarOtra() { S.tipo=null; S.photo=null; buildList(); go('scr-sel'); }
+
 /* ── NETWORK EVENTS ───────────────────────────────────────── */
-window.addEventListener('online', ()=>{ setOffline(false); Q.flush(); });
-window.addEventListener('offline',()=>setOffline(true));
+window.addEventListener('online',  ()=>{ setOffline(false); Q.flush(); });
+window.addEventListener('offline', ()=>setOffline(true));
 
 /* ── SERVICE WORKER ───────────────────────────────────────── */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw-incidencias.js',{scope:'./'})
-    .catch(e=>console.warn('SW:',e));
-}
+if('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw-incidencias.js',{scope:'./'}).catch(()=>{});
 
 /* ── INIT ─────────────────────────────────────────────────── */
 window.addEventListener('load',()=>{
-  setTimeout(()=>{ go('scr-pin'); Q.flush(); }, 1500);
+  setTimeout(()=>{ go('scr-pin'); prewarm(); Q.flush(); }, 1500);
   setOffline(!navigator.onLine);
 });
 </script>
