@@ -374,6 +374,21 @@
       font-size: 13px; font-weight: 600; color: var(--muted);
       cursor: pointer; min-height: 46px; flex-shrink: 0;
     }
+    /* WhatsApp notification button */
+    .btn-wa {
+      width: 100%;
+      background: #25D366; color: #fff;
+      border: none; border-radius: var(--r-md); padding: 16px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      min-height: var(--touch); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-bottom: 10px;
+      animation: wa-pulse 1.8s ease-in-out 0.6s 3;
+    }
+    @keyframes wa-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(37,211,102,.4); }
+      50%      { box-shadow: 0 0 0 10px rgba(37,211,102,0); }
+    }
   </style>
 </head>
 <body>
@@ -544,6 +559,9 @@
       <div class="conf-rows" id="cr"></div>
       <div class="conf-time" id="ctime"></div>
     </div>
+    <button class="btn-wa" id="btn-wa" onclick="enviarWA()" style="display:none">
+      💬 Abrir WhatsApp para notificar a Paola
+    </button>
     <button class="btn-nuevo" onclick="reportarOtra()">+ Reportar otra incidencia</button>
     <button class="btn-salir" onclick="goPin()">Cerrar sesión</button>
   </div>
@@ -554,6 +572,12 @@
 ════════════════════════════════════════════════════════════ -->
 <script>
 const GAS = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+
+// ─── WhatsApp de Paola — reemplazar con el número real ───────
+// Formato: código de país + número, sin +, sin espacios, sin guiones
+// Ejemplo Panamá: 50769012345
+const PAOLA_WA = '50762767366';
+
 const QUEUE_KEY = 'cedis_incidencias_q';
 
 /* ── TIPOS ────────────────────────────────────────────────── */
@@ -807,41 +831,81 @@ async function doSubmit(){
   } catch { Q.add(payload); showConfirm(t,notaFinal,true); }
 }
 
-function showConfirm(t,nota,isOffline){
-  const nombre=S.user?.nombre||'Colaborador';
-  document.getElementById('offl-note').style.display=isOffline?'block':'none';
-  const cc=document.getElementById('cc');
-  cc.textContent=isOffline?'⏳':'✓';
-  cc.className='conf-circle'+(isOffline?' pend':'');
-  document.getElementById('ct').textContent=isOffline?'Guardado localmente':'Reporte enviado';
-  document.getElementById('cs').textContent=isOffline
-    ?'Se enviará automáticamente cuando se restaure la conexión.'
-    :'Tu incidencia quedó registrada en el sistema de la Torre de Control.';
-  const badge=`<span class="estado-badge${isOffline?' pend':''}">${t.em} ${t.est}</span>`;
-  document.getElementById('cr').innerHTML=`
+function showConfirm(t, nota, isOffline) {
+  const nombre = S.user?.nombre || 'Colaborador';
+
+  document.getElementById('offl-note').style.display = isOffline ? 'block' : 'none';
+  const cc = document.getElementById('cc');
+  cc.textContent = isOffline ? '⏳' : '✓';
+  cc.className = 'conf-circle' + (isOffline ? ' pend' : '');
+  document.getElementById('ct').textContent = isOffline ? 'Guardado localmente' : 'Reporte enviado';
+  document.getElementById('cs').textContent = isOffline
+    ? 'Se enviará automáticamente cuando se restaure la conexión.'
+    : 'Tu incidencia quedó registrada en el sistema de la Torre de Control.';
+  const badge = `<span class="estado-badge${isOffline?' pend':''}">${t.em} ${t.est}</span>`;
+  document.getElementById('cr').innerHTML = `
     <div class="conf-row"><span>Colaborador</span><b>${nombre}</b></div>
     <div class="conf-row"><span>Tipo</span><b>${t.lbl}</b></div>
     <div class="conf-row"><span>Estado en sistema</span><b>${badge}</b></div>
     <div class="conf-row"><span>Fecha</span><b>${todayISO()}</b></div>
     <div class="conf-row"><span>Nota</span><b>${nota.slice(0,70)}${nota.length>70?'…':''}</b></div>`;
-  document.getElementById('ctime').textContent=`⏱ ${isOffline?'Guardado':'Enviado'} a las ${nowStr()}`;
+  document.getElementById('ctime').textContent = `⏱ ${isOffline?'Guardado':'Enviado'} a las ${nowStr()}`;
+
+  // Guardar para reenvío manual desde el botón
+  S._waData = { t, nota, nombre };
+
+  // Mostrar siempre el botón WhatsApp (offline o no)
+  const btnWa = document.getElementById('btn-wa');
+  btnWa.style.display = 'flex';
+
   go('scr-confirm');
+
+  // Auto-abrir WhatsApp sólo si el reporte se envió (no offline)
+  if (!isOffline) {
+    setTimeout(() => abrirWhatsApp(t, nota, nombre), 900);
+  }
+}
+
+/* ── WHATSAPP ──────────────────────────────────────────────── */
+function buildWAMsg(t, nota, nombre) {
+  return [
+    `🚨 *INCIDENCIA CEDIS PANAMÁ*`,
+    `*Colaborador:* ${nombre}`,
+    `*Tipo:* ${t.lbl}`,
+    `*Estado:* ${t.est}`,
+    `*Fecha:* ${todayISO()}`,
+    `*Motivo:* ${nota}`,
+    `_Reportado desde app de incidencias CSS_`
+  ].join('\n');
+}
+
+function abrirWhatsApp(t, nota, nombre) {
+  const msg  = buildWAMsg(t, nota, nombre);
+  const link = `https://wa.me/${PAOLA_WA}?text=${encodeURIComponent(msg)}`;
+  window.open(link, '_blank');
+}
+
+/* Botón de reenvío manual en la pantalla de confirmación */
+function enviarWA() {
+  if (!S._waData) return;
+  const { t, nota, nombre } = S._waData;
+  abrirWhatsApp(t, nota, nombre);
 }
 
 /* Reportar otra — mantiene sesión activa, vuelve al selector */
-function reportarOtra() { S.tipo=null; S.photo=null; buildList(); go('scr-sel'); }
+function reportarOtra() { S.tipo = null; S.photo = null; buildList(); go('scr-sel'); }
 
 /* ── NETWORK EVENTS ───────────────────────────────────────── */
-window.addEventListener('online',  ()=>{ setOffline(false); Q.flush(); });
-window.addEventListener('offline', ()=>setOffline(true));
+window.addEventListener('online',  () => { setOffline(false); Q.flush(); });
+window.addEventListener('offline', () => setOffline(true));
 
 /* ── SERVICE WORKER ───────────────────────────────────────── */
-if('serviceWorker' in navigator)
-  navigator.serviceWorker.register('./sw-incidencias.js',{scope:'./'}).catch(()=>{});
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw-incidencias.js', {scope:'./'}).catch(()=>{});
 
 /* ── INIT ─────────────────────────────────────────────────── */
-window.addEventListener('load',()=>{
-  setTimeout(()=>{ go('scr-pin'); prewarm(); Q.flush(); }, 1500);
+window.addEventListener('load', () => {
+  setTimeout(() => { go('scr-pin'); prewarm(); Q.flush(); }, 1500);
   setOffline(!navigator.onLine);
 });
 </script>
