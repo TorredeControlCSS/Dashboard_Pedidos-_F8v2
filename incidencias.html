@@ -576,7 +576,7 @@ const GAS = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfV
 // ─── WhatsApp de Paola — reemplazar con el número real ───────
 // Formato: código de país + número, sin +, sin espacios, sin guiones
 // Ejemplo Panamá: 50769012345
-const PAOLA_WA = '50762767366';
+const PAOLA_WA = '50762767366'; // Paola Moreno — Torre de Control CEDIS
 
 const QUEUE_KEY = 'cedis_incidencias_q';
 
@@ -880,9 +880,25 @@ function buildWAMsg(t, nota, nombre) {
 }
 
 function abrirWhatsApp(t, nota, nombre) {
-  const msg  = buildWAMsg(t, nota, nombre);
-  const link = `https://wa.me/${PAOLA_WA}?text=${encodeURIComponent(msg)}`;
-  window.open(link, '_blank');
+  const msg     = buildWAMsg(t, nota, nombre);
+  const encoded = encodeURIComponent(msg);
+
+  // Esquema nativo: abre WhatsApp directamente sin página intermedia del navegador
+  const appLink = `whatsapp://send?phone=${PAOLA_WA}&text=${encoded}`;
+  // Fallback web por si WhatsApp no está instalado
+  const webLink = `https://wa.me/${PAOLA_WA}?text=${encoded}`;
+
+  // Disparar link nativo vía <a> click (más confiable en PWA mobile que window.open)
+  const a = document.createElement('a');
+  a.href = appLink;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Si pasados 2s la página sigue visible → WhatsApp no estaba instalado → fallback web
+  setTimeout(() => {
+    if (!document.hidden) window.open(webLink, '_blank');
+  }, 2000);
 }
 
 /* Botón de reenvío manual en la pantalla de confirmación */
