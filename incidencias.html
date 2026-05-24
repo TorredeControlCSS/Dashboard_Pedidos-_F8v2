@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Incidencias · CEDIS PANAMÁ</title>
+  <link rel="manifest" href="./manifest-incidencias.json">
+  <meta name="theme-color" content="#0B1F3A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Incidencias CSS">
+  <link rel="apple-touch-icon" href="./icons/icon-512.png">
+  <style>
+    :root {
+      --navy:       #0B1F3A;
+      --navy-light: #133a74;
+      --gold:       #F59E0B;
+      --gold-bg:    #FFFBEB;
+      --gold-light: #FEF3C7;
+      --bg:         #F1F5F9;
+      --white:      #FFFFFF;
+      --text:       #1F2937;
+      --muted:      #6B7280;
+      --border:     #E5E7EB;
+      --success:    #059669;
+      --danger:     #DC2626;
+      --r-sm:       12px;
+      --r-md:       14px;
+      --r-lg:       18px;
+      --touch:      52px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      overflow: hidden;
+      height: 100dvh;
+    }
+
+    /* ── SCREEN SYSTEM ─────────────────────────────── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      height: 100dvh;
+      overflow-y: auto;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .screen.active { display: flex; }
+
+    /* ── HEADER ────────────────────────────────────── */
+    .hdr {
+      background: var(--navy);
+      padding: max(env(safe-area-inset-top, 0px), 14px) 18px 14px;
+      display: flex; align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    .hdr-badge {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--gold);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; font-weight: 900; color: var(--navy);
+      flex-shrink: 0; letter-spacing: -.5px;
+    }
+    .hdr-txt h1 { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .hdr-txt p  { font-size: 10.5px; color: #94a3b8; margin-top: 1px; }
+    .hdr-back {
+      margin-left: auto; flex-shrink: 0;
+      background: rgba(255,255,255,.11);
+      border: 1px solid rgba(255,255,255,.18);
+      color: #fff; font-size: 12px; font-weight: 600;
+      padding: 7px 13px; border-radius: 9px; cursor: pointer;
+    }
+
+    /* ── BODY SCROLL AREA ──────────────────────────── */
+    .sbody {
+      flex: 1; background: var(--bg);
+      padding: 18px 18px 32px;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* ── USER CHIP ─────────────────────────────────── */
+    .chip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r-md); padding: 10px 14px;
+      margin-bottom: 16px; flex-shrink: 0;
+    }
+    .chip-av {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--gold); color: var(--navy);
+      font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .chip-name  { font-size: 14px; font-weight: 700; color: var(--navy); }
+    .chip-cargo { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .chip-pin   { margin-left: auto; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+    /* ── OFFLINE BANNER ────────────────────────────── */
+    .offl-banner {
+      display: none; align-items: center; gap: 8px;
+      background: #FFFBEB; border: 1px solid var(--gold);
+      border-radius: var(--r-sm); padding: 10px 13px;
+      font-size: 12px; color: #92400E; margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .offl-banner.show { display: flex; }
+
+    /* ══════════════════════════════════════════════════
+       SPLASH
+    ══════════════════════════════════════════════════ */
+    #scr-splash {
+      background: var(--navy);
+      justify-content: center; align-items: center; gap: 14px;
+    }
+    #scr-splash.active { display: flex; }
+    .spl-logo {
+      width: 84px; height: 84px; border-radius: 24px;
+      background: var(--gold);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px; font-weight: 900; color: var(--navy);
+      letter-spacing: -1px;
+    }
+    .spl-title { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+    .spl-sub   { font-size: 13px; color: #475569; }
+    .spl-dots  { display: flex; gap: 7px; margin-top: 6px; }
+    .spl-dot   {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    .spl-dot:nth-child(2) { animation-delay: .2s; }
+    .spl-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,100%{opacity:.18;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+
+    /* ══════════════════════════════════════════════════
+       PIN
+    ══════════════════════════════════════════════════ */
+    #scr-pin { background: var(--navy); }
+    .pin-sheet {
+      flex: 1; background: var(--bg);
+      border-radius: 26px 26px 0 0;
+      padding: 28px 24px 16px;
+      display: flex; flex-direction: column;
+    }
+    .pin-title { font-size: 21px; font-weight: 800; color: var(--navy); }
+    .pin-sub   { font-size: 13px; color: var(--muted); margin-top: 3px; margin-bottom: 28px; }
+    .pin-dots  { display: flex; justify-content: center; gap: 16px; margin-bottom: 10px; }
+    .pin-dot   {
+      width: 19px; height: 19px; border-radius: 50%;
+      border: 2.5px solid #CBD5E1;
+      transition: all .14s ease;
+    }
+    .pin-dot.on { background: var(--navy); border-color: var(--navy); transform: scale(1.12); }
+    .pin-dot.err { border-color: var(--danger); animation: shake .3s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    .pin-err {
+      min-height: 22px; text-align: center;
+      font-size: 12.5px; font-weight: 600; color: var(--danger);
+      margin-bottom: 18px;
+    }
+    .pin-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+      margin-top: auto;
+    }
+    .pk {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r-md); height: 70px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 600; color: var(--navy);
+      cursor: pointer; user-select: none;
+      transition: transform .07s, background .07s;
+    }
+    .pk:active        { transform: scale(.91); background: var(--gold-light); }
+    .pk.del           { font-size: 19px; color: var(--danger); background: #FEF2F2; border-color: #FECACA; }
+    .pk.blank         { visibility: hidden; pointer-events: none; }
+    .pin-notice {
+      text-align: center; font-size: 11.5px; color: var(--muted);
+      margin-top: 18px; line-height: 1.55;
+    }
+    .pin-notice b { color: var(--navy); }
+
+    /* ══════════════════════════════════════════════════
+       VACATION BLOCK
+    ══════════════════════════════════════════════════ */
+    .vac-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 30px 22px;
+      text-align: center; margin: auto 0;
+    }
+    .vac-emoji  { font-size: 52px; margin-bottom: 14px; }
+    .vac-title  { font-size: 19px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+    .vac-until  { font-size: 16px; font-weight: 700; color: var(--gold); margin: 10px 0; }
+    .vac-body   { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+    /* ══════════════════════════════════════════════════
+       SELECTOR
+    ══════════════════════════════════════════════════ */
+    .sel-title { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 14px; flex-shrink: 0; }
+    .inc-list  { display: flex; flex-direction: column; gap: 9px; flex-shrink: 0; }
+    .inc-card  {
+      display: flex; align-items: center; gap: 13px;
+      background: var(--white); border: 2px solid var(--border);
+      border-radius: var(--r-md); padding: 13px 15px;
+      cursor: pointer; min-height: var(--touch);
+      transition: border-color .13s, background .13s;
+    }
+    .inc-card:active { transform: scale(.98); }
+    .inc-card.sel    { border-color: var(--gold); background: var(--gold-bg); }
+    .inc-ico {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .inc-info     { flex: 1; }
+    .inc-lbl      { font-size: 14px; font-weight: 700; color: var(--navy); }
+    .inc-dsc      { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .inc-arr      { font-size: 19px; color: #CBD5E1; flex-shrink: 0; }
+    .inc-card.sel .inc-arr { color: var(--gold); }
+    .btn-sig {
+      width: 100%; background: var(--navy); color: #fff;
+      border: none; border-radius: var(--r-md); padding: 16px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      margin-top: 16px; min-height: var(--touch); flex-shrink: 0;
+      transition: opacity .2s;
+    }
+    .btn-sig:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* ══════════════════════════════════════════════════
+       FORM
+    ══════════════════════════════════════════════════ */
+    .form-summary {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--gold-bg); border: 1.5px solid var(--gold);
+      border-radius: var(--r-md); padding: 12px 14px;
+      margin-bottom: 16px; flex-shrink: 0;
+    }
+    .fsm-ico {
+      width: 42px; height: 42px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 21px; flex-shrink: 0; background: var(--gold);
+    }
+    .fsm-lbl  { font-size: 14px; font-weight: 700; color: #92400E; }
+    .fsm-date { font-size: 11px; color: #B45309; margin-top: 2px; }
+    .fg       { margin-bottom: 13px; }
+    .flbl     { font-size: 12px; font-weight: 700; color: var(--navy); display: block; margin-bottom: 6px; }
+    .flbl .req { color: var(--danger); }
+    textarea.finp {
+      width: 100%; min-height: 88px;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      padding: 11px 13px; font-size: 14px; font-family: inherit;
+      color: var(--text); resize: none; outline: none;
+      background: var(--white); transition: border-color .14s;
+    }
+    textarea.finp:focus { border-color: var(--navy); }
+    .hora-row { display: flex; align-items: center; gap: 10px; }
+    .hora-row span { font-size: 13px; color: var(--text); white-space: nowrap; }
+    input.hora-in {
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      padding: 10px 12px; font-size: 15px; font-family: inherit;
+      color: var(--text); background: var(--white); outline: none;
+      width: 120px;
+    }
+    input.hora-in:focus { border-color: var(--navy); }
+    .att-box {
+      border: 2px dashed var(--border); border-radius: var(--r-sm);
+      padding: 13px 15px;
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+      transition: border-color .14s;
+    }
+    .att-box:hover { border-color: var(--gold); }
+    .att-ico  { font-size: 24px; flex-shrink: 0; }
+    .att-txt strong { font-size: 13px; font-weight: 700; color: var(--navy); display: block; }
+    .att-txt span   { font-size: 11px; color: var(--muted); }
+    .att-ok {
+      margin-left: auto; background: #ECFDF5; color: #065F46;
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px;
+      display: none; flex-shrink: 0;
+    }
+    #photo-prev {
+      width: 100%; max-height: 150px; object-fit: cover;
+      border-radius: 10px; border: 1px solid var(--border);
+      margin-top: 8px; display: none;
+    }
+    .btn-send {
+      width: 100%; background: var(--navy); color: #fff;
+      border: none; border-radius: var(--r-md); padding: 16px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      min-height: var(--touch); margin-top: 8px; flex-shrink: 0;
+      transition: opacity .2s;
+    }
+    .btn-send .g { color: var(--gold); }
+    .btn-send:disabled { opacity: .3; cursor: not-allowed; }
+    .send-notice { text-align: center; font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+    /* ══════════════════════════════════════════════════
+       SENDING
+    ══════════════════════════════════════════════════ */
+    #scr-sending { background: var(--navy); justify-content: center; align-items: center; }
+    #scr-sending.active { display: flex; }
+    .spin {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 4px solid rgba(245,158,11,.2);
+      border-top-color: var(--gold);
+      animation: rot .75s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes rot { to { transform: rotate(360deg); } }
+    .send-lbl { font-size: 16px; font-weight: 700; color: #fff; text-align: center; }
+    .send-sub { font-size: 12px; color: #475569; text-align: center; margin-top: 6px; }
+
+    /* ══════════════════════════════════════════════════
+       CONFIRM
+    ══════════════════════════════════════════════════ */
+    #scr-confirm .sbody { padding-top: 20px; }
+    .offl-note {
+      background: var(--gold-light); border: 1px solid var(--gold);
+      border-radius: var(--r-sm); padding: 12px 14px;
+      font-size: 12px; color: #92400E; margin-bottom: 16px;
+      line-height: 1.55; display: none; flex-shrink: 0;
+    }
+    .conf-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 24px 20px;
+      margin-bottom: 14px; flex-shrink: 0;
+    }
+    .conf-circle {
+      width: 74px; height: 74px; border-radius: 50%;
+      background: #ECFDF5; border: 3px solid var(--success);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; margin: 0 auto 16px;
+    }
+    .conf-circle.pend { background: var(--gold-light); border-color: var(--gold); }
+    .conf-title { font-size: 21px; font-weight: 800; color: var(--navy); text-align: center; margin-bottom: 5px; }
+    .conf-sub   { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; margin-bottom: 18px; }
+    .conf-rows  { border-top: 1px solid var(--border); }
+    .conf-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .conf-row:last-child { border: none; }
+    .conf-row span  { color: var(--muted); }
+    .conf-row b     { color: var(--navy); font-weight: 700; max-width: 58%; text-align: right; word-break: break-word; }
+    .estado-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #ECFDF5; color: #065F46;
+      font-size: 11.5px; font-weight: 700;
+      padding: 4px 10px; border-radius: 8px;
+    }
+    .estado-badge.pend { background: var(--gold-light); color: #92400E; }
+    .conf-time { font-size: 11px; color: #9CA3AF; text-align: center; margin-top: 14px; }
+    .btn-nuevo {
+      width: 100%; background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-md); padding: 15px;
+      font-size: 14px; font-weight: 700; color: var(--navy);
+      cursor: pointer; min-height: var(--touch); flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     SPLASH
+════════════════════════════════════════ -->
+<div id="scr-splash" class="screen active">
+  <div class="spl-logo">C</div>
+  <div class="spl-title">CEDIS PANAMÁ</div>
+  <div class="spl-sub">Sistema de Incidencias · Torre de Control</div>
+  <div class="spl-dots">
+    <div class="spl-dot"></div>
+    <div class="spl-dot"></div>
+    <div class="spl-dot"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PIN
+════════════════════════════════════════ -->
+<div id="scr-pin" class="screen">
+  <div class="hdr">
+    <div class="hdr-badge">C</div>
+    <div class="hdr-txt">
+      <h1>CEDIS PANAMÁ · CSS</h1>
+      <p>Reporte de Incidencias</p>
+    </div>
+  </div>
+  <div class="pin-sheet">
+    <div class="pin-title">Identificación</div>
+    <div class="pin-sub">Ingresa tu PIN de 4 dígitos</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+    <div class="pin-grid">
+      <div class="pk" data-v="1">1</div><div class="pk" data-v="2">2</div><div class="pk" data-v="3">3</div>
+      <div class="pk" data-v="4">4</div><div class="pk" data-v="5">5</div><div class="pk" data-v="6">6</div>
+      <div class="pk" data-v="7">7</div><div class="pk" data-v="8">8</div><div class="pk" data-v="9">9</div>
+      <div class="pk blank"></div>
+      <div class="pk" data-v="0">0</div>
+      <div class="pk del" id="pk-del">⌫</div>
+    </div>
+    <div class="pin-notice">
+      Reporta antes de las <b>7:30 AM</b> para que Paola<br>lo vea al abrir la lista de asistencia
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VACATION BLOCK
+════════════════════════════════════════ -->
+<div id="scr-vac" class="screen">
+  <div class="hdr">
+    <div class="hdr-badge">C</div>
+    <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Reporte de Incidencias</p></div>
+    <button class="hdr-back" onclick="goPin()">← Salir</button>
+  </div>
+  <div class="sbody">
+    <div class="chip" id="vac-chip"></div>
+    <div class="vac-card">
+      <div class="vac-emoji">🌴</div>
+      <div class="vac-title">Estás de vacaciones</div>
+      <div class="vac-until" id="vac-until"></div>
+      <div class="vac-body">
+        Tu ausencia está registrada automáticamente desde el sistema.<br><br>
+        Podrás reportar incidencias durante los últimos <strong>5 días</strong>
+        antes de tu fecha de reintegro.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SELECTOR
+════════════════════════════════════════ -->
+<div id="scr-sel" class="screen">
+  <div class="hdr">
+    <div class="hdr-badge">C</div>
+    <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Reporte de Incidencias</p></div>
+    <button class="hdr-back" onclick="goPin()">← Salir</button>
+  </div>
+  <div class="sbody">
+    <div class="chip" id="sel-chip"></div>
+    <div class="offl-banner" id="offl-sel">⚠️ Sin conexión — el reporte se guardará y enviará cuando vuelva la señal.</div>
+    <div class="sel-title">¿Qué deseas reportar?</div>
+    <div class="inc-list" id="inc-list"></div>
+    <button class="btn-sig" id="btn-sig" onclick="goForm()" disabled>Continuar →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FORM
+════════════════════════════════════════ -->
+<div id="scr-form" class="screen">
+  <div class="hdr">
+    <div class="hdr-badge">C</div>
+    <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Detalle del reporte</p></div>
+    <button class="hdr-back" onclick="go('scr-sel')">← Atrás</button>
+  </div>
+  <div class="sbody">
+    <div class="offl-banner" id="offl-form">⚠️ Sin conexión — se enviará automáticamente al recuperar señal.</div>
+    <div class="form-summary" id="form-sum"></div>
+    <div class="fg">
+      <label class="flbl">Motivo / Nota <span class="req">*</span></label>
+      <textarea class="finp" id="nota" placeholder="Describe brevemente el motivo de tu incidencia..." maxlength="400"></textarea>
+    </div>
+    <div class="fg" id="hora-fg" style="display:none">
+      <label class="flbl">Hora estimada de llegada <span class="req">*</span></label>
+      <div class="hora-row">
+        <span>Llegaré a las:</span>
+        <input type="time" class="hora-in" id="hora-in" value="08:30">
+      </div>
+    </div>
+    <div class="fg" id="att-fg" style="display:none">
+      <label class="flbl">Nota médica (foto)</label>
+      <div class="att-box" onclick="document.getElementById('photo-in').click()">
+        <div class="att-ico">📎</div>
+        <div class="att-txt">
+          <strong>Adjuntar nota médica</strong>
+          <span>Toca para abrir galería o cámara</span>
+        </div>
+        <div class="att-ok" id="att-ok">✓ Lista</div>
+      </div>
+      <img id="photo-prev" alt="Vista previa nota médica">
+      <input type="file" id="photo-in" accept="image/*" style="display:none" onchange="loadPhoto(event)">
+    </div>
+    <button class="btn-send" id="btn-send" onclick="submit()" disabled>
+      <span>Enviar Reporte</span><span class="g">→</span>
+    </button>
+    <div class="send-notice">Paola recibirá notificación inmediata en el dashboard</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SENDING
+════════════════════════════════════════ -->
+<div id="scr-sending" class="screen">
+  <div class="spin"></div>
+  <div class="send-lbl">Enviando reporte...</div>
+  <div class="send-sub">Conectando con Torre de Control</div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     CONFIRM
+════════════════════════════════════════ -->
+<div id="scr-confirm" class="screen">
+  <div class="hdr">
+    <div class="hdr-badge">C</div>
+    <div class="hdr-txt"><h1>CEDIS PANAMÁ · CSS</h1><p>Reporte de Incidencias</p></div>
+  </div>
+  <div class="sbody">
+    <div class="offl-note" id="offl-note">
+      ⏳ Sin conexión al enviar. El reporte está guardado localmente y se transmitirá automáticamente en cuanto se restaure la señal.
+    </div>
+    <div class="conf-card">
+      <div class="conf-circle" id="cc">✓</div>
+      <div class="conf-title" id="ct">Reporte enviado</div>
+      <div class="conf-sub" id="cs">Tu incidencia quedó registrada en el sistema de la Torre de Control.</div>
+      <div class="conf-rows" id="cr"></div>
+      <div class="conf-time" id="ctime"></div>
+    </div>
+    <button class="btn-nuevo" onclick="goPin()">+ Nuevo reporte</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+const GAS = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+const QUEUE_KEY = 'cedis_incidencias_q';
+
+/* ── TIPOS ────────────────────────────────────────────────── */
+const TIPOS = [
+  { k:'baja-medica',  lbl:'Baja Médica',          dsc:'Por enfermedad — adjunta nota médica',        em:'🏥', bg:'#FEF2F2', est:'baja-medica', att:true,  hr:false },
+  { k:'capacitacion', lbl:'Capacitación',          dsc:'Autorizada por jefatura',                    em:'🎓', bg:'#EFF6FF', est:'capacitacion',att:false, hr:false },
+  { k:'txt',          lbl:'TXT — Tiempo × Tiempo', dsc:'Compensación de horas acumuladas',           em:'⏱', bg:'#F0FDF4', est:'txt',         att:false, hr:false },
+  { k:'articulo16',   lbl:'Artículo 16 CSS',       dsc:'Derecho según reglamento institucional CSS', em:'⚖️', bg:'#FFFBEB', est:'ausente',     att:false, hr:false },
+  { k:'ausencia',     lbl:'Ausencia',              dsc:'Indica el motivo en la nota',                em:'📋', bg:'#FAF5FF', est:'ausente',     att:false, hr:false },
+  { k:'tardanza',     lbl:'Tardanza anticipada',   dsc:'Avisas que llegarás tarde',                  em:'⏰', bg:'#FFF7ED', est:'presente',    att:false, hr:true  },
+];
+
+/* ── STATE ────────────────────────────────────────────────── */
+let S = { pin:'', user:null, tipo:null, photo:null, offline:false };
+
+/* ── QUEUE ────────────────────────────────────────────────── */
+const Q = {
+  get()     { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]'); } catch { return []; } },
+  set(q)    { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); },
+  add(p)    { const q=Q.get(); q.push({...p,_ts:Date.now()}); Q.set(q); },
+  async flush() {
+    const q = Q.get(); if (!q.length) return;
+    const fail = [];
+    for (const item of q) {
+      try { const r=await fetch(GAS,{method:'POST',body:JSON.stringify(item)}); if(!r.ok) fail.push(item); }
+      catch { fail.push(item); }
+    }
+    Q.set(fail);
+  }
+};
+
+/* ── HELPERS ──────────────────────────────────────────────── */
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function todayISO() {
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayFmt() {
+  return new Date().toLocaleDateString('es-PA',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+function nowStr() {
+  return new Date().toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
+}
+function initials(n) {
+  const p=n.trim().split(' ');
+  return (p[0][0]+(p[1]?.[0]||'')).toUpperCase();
+}
+function chip(elId, user) {
+  document.getElementById(elId).innerHTML=`
+    <div class="chip-av">${initials(user.nombre)}</div>
+    <div><div class="chip-name">${user.nombre}</div><div class="chip-cargo">${user.cargo||'Colaborador'}</div></div>
+    <div class="chip-pin">PIN ••••</div>`;
+}
+function setOffline(v) {
+  S.offline=v;
+  ['offl-sel','offl-form'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('show',v);
+  });
+}
+
+/* ── PIN LOGIC ────────────────────────────────────────────── */
+let pin='';
+
+function dots(p) {
+  for(let i=0;i<4;i++)document.getElementById(`d${i}`).classList.toggle('on',i<p.length);
+}
+function pinErr(msg) {
+  document.getElementById('pin-err').textContent=msg;
+  if(msg) {
+    document.querySelectorAll('.pin-dot').forEach(d=>{ d.classList.add('err'); setTimeout(()=>d.classList.remove('err'),400); });
+    pin=''; dots('');
+  }
+}
+
+document.querySelectorAll('.pk[data-v]').forEach(k=>{
+  k.addEventListener('click', async ()=>{
+    if(pin.length>=4) return;
+    pin+=k.dataset.v; dots(pin);
+    document.getElementById('pin-err').textContent='';
+    if(pin.length<4) return;
+
+    await new Promise(r=>setTimeout(r,180));
+    const p=pin; pin=''; dots('');
+
+    // Offline: allow gracefully
+    if(!navigator.onLine){
+      S.pin=p; S.user={nombre:'(Sin conexión)',cargo:'Modo offline',onVacation:false};
+      S.offline=true;
+      buildList(); chip('sel-chip',S.user); setOffline(true); go('scr-sel'); return;
+    }
+
+    try {
+      const res=await fetch(`${GAS}?file=validate_pin&pin=${encodeURIComponent(p)}&_=${Date.now()}`);
+      const d=await res.json();
+      if(d.result==='error'){ pinErr(d.msg||'PIN incorrecto. Intenta nuevamente.'); return; }
+      S.pin=p; S.user=d;
+      if(d.onVacation&&d.vacBlocked){
+        chip('vac-chip',d);
+        document.getElementById('vac-until').textContent=`Reintegro: ${d.vacUntil||'—'}`;
+        go('scr-vac'); return;
+      }
+      buildList(); chip('sel-chip',d); go('scr-sel');
+    } catch {
+      // Network error → offline mode
+      S.pin=p; S.user={nombre:'(Sin conexión)',cargo:'Modo offline',onVacation:false};
+      S.offline=true;
+      buildList(); chip('sel-chip',S.user); setOffline(true); go('scr-sel');
+    }
+  });
+});
+
+document.getElementById('pk-del').addEventListener('click',()=>{
+  if(pin.length) pin=pin.slice(0,-1);
+  dots(pin);
+  document.getElementById('pin-err').textContent='';
+});
+
+function goPin(){
+  S={pin:'',user:null,tipo:null,photo:null,offline:false};
+  pin=''; dots('');
+  document.getElementById('pin-err').textContent='';
+  go('scr-pin');
+}
+
+/* ── SELECTOR ─────────────────────────────────────────────── */
+function buildList(){
+  const el=document.getElementById('inc-list'); el.innerHTML=''; S.tipo=null;
+  document.getElementById('btn-sig').disabled=true;
+  TIPOS.forEach(t=>{
+    const c=document.createElement('div'); c.className='inc-card'; c.dataset.k=t.k;
+    c.innerHTML=`
+      <div class="inc-ico" style="background:${t.bg}">${t.em}</div>
+      <div class="inc-info"><div class="inc-lbl">${t.lbl}</div><div class="inc-dsc">${t.dsc}</div></div>
+      <div class="inc-arr">›</div>`;
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('.inc-card').forEach(x=>{x.classList.remove('sel');x.querySelector('.inc-arr').textContent='›';});
+      c.classList.add('sel'); c.querySelector('.inc-arr').textContent='✓';
+      S.tipo=t; document.getElementById('btn-sig').disabled=false;
+    });
+    el.appendChild(c);
+  });
+}
+
+function goForm(){
+  if(!S.tipo) return;
+  const t=S.tipo;
+  document.getElementById('form-sum').innerHTML=`
+    <div class="fsm-ico" style="background:${t.bg}">${t.em}</div>
+    <div><div class="fsm-lbl">${t.lbl}</div><div class="fsm-date">${todayFmt()}</div></div>`;
+  document.getElementById('nota').value='';
+  document.getElementById('btn-send').disabled=true;
+  S.photo=null;
+  document.getElementById('photo-prev').style.display='none';
+  document.getElementById('photo-prev').src='';
+  document.getElementById('att-ok').style.display='none';
+  document.getElementById('hora-fg').style.display=t.hr?'block':'none';
+  document.getElementById('att-fg').style.display=t.att?'block':'none';
+  setOffline(S.offline||!navigator.onLine);
+  go('scr-form');
+}
+
+document.getElementById('nota').addEventListener('input',function(){
+  document.getElementById('btn-send').disabled=this.value.trim().length<5;
+});
+
+/* ── PHOTO ────────────────────────────────────────────────── */
+function loadPhoto(ev){
+  const f=ev.target.files?.[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    S.photo=e.target.result;
+    const prev=document.getElementById('photo-prev');
+    prev.src=e.target.result; prev.style.display='block';
+    document.getElementById('att-ok').style.display='flex';
+  };
+  rd.readAsDataURL(f);
+}
+
+/* ── SUBMIT ───────────────────────────────────────────────── */
+async function submit(){
+  const t=S.tipo;
+  const nota=document.getElementById('nota').value.trim();
+  const hora=document.getElementById('hora-in')?.value||'';
+  if(nota.length<5) return;
+
+  let notaFinal=nota;
+  if(t.k==='articulo16') notaFinal=`Art.16 CSS – ${nota}`;
+  if(t.k==='tardanza'&&hora) notaFinal=`Tardanza ~${hora} – ${nota}`;
+
+  const payload={
+    action:'reportIncidencia',
+    pin:S.pin,
+    tipo:t.k,
+    estado:t.est,
+    nota:notaFinal,
+    fecha:todayISO(),
+    horaEstimada:hora,
+    timestamp:new Date().toISOString(),
+    fotoData:S.photo||null
+  };
+
+  if(!navigator.onLine||S.offline){
+    Q.add(payload); showConfirm(t,notaFinal,true); return;
+  }
+
+  go('scr-sending');
+  try {
+    const r=await fetch(GAS,{method:'POST',body:JSON.stringify(payload)});
+    const d=await r.json();
+    showConfirm(t,notaFinal,d.result!=='success');
+    if(d.result!=='success') Q.add(payload);
+  } catch {
+    Q.add(payload); showConfirm(t,notaFinal,true);
+  }
+}
+
+function showConfirm(t,nota,isOffline){
+  const nombre=S.user?.nombre||'Colaborador';
+  document.getElementById('offl-note').style.display=isOffline?'block':'none';
+  const cc=document.getElementById('cc');
+  cc.textContent=isOffline?'⏳':'✓';
+  cc.className='conf-circle'+(isOffline?' pend':'');
+  document.getElementById('ct').textContent=isOffline?'Guardado localmente':'Reporte enviado';
+  document.getElementById('cs').textContent=isOffline
+    ?'Se enviará automáticamente cuando se restaure la conexión.'
+    :'Tu incidencia fue registrada en el sistema de la Torre de Control.';
+  const badge=`<span class="estado-badge${isOffline?' pend':''}">${t.em} ${t.est}</span>`;
+  document.getElementById('cr').innerHTML=`
+    <div class="conf-row"><span>Colaborador</span><b>${nombre}</b></div>
+    <div class="conf-row"><span>Tipo</span><b>${t.lbl}</b></div>
+    <div class="conf-row"><span>Estado en sistema</span><b>${badge}</b></div>
+    <div class="conf-row"><span>Fecha</span><b>${todayISO()}</b></div>
+    <div class="conf-row"><span>Nota</span><b>${nota.slice(0,70)}${nota.length>70?'…':''}</b></div>`;
+  document.getElementById('ctime').textContent=`⏱ ${isOffline?'Guardado':'Enviado'} a las ${nowStr()}`;
+  go('scr-confirm');
+}
+
+/* ── NETWORK EVENTS ───────────────────────────────────────── */
+window.addEventListener('online', ()=>{ setOffline(false); Q.flush(); });
+window.addEventListener('offline',()=>setOffline(true));
+
+/* ── SERVICE WORKER ───────────────────────────────────────── */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw-incidencias.js',{scope:'./'})
+    .catch(e=>console.warn('SW:',e));
+}
+
+/* ── INIT ─────────────────────────────────────────────────── */
+window.addEventListener('load',()=>{
+  setTimeout(()=>{ go('scr-pin'); Q.flush(); }, 1500);
+  setOffline(!navigator.onLine);
+});
+</script>
+</body>
+</html>
