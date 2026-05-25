@@ -211,6 +211,86 @@
     }
     .foto-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 14px 0; }
 
+    /* ── EVIDENCE GRID (nuevo diseño) ── */
+    .foto-box-header { margin-bottom: 10px; }
+    .foto-weekend-banner {
+      background: #fef9c3; border: 1px solid #fde047;
+      border-radius: 8px; padding: 7px 12px;
+      font-size: 12px; font-weight: 700; color: #713f12;
+      margin-top: 6px;
+    }
+    .foto-area-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 12px;
+    }
+    .foto-evidence-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .ev-cell {
+      border-radius: 10px; border: 2px solid var(--border);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .ev-apertura { border-color: #86efac; }
+    .ev-cierre   { border-color: #fde68a; }
+    .ev-cell-header {
+      padding: 7px 10px; font-size: 12px; font-weight: 800;
+      text-align: center; letter-spacing: .04em;
+    }
+    .ev-cell-body {
+      padding: 10px 8px; flex: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      background: #fff;
+    }
+    .ev-photo-wrap {
+      position: relative; width: 100%; cursor: zoom-in;
+      border-radius: 8px; overflow: hidden;
+    }
+    .ev-photo-thumb {
+      width: 100%; aspect-ratio: 4/3; object-fit: cover;
+      border-radius: 8px; display: block;
+    }
+    .ev-photo-fallback {
+      width: 100%; aspect-ratio: 4/3;
+      background: #f3f4f6; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #6b7280; text-align: center; cursor: zoom-in;
+    }
+    .ev-zoom-badge {
+      position: absolute; bottom: 4px; right: 4px;
+      background: rgba(0,0,0,.55); color: #fff;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 5px;
+      pointer-events: none;
+    }
+    .ev-status {
+      font-size: 10px; color: #6b7280; text-align: center;
+      line-height: 1.4;
+    }
+    .ev-drive-link { color: #0369a1; text-decoration: none; font-weight: 700; }
+    .ev-replace-btn {
+      background: #f1f5f9; border: 1px solid #cbd5e1;
+      border-radius: 7px; padding: 5px 10px;
+      font-size: 11px; font-weight: 700; color: #374151;
+      cursor: pointer; width: 100%;
+    }
+    .ev-empty {
+      font-size: 12px; color: #9ca3af; text-align: center;
+      padding: 8px 0;
+    }
+    .ev-upload-btns { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+    .ev-btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 5px; padding: 8px; border-radius: 8px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      border: none; color: #fff; width: 100%;
+    }
+    .ev-cam  { background: #0b1f3a; }
+    .ev-file { background: #6b7280; }
+    .ev-loading {
+      grid-column: 1 / -1; text-align: center;
+      color: #6b7280; font-size: 12px; padding: 16px;
+    }
+
     /* ── SAVE BAR ── */
     .save-bar {
       position: sticky; bottom: 0; background: var(--panel);
@@ -952,9 +1032,14 @@
 
       <!-- MULTI-PHOTO SECTION -->
       <div class="foto-box" id="fotoBox">
-        <h3>📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
-        <div class="foto-add-bar">
-          <select id="fotoAreaSel" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
+        <div class="foto-box-header">
+          <h3 id="fotoBoxTitle">📋 Evidencia Lista Física CSS — Obligatoria por Norma</h3>
+          <div id="fotoWeekendBanner" class="foto-weekend-banner" style="display:none;"></div>
+        </div>
+        <div class="foto-area-row">
+          <label style="font-size:12px;font-weight:700;color:#0b1f3a;white-space:nowrap;">Área:</label>
+          <select id="fotoAreaSel" onchange="renderFotoGallery()"
+            style="flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;">
             <option value="MQ">MQ — Medico Quirurgico</option>
             <option value="MED">MED — Medicamentos</option>
             <option value="LAB">LAB — Laboratorio</option>
@@ -967,20 +1052,9 @@
             <option value="JEF">JEF — Jefatura</option>
             <option value="ADM">ADM — Administrativo</option>
           </select>
-          <button id="fotoTipoToggle" onclick="toggleFotoTipo()"
-            style="border:2px solid #86efac;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;background:#dcfce7;color:#166534;">APERTURA</button>
-          <label class="foto-btn cam">
-            📷 Capturar con cámara
-            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAdd(this, getFotoLabel())" />
-          </label>
-          <label class="foto-btn file">
-            📁 Cargar archivo
-            <input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotoAddMultiple(this)" />
-          </label>
         </div>
-        <div class="foto-gallery" id="fotoGallery">
-          <div class="foto-empty">Sin fotos — toma foto de cada lista de área como evidencia</div>
-        </div>
+        <!-- Grid 2 col: APERTURA | CIERRE — renderizado por renderFotoGallery() -->
+        <div class="foto-evidence-grid" id="fotoGallery"></div>
       </div>
 
       <!-- PASE DE LISTA -->
@@ -2733,117 +2807,172 @@
   }
 
   function renderFotoGallery() {
-    initFotoTipo();
-    const today = isoToday();
-    const activeDate = editingDate || today;  // histórico o hoy
-    const photos = getPhotos(activeDate);
-    const el = document.getElementById('fotoGallery');
-    // Header: mostrar de qué fecha son las fotos cuando es histórico
-    const fotoBox = document.getElementById('fotoBox');
-    const fotoTitle = fotoBox ? fotoBox.querySelector('h3') : null;
+    const activeDate = editingDate || isoToday();
+    const dayType    = getDayType(activeDate);
+    const fotoBox    = document.getElementById('fotoBox');
+    const el         = document.getElementById('fotoGallery');
+    if (!el) return;
+
+    // ── Título dinámico ──────────────────────────────────────────────
+    const fotoTitle = document.getElementById('fotoBoxTitle');
     if (fotoTitle) {
       fotoTitle.textContent = editingDate
         ? `📋 Evidencia Lista Física — ${new Date(editingDate+'T12:00:00').toLocaleDateString('es-PA',{weekday:'short',day:'numeric',month:'long'})}`
         : '📋 Evidencia Lista Física CSS — Obligatoria por Norma';
     }
-    // Bloquear panel de fotos si la lista está cerrada
-    const fotoAddBar = fotoBox ? fotoBox.querySelector('.foto-add-bar') : null;
+
+    // ── Banner fin de semana / feriado ───────────────────────────────
+    const wkBanner = document.getElementById('fotoWeekendBanner');
+    if (wkBanner) {
+      const msgs = { feriado:'🎌 Día feriado — jornada extraordinaria, evidencia opcional',
+                     sabado: '📅 Sábado — jornada extraordinaria, evidencia opcional',
+                     domingo:'📅 Domingo — jornada extraordinaria, evidencia opcional' };
+      if (msgs[dayType]) { wkBanner.textContent = msgs[dayType]; wkBanner.style.display = 'block'; }
+      else                { wkBanner.style.display = 'none'; }
+    }
+
+    // ── Lock si lista cerrada ────────────────────────────────────────
     const lock = getLock();
     if (fotoBox) {
-      if (lock.locked && !editingDate) {
-        fotoBox.style.opacity = '0.7';
-        fotoBox.style.pointerEvents = 'none';
-        // Agregar badge de bloqueado si no existe
-        if (!fotoBox.querySelector('.foto-lock-badge')) {
-          const badge = document.createElement('div');
-          badge.className = 'foto-lock-badge';
-          badge.style.cssText = 'background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:8px;';
-          badge.textContent = '🔒 Panel bloqueado — lista cerrada. Solo Admin puede desbloquear.';
-          fotoBox.insertBefore(badge, fotoBox.children[1]);
-        }
-      } else {
-        fotoBox.style.opacity = '';
-        fotoBox.style.pointerEvents = '';
-        const badge = fotoBox.querySelector('.foto-lock-badge');
-        if (badge) badge.remove();
-      }
+      const shouldLock = lock.locked && !editingDate;
+      fotoBox.style.opacity       = shouldLock ? '0.7' : '';
+      fotoBox.style.pointerEvents = shouldLock ? 'none' : '';
+      const badge = fotoBox.querySelector('.foto-lock-badge');
+      if (shouldLock && !badge) {
+        const b = document.createElement('div');
+        b.className = 'foto-lock-badge';
+        b.style.cssText = 'background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:8px;';
+        b.textContent = '🔒 Panel bloqueado — lista cerrada. Solo Admin puede desbloquear.';
+        fotoBox.insertBefore(b, fotoBox.querySelector('.foto-area-row') || fotoBox.children[1]);
+      } else if (!shouldLock && badge) { badge.remove(); }
     }
-    if (!photos.length) {
-      // Si es fecha histórica, intentar cargar fotos desde Drive via GAS
-      if (editingDate) {
-        el.innerHTML = '<div class="foto-empty" style="color:#6b7280;font-size:12px;">⏳ Buscando fotos de '+ editingDate +' en Drive...</div>';
-        fetch(`${WEB_APP_URL}?file=photos&fecha=${editingDate}`)
-          .then(r => r.json())
-          .then(drivePhotos => {
-            if (drivePhotos && drivePhotos.length) {
-              // Cache for this session
-              const cached = drivePhotos.map(p => ({
-                id: p.id || editingDate + '_' + Math.random().toString(36).slice(2),
-                label: p.label || 'Lista',
-                base64: null,
-                driveUrl: p.driveUrl,
-                ts: editingDate
-              }));
-              savePhotos(cached, editingDate);
-              renderFotoGallery(); // re-render with cached photos
-            } else {
-              el.innerHTML = '<div class="foto-empty">Sin fotos registradas para este día</div>';
-            }
-          })
-          .catch(() => { el.innerHTML = '<div class="foto-empty">Sin fotos cargadas</div>'; });
-        return;
+
+    const photos  = getPhotos(activeDate);
+    const area    = (document.getElementById('fotoAreaSel') || {}).value || 'MQ';
+    const dateStr = activeDate.replace(/-/g,'');
+
+    // ── Función auxiliar: render de una celda ────────────────────────
+    function renderCell(tipo) {
+      const labelKey = `${area}_${dateStr}_${tipo}`;
+      const photo    = photos.find(p => p.label && p.label.trim().toLowerCase() === labelKey.toLowerCase());
+      const isAp     = tipo === 'A';
+      const hdrStyle = isAp
+        ? 'background:#dcfce7;border-bottom:1px solid #86efac;color:#166534;'
+        : 'background:#fef3c7;border-bottom:1px solid #fde68a;color:#92400e;';
+      const label    = isAp ? '🟢 APERTURA' : '🟡 CIERRE';
+      const cellBorder = isAp ? 'ev-apertura' : 'ev-cierre';
+
+      let body = '';
+      if (photo) {
+        const imgSrc    = photo.base64 || '';
+        const driveTxt  = photo.driveUrl
+          ? `<a href="${photo.driveUrl}" target="_blank" class="ev-drive-link">✅ En Drive</a>`
+          : '⏳ Sincronizando con Drive...';
+        body = `
+          <div class="ev-photo-wrap" onclick="openEvidenceLightbox('${photo.id}','${activeDate}')">
+            <img class="ev-photo-thumb" data-foto-id="${photo.id}" src="${imgSrc}" alt="${label}">
+            <div class="ev-photo-fallback" style="display:none;">📷<br>Ver foto</div>
+            <div class="ev-zoom-badge">🔍 Ampliar</div>
+          </div>
+          <div class="ev-status">${driveTxt}</div>
+          <label class="ev-replace-btn">
+            🔄 Reemplazar foto
+            <input type="file" accept="image/*" style="display:none"
+              onchange="handleEvidencePhoto('${tipo}','${area}',this)">
+          </label>`;
+      } else {
+        body = `
+          <div class="ev-empty">Sin foto cargada</div>
+          <div class="ev-upload-btns">
+            <label class="ev-btn ev-cam">
+              📷 Cámara
+              <input type="file" accept="image/*" capture="environment" style="display:none"
+                onchange="handleEvidencePhoto('${tipo}','${area}',this)">
+            </label>
+            <label class="ev-btn ev-file">
+              📁 Archivo
+              <input type="file" accept="image/*" style="display:none"
+                onchange="handleEvidencePhoto('${tipo}','${area}',this)">
+            </label>
+          </div>`;
       }
-      // Sin fotos locales — buscar en Drive (cubre tablet/laptop distintos)
-      el.innerHTML = '<div class="foto-empty" style="color:#6b7280;font-size:12px;">⏳ Buscando fotos en Drive...</div>';
+
+      return `
+        <div class="ev-cell ${cellBorder}">
+          <div class="ev-cell-header" style="${hdrStyle}">${label}</div>
+          <div class="ev-cell-body">${body}</div>
+        </div>`;
+    }
+
+    // ── Si no hay fotos locales, buscar en Drive ─────────────────────
+    if (!photos.length) {
+      el.innerHTML = '<div class="ev-loading">⏳ Buscando fotos en Drive...</div>';
       fetch(`${WEB_APP_URL}?file=photos&fecha=${activeDate}`)
         .then(r => r.json())
         .then(drivePhotos => {
           if (drivePhotos && drivePhotos.length) {
             const cached = drivePhotos.map(p => ({
-              id: p.id || activeDate + '_' + Math.random().toString(36).slice(2),
-              label: p.label || 'Lista',
-              base64: null,
-              driveUrl: p.driveUrl
+              id: p.id || activeDate+'_'+Math.random().toString(36).slice(2),
+              label: p.label || 'Lista', base64: null, driveUrl: p.driveUrl, ts: activeDate
             }));
             savePhotos(cached, activeDate);
             renderFotoGallery();
           } else {
-            el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
+            el.innerHTML = renderCell('A') + renderCell('C');
+            _attachEvidenceOnerror(el);
           }
         })
-        .catch(() => {
-          el.innerHTML = '<div class="foto-empty">Sin fotos cargadas — toma foto de cada lista de área como evidencia</div>';
-        });
+        .catch(() => { el.innerHTML = renderCell('A') + renderCell('C'); _attachEvidenceOnerror(el); });
       return;
     }
-    el.innerHTML = photos.map(p => `
-      <div class="foto-item">
-        <div class="foto-item-wrap" onclick="openLightbox('${p.id}')" title="Toca para ampliar">
-          <img class="foto-thumb" data-foto-id="${p.id}" src="${p.base64 || ''}" alt="${p.label||'Lista'}" />
-          <div class="foto-fallback" style="display:none;width:80px;height:60px;background:#e5e7eb;border-radius:6px;align-items:center;justify-content:center;font-size:11px;color:#6b7280;text-align:center;cursor:zoom-in;"
-            onclick="openLightbox('${p.id}')">📷<br/>Ver foto</div>
-          <div class="foto-zoom-icon">🔍</div>
-        </div>
-        <div class="foto-info">
-          ${p.label&&p.label.endsWith("_C")?'<div style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block;">CIERRE</div>':p.label&&p.label.endsWith("_A")?'<div style="font-size:10px;font-weight:700;background:#dcfce7;color:#166534;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block;">APERTURA</div>':""}
-          <input class="foto-label-input" value="${p.label || ''}" placeholder="Etiqueta (ej: Grupo 1, G2-Solución...)"
-            onchange="updatePhotoLabel('${p.id}', this.value)" />
-          <div class="foto-status-text">${p.driveUrl
-            ? `✅ <a href="${p.driveUrl}" target="_blank" style="color:#0369a1;">Ver en Drive</a>`
-            : '⏳ Guardada localmente — enviando a Drive...'
-          }</div>
-        </div>
-        <button class="foto-del" onclick="removePhoto('${p.id}')">🗑️</button>
-      </div>
-    `).join('');
-    // onerror programático — seguro cuando no hay base64 o falla la carga
-    el.querySelectorAll('img.foto-thumb').forEach(img => {
+
+    el.innerHTML = renderCell('A') + renderCell('C');
+    _attachEvidenceOnerror(el);
+  }
+
+  function _attachEvidenceOnerror(el) {
+    el.querySelectorAll('img.ev-photo-thumb').forEach(img => {
       img.onerror = function() {
         this.style.display = 'none';
-        const fallback = this.parentNode && this.parentNode.querySelector('.foto-fallback');
-        if (fallback) fallback.style.display = 'flex';
+        const fb = this.parentNode && this.parentNode.querySelector('.ev-photo-fallback');
+        if (fb) fb.style.display = 'flex';
       };
     });
+  }
+
+  // Maneja la foto cargada desde una celda específica del grid
+  function handleEvidencePhoto(tipo, area, input) {
+    const file = input.files[0]; if (!file) return;
+    const dateStr = (editingDate || isoToday()).replace(/-/g,'');
+    const label   = `${area}_${dateStr}_${tipo}`;
+    compressAndAdd(file, label);
+    input.value = '';
+  }
+
+  // Abre lightbox buscando foto en la fecha correcta
+  function openEvidenceLightbox(id, date) {
+    const photos = getPhotos(date || editingDate || isoToday());
+    const p = photos.find(p => p.id === id);
+    if (!p) return;
+    _currentLbPhoto = p;
+    const lb      = document.getElementById('lightbox');
+    const img     = document.getElementById('lightboxImg');
+    const spinner = document.getElementById('lbSpinner');
+    const lbLabel = document.getElementById('lbLabel');
+    const driveBtn= document.getElementById('lbDriveBtn');
+    img.onload  = onLightboxLoad;
+    img.onerror = onLightboxError;
+    lbLabel.textContent = p.label || 'Lista de asistencia';
+    img.style.display = 'none';
+    spinner.style.display = 'block';
+    lb.style.display = 'flex';
+    if (p.base64)    { img.src = p.base64; }
+    else if (p.driveUrl) {
+      const m = p.driveUrl.match(/[-\w]{25,}/);
+      img.src = m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w1200` : '';
+    }
+    else               { onLightboxError(); }
+    if (driveBtn) { driveBtn.href = p.driveUrl || '#'; driveBtn.style.display = p.driveUrl ? '' : 'none'; }
   }
 
   // ── Lightbox ──
