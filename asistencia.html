@@ -290,6 +290,58 @@
       grid-column: 1 / -1; text-align: center;
       color: #6b7280; font-size: 12px; padding: 16px;
     }
+    /* Multi-photo gallery inside each cell */
+    .ev-gallery {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      width: 100%; justify-content: flex-start;
+    }
+    .ev-gal-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 3px;
+    }
+    .ev-gal-wrap {
+      position: relative; width: 68px; height: 54px;
+      cursor: zoom-in; border-radius: 7px; overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .ev-gal-wrap img.ev-photo-thumb {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .ev-gal-wrap .ev-photo-fallback {
+      width: 100%; height: 100%;
+      background: #f3f4f6;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .ev-gal-wrap .ev-zoom-badge {
+      position: absolute; bottom: 2px; right: 2px;
+      background: rgba(0,0,0,.5); color: #fff;
+      font-size: 9px; padding: 1px 4px; border-radius: 4px;
+      pointer-events: none;
+    }
+    .ev-gal-footer {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .ev-drive-dot { font-size: 12px; text-decoration: none; }
+    .ev-gal-del {
+      background: #fee2e2; border: none; border-radius: 50%;
+      width: 18px; height: 18px; font-size: 9px; font-weight: 800;
+      color: #dc2626; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    .ev-gal-add {
+      width: 68px; height: 54px; border-radius: 7px;
+      border: 2px dashed #d1d5db;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: #9ca3af; cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .ev-gal-add:hover { border-color: #6b7280; color: #374151; }
+    .ev-count {
+      font-size: 11px; color: #6b7280; text-align: center;
+      margin-top: 2px; width: 100%;
+    }
 
     /* ── SAVE BAR ── */
     .save-bar {
@@ -2851,38 +2903,52 @@
     const area    = (document.getElementById('fotoAreaSel') || {}).value || 'MQ';
     const dateStr = activeDate.replace(/-/g,'');
 
-    // ── Función auxiliar: render de una celda ────────────────────────
+    // ── Función auxiliar: render de una celda con galería multi-foto ──
     function renderCell(tipo) {
-      const labelKey = `${area}_${dateStr}_${tipo}`;
-      const photo    = photos.find(p => p.label && p.label.trim().toLowerCase() === labelKey.toLowerCase());
-      const isAp     = tipo === 'A';
-      const hdrStyle = isAp
+      const labelPrefix = `${area}_${dateStr}_${tipo}`;
+      // Todas las fotos de este area+tipo (una o varias páginas)
+      const areaPhotos = photos.filter(p =>
+        p.label && p.label.trim().toLowerCase().startsWith(labelPrefix.toLowerCase())
+      );
+      const isAp       = tipo === 'A';
+      const hdrStyle   = isAp
         ? 'background:#dcfce7;border-bottom:1px solid #86efac;color:#166534;'
         : 'background:#fef3c7;border-bottom:1px solid #fde68a;color:#92400e;';
-      const label    = isAp ? '🟢 APERTURA' : '🟡 CIERRE';
+      const label      = isAp ? '🟢 APERTURA' : '🟡 CIERRE';
       const cellBorder = isAp ? 'ev-apertura' : 'ev-cierre';
 
       let body = '';
-      if (photo) {
-        const imgSrc    = photo.base64 || '';
-        const driveTxt  = photo.driveUrl
-          ? `<a href="${photo.driveUrl}" target="_blank" class="ev-drive-link">✅ En Drive</a>`
-          : '⏳ Sincronizando con Drive...';
-        body = `
-          <div class="ev-photo-wrap" onclick="openEvidenceLightbox('${photo.id}','${activeDate}')">
-            <img class="ev-photo-thumb" data-foto-id="${photo.id}" src="${imgSrc}" alt="${label}">
-            <div class="ev-photo-fallback" style="display:none;">📷<br>Ver foto</div>
-            <div class="ev-zoom-badge">🔍 Ampliar</div>
-          </div>
-          <div class="ev-status">${driveTxt}</div>
-          <label class="ev-replace-btn">
-            🔄 Reemplazar foto
-            <input type="file" accept="image/*" style="display:none"
+      if (areaPhotos.length) {
+        const thumbs = areaPhotos.map(p => {
+          const driveDot = p.driveUrl
+            ? `<a href="${p.driveUrl}" target="_blank" class="ev-drive-dot" title="Ver en Drive">☁️</a>`
+            : `<span class="ev-drive-dot" title="Sincronizando...">⏳</span>`;
+          return `<div class="ev-gal-item">
+            <div class="ev-gal-wrap" onclick="openEvidenceLightbox('${p.id}','${activeDate}')">
+              <img class="ev-photo-thumb" data-foto-id="${p.id}" src="${p.base64||''}" alt="${label}">
+              <div class="ev-photo-fallback" style="display:none;">📷</div>
+              <div class="ev-zoom-badge">🔍</div>
+            </div>
+            <div class="ev-gal-footer">${driveDot}
+              <button class="ev-gal-del" onclick="removeEvidencePhoto('${p.id}')">✕</button>
+            </div>
+          </div>`;
+        }).join('');
+
+        body = `<div class="ev-gallery">
+          ${thumbs}
+          <label class="ev-gal-add" title="Agregar más fotos">
+            <span>＋</span>
+            <input type="file" accept="image/*" multiple style="display:none"
               onchange="handleEvidencePhoto('${tipo}','${area}',this)">
-          </label>`;
+          </label>
+        </div>
+        <div class="ev-count">${areaPhotos.length} foto${areaPhotos.length>1?'s':''} · <label style="cursor:pointer;color:#0369a1;font-weight:700;">
+          📷 Agregar más<input type="file" accept="image/*" capture="environment" style="display:none"
+            onchange="handleEvidencePhoto('${tipo}','${area}',this)"></label></div>`;
       } else {
         body = `
-          <div class="ev-empty">Sin foto cargada</div>
+          <div class="ev-empty">Sin fotos cargadas</div>
           <div class="ev-upload-btns">
             <label class="ev-btn ev-cam">
               📷 Cámara
@@ -2890,8 +2956,8 @@
                 onchange="handleEvidencePhoto('${tipo}','${area}',this)">
             </label>
             <label class="ev-btn ev-file">
-              📁 Archivo
-              <input type="file" accept="image/*" style="display:none"
+              📁 Archivo(s)
+              <input type="file" accept="image/*" multiple style="display:none"
                 onchange="handleEvidencePhoto('${tipo}','${area}',this)">
             </label>
           </div>`;
@@ -2940,13 +3006,32 @@
     });
   }
 
-  // Maneja la foto cargada desde una celda específica del grid
+  // Maneja una o varias fotos cargadas en una celda del grid
   function handleEvidencePhoto(tipo, area, input) {
-    const file = input.files[0]; if (!file) return;
-    const dateStr = (editingDate || isoToday()).replace(/-/g,'');
-    const label   = `${area}_${dateStr}_${tipo}`;
-    compressAndAdd(file, label);
+    const files = Array.from(input.files || []); if (!files.length) return;
+    const activeDate = editingDate || isoToday();
+    const dateStr    = activeDate.replace(/-/g,'');
+    const prefix     = `${area}_${dateStr}_${tipo}`;
+    // Número de fotos ya guardadas para este area+tipo
+    const existing   = getPhotos(activeDate).filter(p =>
+      p.label && p.label.toLowerCase().startsWith(prefix.toLowerCase())
+    );
+    let seq = existing.length + 1;
+    files.forEach(file => {
+      // Primera foto mantiene compatibilidad con label sin sufijo numérico
+      const label = seq === 1 ? prefix : `${prefix}_${seq}`;
+      compressAndAdd(file, label);
+      seq++;
+    });
     input.value = '';
+  }
+
+  // Elimina una foto individual del grid
+  function removeEvidencePhoto(id) {
+    const activeDate = editingDate || isoToday();
+    const photos     = getPhotos(activeDate).filter(p => p.id !== id);
+    savePhotos(photos, activeDate);
+    renderFotoGallery();
   }
 
   // Abre lightbox buscando foto en la fecha correcta
@@ -3171,7 +3256,10 @@
       const hasBackendData = Object.keys(baseBackend).length > 0;
       STAFF.forEach(s => {
         if (hasBackendData) {
-          draft[s.nombre] = baseBackend[s.nombre] || 'presente';
+          // Cargar lo que el backend tiene; si está vacío → null (sin-estado, salmón)
+          // null solo se guarda en backend si fue explícitamente guardado así
+          const v = baseBackend[s.nombre];
+          draft[s.nombre] = (v && v !== '') ? v : null;
         } else {
           draft[s.nombre] = baseLocal[s.nombre] || null;
         }
@@ -3190,7 +3278,7 @@
       const localAtt = readLS(ATTENDANCE_KEY, {});
       const today = isoToday();
       const base = localAtt?.fecha===today?(localAtt.personal||{}):{};
-      STAFF.forEach(s => { draft[s.nombre] = base[s.nombre] || 'presente'; });
+      STAFF.forEach(s => { draft[s.nombre] = base[s.nombre] || null; });
       aplicarVacacionesAutomaticas();
       renderAll();
       renderHistorico();
@@ -3520,16 +3608,21 @@
     const targetDate = editingDate || isoToday();
     const isHistorical = !!editingDate;
 
+    // Al guardar, null = 'presente' (persona sin marcar = presente implícito)
+    // El visual salmón se mantiene durante el pase de lista, pero el guardado es completo
+    const draftParaGuardar = {};
+    STAFF.forEach(s => { draftParaGuardar[s.nombre] = draft[s.nombre] || 'presente'; });
+
     // Always save to history
     let hist = readLS(HISTORY_KEY, {}); if (Array.isArray(hist)) hist = {};
-    hist[targetDate] = { ...draft };
+    hist[targetDate] = { ...draftParaGuardar };
     writeLS(HISTORY_KEY, hist);
 
     // Only update today's live keys if not historical
     if (!isHistorical) {
-      writeLS(ATTENDANCE_KEY, { fecha: targetDate, personal: { ...draft } });
+      writeLS(ATTENDANCE_KEY, { fecha: targetDate, personal: { ...draftParaGuardar } });
       const personalLocal = readLS('almacen_personal', {});
-      Object.entries(draft).forEach(([nombre, val]) => {
+      Object.entries(draftParaGuardar).forEach(([nombre, val]) => {
         if (!personalLocal[nombre]) personalLocal[nombre] = {};
         personalLocal[nombre].status = val==='en-ruta' ? 'EN RUTA' : val==='presente' ? 'DISPONIBLE' : 'AUSENTE';
       });
@@ -3543,7 +3636,7 @@
       const saveResp = await fetch(WEB_APP_URL, {
         method: 'POST',
         headers: {'Content-Type': 'text/plain'},
-        body: JSON.stringify({ action: 'saveAttendance', fecha: targetDate, personal: draft })
+        body: JSON.stringify({ action: 'saveAttendance', fecha: targetDate, personal: draftParaGuardar })
       }).then(r => r.json()).catch(() => null);
       if (saveResp && saveResp.result === 'success') {
         // Update local history so calendar reflects immediately
