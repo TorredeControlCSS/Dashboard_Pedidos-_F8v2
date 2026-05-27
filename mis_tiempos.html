@@ -353,6 +353,17 @@ textarea:focus{outline:none;border-color:var(--navy)}
         <label class="form-label">Nota / Motivo</label>
         <textarea id="rep-nota" placeholder="Describe brevemente el motivo…" rows="4"></textarea>
       </div>
+      <!-- FOTO UPLOAD -->
+      <div>
+        <input type="file" id="foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
+        <div id="foto-preview" style="display:none;margin-bottom:8px;position:relative;border-radius:var(--r);overflow:hidden">
+          <img id="foto-img" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--r)">
+          <button onclick="clearFoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;line-height:1">×</button>
+        </div>
+        <button id="foto-btn" onclick="document.getElementById('foto-input').click()" style="width:100%;background:#F1F5F9;border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;font-family:var(--ff)">
+          📷 Adjuntar foto / evidencia (opcional)
+        </button>
+      </div>
       <button class="btn-primary" id="rep-submit-btn" onclick="submitIncidencia()">📤 Enviar reporte</button>
     </div>
     <div id="rep-step-c" style="display:none;flex-direction:column;gap:10px">
@@ -401,7 +412,8 @@ textarea:focus{outline:none;border-color:var(--navy)}
         ℹ️ RH revisará tu solicitud y recibirás confirmación.
       </div>
       <button class="wa-btn" id="txt-wa-btn"><span style="font-size:18px">💬</span> Avisar a RH por WhatsApp</button>
-      <button class="btn-primary" onclick="txtReset()">Hacer otra solicitud</button>
+      <button class="btn-primary" onclick="mostrarPermiso()" style="background:#1e3a6e">📄 Ver / Imprimir Permiso de Salida</button>
+      <button class="btn-primary" style="background:transparent;border:1.5px solid var(--border);color:var(--muted)" onclick="txtReset()">Hacer otra solicitud</button>
     </div>
   </div>
 
@@ -453,24 +465,36 @@ function openWA(msg){const enc=encodeURIComponent(msg);const a=document.createEl
 function buildCycleList(){
   const sel=document.getElementById('cycle-sel');
   sel.innerHTML='';
+  // ── Opción 1: Acumulado total (default) ──
   const today=new Date();
-  for(let i=0;i<12;i++){
+  const todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const allOpt=document.createElement('option');
+  allOpt.value=JSON.stringify({from:'2025-12-01',to:todayStr,all:true});
+  allOpt.textContent='📊 Acumulado total (todos los ciclos)';
+  allOpt.selected=true;
+  sel.appendChild(allOpt);
+  // ── Opciones por ciclo individual ──
+  for(let i=0;i<14;i++){
     const d=new Date(today.getFullYear(),today.getMonth()-i,1);
     let s,e;
     if(today.getDate()>=16&&i===0){s=new Date(d.getFullYear(),d.getMonth(),16);e=new Date(d.getFullYear(),d.getMonth()+1,15);}
     else{s=new Date(d.getFullYear(),d.getMonth()-1,16);e=new Date(d.getFullYear(),d.getMonth(),15);}
-    const fmt=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
-    const lbl=x=>x.toLocaleDateString('es-PA',{day:'numeric',month:'short',year:i>5?'2-digit':undefined});
+    const fmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+    const lbl=x=>x.toLocaleDateString('es-PA',{day:'numeric',month:'short',year:'2-digit'});
     const opt=document.createElement('option');
-    opt.value=JSON.stringify({from:fmt(s),to:fmt(e)});
+    opt.value=JSON.stringify({from:fmt(s),to:fmt(e),all:false});
     opt.textContent=lbl(s)+' – '+lbl(e);
-    if(i===0)opt.selected=true;
     sel.appendChild(opt);
   }
 }
 function getCycleFromSel(){try{return JSON.parse(document.getElementById('cycle-sel').value);}catch{return null;}}
 function onCycleChange(){loadBio();}
-function updateCycleProgress(from,to){
+function updateCycleProgress(from,to,isAll){
+  if(isAll){
+    document.getElementById('cycle-prog').style.width='100%';
+    document.getElementById('cycle-days-txt').textContent='Todos los ciclos desde Dic 2025';
+    return;
+  }
   const today=new Date();const s=new Date(from+'T12:00:00');const e=new Date(to+'T12:00:00');
   const elapsed=Math.max(0,Math.floor((today-s)/86400000));
   const total=Math.floor((e-s)/86400000)+1;
@@ -519,7 +543,7 @@ document.getElementById('pk-ok').addEventListener('click',async()=>{
       const res=await fetch(GAS_INC+'?file=validate_pin&pin='+encodeURIComponent(p)+'&_='+Date.now());
       const d=await res.json();setSpinner(false);
       if(d.result==='error'){pinErr(d.msg||'PIN incorrecto. Intenta de nuevo.');return;}
-      pinCacheSet(p,d);S.user=d;initApp();
+      pinCacheSet(p,d);S.user={...d,pin:p};initApp();
     }catch{setSpinner(false);pinErr('Error de conexión.');}
   }
 });
@@ -547,7 +571,7 @@ function switchTab(tab){
 /* TAB 1: BIOMETRICO */
 async function loadBio(){
   const cycle=getCycleFromSel();if(!cycle)return;
-  updateCycleProgress(cycle.from,cycle.to);
+  updateCycleProgress(cycle.from,cycle.to,cycle.all);
   go('scr-loading');
   document.getElementById('load-msg').textContent='Cargando ciclo…';
   const emp=encodeURIComponent(S.user?.nombre||'');
@@ -578,8 +602,44 @@ function renderBio(d,cycle){
   const badge=document.getElementById('badge-cap');
   if(txtMin>0){badge.className='kpi-badge warn';badge.textContent='⏱ '+t.txt_total_hhmm+' pasan a TXT';}
   else{badge.className='kpi-badge ok';badge.textContent='✓ Dentro del cap';}
+  const cycle=getCycleFromSel();
+  const isAll=cycle&&cycle.all;
+  // Update KPI labels for all-time vs single cycle
+  document.getElementById('kpi-calc').parentElement.querySelector('.kpi-sub').textContent=isAll?'acumulado histórico':'horas extras brutas';
+  document.getElementById('kpi-paid').parentElement.querySelector('.kpi-sub').textContent=isAll?'total cobrado histórico':'cap 40h / ciclo';
   renderDays(d.he_daily||[]);
+  renderCycleSummary(d.resumen_ciclo||[], isAll);
   renderTXTBalance(t.txt_total_hhmm||'00:00',txtMin);
+}
+
+function renderCycleSummary(rows, isAll){
+  let el=document.getElementById('cycle-summary-section');
+  if(!isAll||!rows.length){if(el)el.style.display='none';return;}
+  if(!el){
+    // Insert before day-list section
+    const parent=document.getElementById('tab-tiempos');
+    el=document.createElement('div');el.id='cycle-summary-section';
+    // Insert before the last section (day list)
+    const daySection=parent.querySelector('.sec-hdr');
+    parent.insertBefore(el,daySection);
+  }
+  el.style.display='block';
+  const hhmm2m=h=>{const[hh,mm]=(h||'00:00').split(':').map(Number);return hh*60+mm;};
+  let html='<div style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:var(--navy);margin-bottom:8px">📋 Historial por ciclo</div>';
+  html+='<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html+='<thead><tr style="background:var(--navy)"><th style="padding:7px 10px;text-align:left;color:#94a3b8;font-size:9.5px;font-weight:700;text-transform:uppercase">Ciclo</th><th style="padding:7px 6px;text-align:right;color:#94a3b8;font-size:9.5px;font-weight:700">HE Calc</th><th style="padding:7px 6px;text-align:right;color:#94a3b8;font-size:9.5px;font-weight:700">HE Pag</th><th style="padding:7px 6px;text-align:right;color:#fcd34d;font-size:9.5px;font-weight:700">TXT</th><th style="padding:7px 8px;text-align:right;color:#6ee7b7;font-size:9.5px;font-weight:700">Total $</th></tr></thead><tbody>';
+  let gtxt=0,gtotal=0;
+  rows.forEach((r,i)=>{
+    const tot=(+(r.he_amount_paid_capped||0))+(+(r.beneficios_total||0));
+    const txth=hhmm2m(r.txt_total_hhmm||'00:00');
+    gtxt+=txth;gtotal+=tot;
+    const bg=i%2===0?'#fff':'#f8fafc';
+    html+='<tr style="border-bottom:1px solid var(--border);background:'+bg+'"><td style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--navy)">'+(r.cycle||'—')+'</td><td style="padding:7px 6px;text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.he_calc_total_hhmm||'00:00')+'</td><td style="padding:7px 6px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--ok)">'+(r.he_paid_capped_hhmm||'00:00')+'</td><td style="padding:7px 6px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--gold);font-weight:700">'+(r.txt_total_hhmm||'00:00')+'</td><td style="padding:7px 8px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--ok);font-weight:700">$'+tot.toFixed(2)+'</td></tr>';
+  });
+  const gtxtH=Math.floor(gtxt/60);const gtxtM=gtxt%60;
+  html+='<tr style="background:#f1f5f9;border-top:2px solid var(--border)"><td style="padding:8px 10px;font-weight:800;font-size:10px;color:var(--navy)">TOTAL ACUMULADO</td><td colspan="2"></td><td style="padding:8px 6px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--gold)">'+String(gtxtH).padStart(2,'0')+':'+String(gtxtM).padStart(2,'0')+'</td><td style="padding:8px 8px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--ok)">$'+gtotal.toFixed(2)+'</td></tr>';
+  html+='</tbody></table></div></div>';
+  el.innerHTML=html;
 }
 function renderDays(days){
   const list=document.getElementById('day-list');
@@ -622,7 +682,10 @@ async function submitIncidencia(){
   const btn=document.getElementById('rep-submit-btn');btn.disabled=true;btn.textContent='Enviando…';
   const t=S.selTipo;const nombre=S.user?.nombre||'DESCONOCIDO';
   let ok=false;
-  try{const res=await fetch(GAS_INC,{method:'POST',body:JSON.stringify({action:'incidencia',nombre,tipo:t.id,estado:t.est,nota,fecha:todayISO()})});const d=await res.json();ok=d.ok!==false;}catch{ok=false;}
+  const fotoData=await getFotoBase64();
+  const payload={action:'reportIncidencia',pin:S.user?.pin,nombre,tipo:t.id,estado:t.est,nota,fecha:todayISO()};
+  if(fotoData)payload.fotoData=fotoData;
+  try{const res=await fetch(GAS_INC,{method:'POST',body:JSON.stringify(payload)});const d=await res.json();ok=d.ok!==false;}catch{ok=false;}
   btn.disabled=false;btn.textContent='📤 Enviar reporte';
   if(!ok){toast('⚠️ Error al enviar. Reintenta.');return;}
   document.getElementById('rep-step-b').classList.remove('show');
@@ -657,7 +720,7 @@ async function submitTXT(){
   if(!horas||isNaN(horas)){toast('⚠️ Indica cuántas horas.');return;}
   const nombre=S.user?.nombre||'DESCONOCIDO';
   const notaCompleta='[SOLICITUD TXT] Fecha: '+fecha+' | Horas: '+horas+'h | Motivo: '+nota;
-  try{await fetch(GAS_INC,{method:'POST',body:JSON.stringify({action:'incidencia',nombre,tipo:'txt',estado:'TXT',nota:notaCompleta,fecha:todayISO()})});}catch{}
+  try{await fetch(GAS_INC,{method:'POST',body:JSON.stringify({action:'reportIncidencia',pin:S.user?.pin,nombre,tipo:'txt',estado:'TXT',nota:notaCompleta,fecha:todayISO()})});}catch{}
   document.getElementById('txt-confirm-rows').innerHTML='<div class="confirm-row"><span class="confirm-row-lbl">Colaborador</span><span class="confirm-row-val">'+nombre+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Fecha</span><span class="confirm-row-val">'+fecha+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Horas</span><span class="confirm-row-val">'+horas+'h</span></div><div class="confirm-row"><span class="confirm-row-lbl">Estado</span><span class="confirm-row-val">Pendiente aprobación</span></div>';
   const msg='⏱ *SOLICITUD TXT — CEDIS*\n*Colaborador:* '+nombre+'\n*Fecha:* '+fecha+'\n*Horas:* '+horas+'h\n*Motivo:* '+nota;
   document.getElementById('txt-wa-btn').onclick=()=>openWA(msg);
@@ -666,6 +729,101 @@ async function submitTXT(){
   setTimeout(()=>openWA(msg),800);
 }
 function txtReset(){document.getElementById('txt-step-a').style.display='block';document.getElementById('txt-step-b').style.display='none';}
+
+/* ── PHOTO UPLOAD ───────────────────────────────────── */
+function previewFoto(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('foto-img').src = e.target.result;
+    document.getElementById('foto-preview').style.display = 'block';
+    document.getElementById('foto-btn').textContent = '📷 Cambiar foto';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function clearFoto() {
+  document.getElementById('foto-input').value = '';
+  document.getElementById('foto-preview').style.display = 'none';
+  document.getElementById('foto-btn').textContent = '📷 Adjuntar foto / evidencia (opcional)';
+}
+async function getFotoBase64() {
+  const input = document.getElementById('foto-input');
+  if (!input || !input.files[0]) return null;
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result); // full data URI — GAS la decodifica
+    r.readAsDataURL(input.files[0]);
+  });
+}
+
+
+/* ── PERMISO DE SALIDA ─────────────────────────────── */
+function mostrarPermiso(){
+  const nombre  = S.user?.nombre||'—';
+  const fecha   = document.getElementById('txt-fecha')?.value||todayISO();
+  const horas   = S.txtHoras==='custom'?document.getElementById('txt-horas-custom')?.value:'8'==='custom'?'8':S.txtHoras||'8';
+  const nota    = document.getElementById('txt-nota')?.value||'Tiempo compensatorio (TXT)';
+  const h       = parseFloat(horas)||8;
+  const fin     = String(7+Math.floor(h)).padStart(2,'0')+':'+String(Math.round((h%1)*60)).padStart(2,'0');
+  const fmtFecha= new Date(fecha+'T12:00:00').toLocaleDateString('es-PA',{day:'numeric',month:'long',year:'numeric'});
+  const reqNum  = 'REQ-'+todayISO().replace(/-/g,'')+'-'+String(Math.floor(Math.random()*9000)+1000);
+  const win=window.open('','_blank','width=700,height=620');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Solicitud de Tiempo Compensatorio</title>
+  <style>body{font-family:Arial,sans-serif;font-size:13px;margin:0;padding:24px;color:#000}
+  .hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:18px}
+  .inst{font-size:14px;font-weight:bold}.dept{font-size:12px}
+  .title{font-size:15px;font-weight:bold;text-transform:uppercase;margin-top:6px}
+  .req-num{float:right;background:#f0f0f0;border:1px solid #999;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:bold}
+  .form-body{border:1.5px solid #000;padding:20px;min-height:300px}
+  .field{margin-bottom:12px;font-size:13px}
+  .field span{border-bottom:1px solid #000;display:inline-block;min-width:200px;padding:0 4px}
+  .motivo{border:1px solid #555;padding:8px 12px;min-height:36px;margin:8px 0}
+  .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px}
+  .sign-box{text-align:center}
+  .sign-line{border-top:1px solid #000;margin-top:50px;padding-top:5px;font-size:11px;color:#333}
+  .note{font-size:10px;color:#777;margin-top:16px;text-align:center;border-top:1px solid #ccc;padding-top:8px}
+  .pending{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:14px}
+  @media print{.no-print{display:none}body{padding:12px}}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div class="hdr" style="flex:1">
+      <div class="inst">CAJA DE SEGURO SOCIAL</div>
+      <div class="dept">DIRECCIÓN DE PERSONAL</div>
+      <div class="title">Solicitud de Tiempo Compensatorio (TXT)</div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:#555;padding-left:16px">
+      <div>Cód. referencia interna</div>
+      <div class="req-num">${reqNum}</div>
+    </div>
+  </div>
+  <div class="pending">⏳ <b>Estado: PENDIENTE DE APROBACIÓN</b> — El número de permiso oficial será asignado por RH al aprobar.</div>
+  <div class="form-body">
+    <div class="field">Sr(a): <span>${nombre}</span></div>
+    <div class="field">Unidad: <span>CEDIS PANAMÁ — Torre de Control</span></div>
+    <br>
+    <div style="margin-bottom:10px">Por este medio solicito se me conceda permiso para ausentarme del lugar de trabajo,</div>
+    <div style="margin-bottom:10px">el día <b>${fmtFecha}</b>, a partir de las <b>07:30</b> hasta las <b>${fin}</b> (${horas} horas).</div>
+    <div>Motivo:</div>
+    <div class="motivo">${nota||'Uso de Tiempo Compensatorio (TXT) acumulado'}</div>
+    <div class="sign-row">
+      <div class="sign-box">
+        <div class="sign-line">Firma del Solicitante</div>
+        <div style="font-size:11px;margin-top:3px">${nombre}</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-line">V°B° — Jefe de la Unidad Ejecutora</div>
+        <div style="font-size:11px;margin-top:3px">Paola Moreno</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Solicitud generada desde Portal del Colaborador — CEDIS PANAMÁ · ${new Date().toLocaleString('es-PA')} · ${reqNum}</div>
+  <div class="no-print" style="margin-top:16px;text-align:center">
+    <button onclick="window.print()" style="background:#0B1F3A;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">🖨 Imprimir / Guardar PDF</button>
+    <button onclick="window.close()" style="margin-left:12px;background:#e5e7eb;color:#374151;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">Cerrar</button>
+  </div>
+  </body></html>`);
+  win.document.close();
+}
 
 /* INIT */
 window.addEventListener('load',()=>setTimeout(()=>go('scr-pin'),1500));
