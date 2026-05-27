@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel RH — CEDIS PANAMÁ</title>
+  <link rel="icon" href="./favicon.ico?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0B1F3A;--navy2:#133a74;--gold:#F59E0B;
+  --bg:#F1F5F9;--white:#fff;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;
+  --ok:#059669;--ok-bg:#ECFDF5;--bad:#DC2626;--bad-bg:#FEF2F2;
+  --warn:#D97706;--warn-bg:#FFFBEB;--info:#2563EB;--info-bg:#EFF6FF;
+  --r:12px;--ff:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100vh}
+
+/* PIN OVERLAY */
+#pin-overlay{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:9999}
+#pin-overlay.hide{display:none}
+.ov-logo img{width:64px;height:64px;object-fit:contain}
+.ov-title{font-size:20px;font-weight:800;color:#fff}
+.ov-sub{font-size:12px;color:#64748b}
+.ov-dots{display:flex;gap:14px;margin:8px 0}
+.ov-dot{width:16px;height:16px;border-radius:50%;border:2px solid #334155;transition:all .14s}
+.ov-dot.on{background:var(--gold);border-color:var(--gold)}
+.ov-dot.err{border-color:var(--bad);animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.ov-grid{display:grid;grid-template-columns:repeat(3,72px);gap:8px}
+.opk{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;width:72px;height:64px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff;cursor:pointer;user-select:none;transition:background .08s}
+.opk:active{background:rgba(245,158,11,.2)}
+.opk.del{color:var(--bad);font-size:16px}
+.opk.blank{visibility:hidden;pointer-events:none}
+.ov-err{min-height:18px;font-size:12px;font-weight:600;color:#f87171;text-align:center}
+
+/* TOPBAR */
+.topbar{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.topbar img{width:36px;height:36px;object-fit:contain}
+.tb-main{font-size:14px;font-weight:800}
+.tb-sub{font-size:11px;color:#64748b;margin-top:1px}
+.tb-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tb-clock{font-size:11px;color:#64748b;font-family:var(--mono)}
+.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:700;padding:7px 12px;border-radius:8px;cursor:pointer;text-decoration:none;font-family:var(--ff)}
+.tb-btn.gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+
+/* LAYOUT */
+.page{padding:16px;max-width:1400px;margin:0 auto}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.gold::before{background:var(--gold)}
+.stat-card.green::before{background:var(--ok)}
+.stat-card.blue::before{background:var(--info)}
+.stat-card.red::before{background:var(--bad)}
+.stat-card.warn::before{background:var(--warn)}
+.stat-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.stat-val{font-size:28px;font-weight:800;color:var(--navy);font-family:var(--mono)}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr}}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.panel-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:13px;font-weight:800;color:var(--navy)}
+.panel-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+.panel-badge.pending{background:var(--warn-bg);color:var(--warn)}
+.panel-badge.ok{background:var(--ok-bg);color:var(--ok)}
+.panel-badge.info{background:var(--info-bg);color:var(--info)}
+.panel-body{padding:12px 14px;max-height:420px;overflow-y:auto}
+.btn-refresh{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--ff)}
+.btn-refresh:hover{background:var(--bg)}
+
+/* REQUEST ITEMS */
+.req-item{border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.req-item:last-child{margin-bottom:0}
+.req-item.pending{border-left:3px solid var(--warn);background:var(--warn-bg)}
+.req-item.approved{border-left:3px solid var(--ok);background:var(--ok-bg)}
+.req-item.denied{border-left:3px solid var(--bad);background:var(--bad-bg)}
+.req-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.req-ico{font-size:20px}
+.req-name{font-size:13px;font-weight:800;color:var(--navy)}
+.req-time{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto}
+.req-detail{font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.5}
+.req-actions{display:flex;gap:8px}
+.btn-approve{background:var(--ok);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff)}
+.btn-deny{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff)}
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px}
+.status-badge.ok{background:var(--ok-bg);color:var(--ok)}
+.status-badge.bad{background:var(--bad-bg);color:var(--bad)}
+
+/* INCIDENT ITEMS */
+.inc-item{border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;margin-bottom:7px;display:flex;gap:10px;align-items:flex-start}
+.inc-item:last-child{margin-bottom:0}
+.inc-item.tardanza{border-left:3px solid var(--warn)}
+.inc-item.ausencia{border-left:3px solid var(--bad)}
+.inc-item.baja{border-left:3px solid var(--info)}
+.inc-item.txt{border-left:3px solid var(--gold)}
+.inc-ico{font-size:18px;flex-shrink:0;margin-top:1px}
+.inc-name{font-size:12px;font-weight:800;color:var(--navy)}
+.inc-tipo{font-size:11px;color:var(--muted);margin-top:1px}
+.inc-nota{font-size:11px;color:var(--text);margin-top:3px;line-height:1.4}
+.inc-time{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto;white-space:nowrap}
+
+/* EMPLOYEE GRID */
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px}
+.emp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
+.emp-card-top{display:flex;align-items:center;gap:10px}
+.emp-av{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.emp-av.ok{background:var(--ok)}
+.emp-av.warn{background:var(--warn)}
+.emp-av.bad{background:var(--bad)}
+.emp-name{font-size:12px;font-weight:700;color:var(--navy)}
+.emp-area{font-size:10px;color:var(--muted)}
+.emp-metrics{display:flex;justify-content:space-between;font-size:11px;font-family:var(--mono);color:var(--muted)}
+.emp-metric-val{font-weight:700;color:var(--text)}
+.emp-status-bar{display:flex;gap:4px}
+.emp-dot{width:8px;height:8px;border-radius:50%}
+
+/* Full width bottom panel */
+.full-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-top:14px;overflow:hidden}
+
+/* Empty state */
+.empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:13px}
+
+/* Spinner */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.1);border-top-color:var(--navy);border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);opacity:0;transition:opacity .3s;pointer-events:none;z-index:9998}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- PIN OVERLAY -->
+<div id="pin-overlay">
+  <div class="ov-logo"><img src="./icons/icon-512.png" alt="CSS"></div>
+  <div class="ov-title">Panel de Administración</div>
+  <div class="ov-sub">CEDIS PANAMÁ · RH · Torre de Control</div>
+  <div class="ov-dots">
+    <div class="ov-dot" id="od0"></div><div class="ov-dot" id="od1"></div>
+    <div class="ov-dot" id="od2"></div><div class="ov-dot" id="od3"></div>
+  </div>
+  <div class="ov-err" id="ov-err"></div>
+  <div class="ov-grid">
+    <div class="opk" data-v="1">1</div><div class="opk" data-v="2">2</div><div class="opk" data-v="3">3</div>
+    <div class="opk" data-v="4">4</div><div class="opk" data-v="5">5</div><div class="opk" data-v="6">6</div>
+    <div class="opk" data-v="7">7</div><div class="opk" data-v="8">8</div><div class="opk" data-v="9">9</div>
+    <div class="opk blank"></div><div class="opk" data-v="0">0</div><div class="opk del" id="opk-del">⌫</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <img src="./icons/icon-512.png" alt="CSS">
+  <div>
+    <div class="tb-main">Panel RH — CEDIS PANAMÁ</div>
+    <div class="tb-sub" id="admin-name">Cargando…</div>
+  </div>
+  <div class="tb-actions">
+    <span class="tb-clock" id="clock"></span>
+    <a href="mis_tiempos.html" class="tb-btn">📊 Portal Empleado</a>
+    <a href="./index.html" class="tb-btn">📈 Biométrico</a>
+    <button class="tb-btn gold" onclick="refreshAll()">↺ Actualizar</button>
+    <button class="tb-btn" onclick="lockAdmin()">← Salir</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card warn">
+      <div class="stat-lbl">Solicitudes pendientes</div>
+      <div class="stat-val" id="st-pending">—</div>
+      <div class="stat-sub">esperando aprobación</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-lbl">Incidencias hoy</div>
+      <div class="stat-val" id="st-inc-hoy">—</div>
+      <div class="stat-sub">reportadas hoy</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-lbl">Total ciclo actual</div>
+      <div class="stat-val" id="st-total">—</div>
+      <div class="stat-sub">incidencias este ciclo</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-lbl">HE Ciclo equipo</div>
+      <div class="stat-val" id="st-he">—</div>
+      <div class="stat-sub">horas extras acumuladas</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-lbl">Empleados activos</div>
+      <div class="stat-val" id="st-emps">—</div>
+      <div class="stat-sub">en nómina actual</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- Solicitudes TXT pendientes -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">⏱ Solicitudes de TXT</div>
+        <span class="panel-badge pending" id="badge-pending">cargando…</span>
+      </div>
+      <div class="panel-body" id="req-list">
+        <div class="empty"><span class="spin"></span> Cargando solicitudes…</div>
+      </div>
+    </div>
+
+    <!-- Incidencias del día -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">🚨 Incidencias del día</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="panel-badge info" id="badge-inc">—</span>
+          <button class="btn-refresh" onclick="loadIncidencias()">↺</button>
+        </div>
+      </div>
+      <div class="panel-body" id="inc-list">
+        <div class="empty"><span class="spin"></span> Cargando incidencias…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ COMPARATIVA: BIOMÉTRICO VS LISTAS ══ -->
+  <div class="full-panel" style="margin-top:14px">
+    <div class="panel-hdr">
+      <div class="panel-title">🔍 Comparativa: Biométrico vs Listas Manuscritas</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="comp-from" style="border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:11px;font-family:var(--ff)">
+        <span style="font-size:11px;color:var(--muted)">—</span>
+        <input type="date" id="comp-to" style="border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:11px;font-family:var(--ff)">
+        <button class="btn-refresh" onclick="loadComparativa()" style="background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700">🔍 Analizar</button>
+      </div>
+    </div>
+    <div id="comp-stats" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--warn)" id="cs-solo-bio">—</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Solo biométrico</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--bad)" id="cs-solo-lista">—</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Solo lista</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--warn)" id="cs-entrada-diff">—</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Hora diferente</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--bad)" id="cs-tard-oculta">—</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Tardanza oculta</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--ok)" id="cs-coincide">—</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Coincidencias ✓</div></div>
+      <div style="margin-left:auto">
+        <select id="comp-filter" onchange="renderComp()" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-family:var(--ff)">
+          <option value="ALL">Todos los tipos</option>
+          <option value="SOLO_BIOMETRICO">Solo biométrico</option>
+          <option value="SOLO_LISTA">Solo lista</option>
+          <option value="ENTRADA_DIFF">Hora diferente</option>
+          <option value="TARDANZA_OCULTA">Tardanza oculta</option>
+          <option value="TARDANZA_LISTA">Tardanza en lista</option>
+          <option value="PENDIENTE_LISTA">Pendiente de lectura</option>
+        </select>
+      </div>
+    </div>
+    <div style="padding:10px 16px;overflow-x:auto">
+      <div id="comp-body"><div class="empty">Selecciona fechas y presiona 🔍 Analizar.</div></div>
+    </div>
+  </div>
+
+  <!-- BIOMETRIC EMPLOYEE STATUS -->
+  <div class="full-panel">
+    <div class="panel-hdr">
+      <div class="panel-title">👥 Estado biométrico del equipo — ciclo actual</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn-refresh" onclick="loadBioAll()">↺ Recargar</button>
+      </div>
+    </div>
+    <div style="padding:14px">
+      <div class="emp-grid" id="emp-grid">
+        <div class="empty"><span class="spin"></span> Cargando datos biométricos…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══ CONFIG ═══════════════════════════════════════ */
+const GAS_INC = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+const GAS_BIO = 'https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec';
+const TOKEN   = 'RH_DINALOG';
+const PCACHE  = 'admin_v1';
+const PCACHE_TTL = 4*3600*1000;
+// Admin PINs — estos corresponden a roles de jefatura en PERSONAL
+const ADMIN_PINS = ['7777']; // ← Agrega aquí los PINs del personal de RH/jefatura
+
+/* ═══ STATE ════════════════════════════════════════ */
+let A = { user: null, incidents: [], employees: [] };
+let allIncidents = []; // raw list from backend
+
+/* ═══ CLOCK ════════════════════════════════════════ */
+(function clock(){
+  const el = document.getElementById('clock');
+  const t = () => { el.textContent = new Date().toLocaleString('es-PA',{dateStyle:'short',timeStyle:'medium'}); };
+  t(); setInterval(t,5000);
+})();
+
+/* ═══ TOAST ════════════════════════════════════════ */
+function toast(msg,ms=2800){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),ms);
+}
+
+/* ═══ PIN (ADMIN) ══════════════════════════════════ */
+let apin = '';
+function odots(p){for(let i=0;i<4;i++)document.getElementById(`od${i}`).classList.toggle('on',i<p.length);}
+function adminPinErr(m){
+  document.getElementById('ov-err').textContent=m;
+  document.querySelectorAll('.ov-dot').forEach(d=>{d.classList.add('err');setTimeout(()=>d.classList.remove('err'),400)});
+  apin='';odots('');
+}
+
+document.querySelectorAll('.opk[data-v]').forEach(k=>{
+  k.addEventListener('click',async()=>{
+    if(apin.length>=4)return;
+    apin+=k.dataset.v;odots(apin);
+    document.getElementById('ov-err').textContent='';
+    if(apin.length<4)return;
+    const p=apin;apin='';odots('');
+    // Try session cache first
+    const cached=pinCacheGet(p);
+    if(cached){A.user=cached;unlockAdmin();return;}
+    // Validate via GAS
+    try{
+      const res=await fetch(`${GAS_INC}?file=validate_pin&pin=${encodeURIComponent(p)}&_=${Date.now()}`);
+      const d=await res.json();
+      if(d.result==='error'){adminPinErr('PIN incorrecto');return;}
+      // Check if this user has admin/jefatura role
+      if(d.rol && !['JEFATURA','ADMIN','RH'].some(r=>String(d.rol).toUpperCase().includes(r))){
+        // Also accept if pin is in ADMIN_PINS list (fallback)
+        if(!ADMIN_PINS.includes(p)){adminPinErr('Sin permisos de administrador');return;}
+      }
+      pinCacheSet(p,d);A.user=d;unlockAdmin();
+    }catch{
+      // Offline fallback: check ADMIN_PINS list
+      if(ADMIN_PINS.includes(p)){A.user={nombre:'Administrador',cargo:'RH'};unlockAdmin();}
+      else{adminPinErr('Sin conexión');}
+    }
+  });
+});
+document.getElementById('opk-del').addEventListener('click',()=>{if(apin.length)apin=apin.slice(0,-1);odots(apin);document.getElementById('ov-err').textContent='';});
+function pinCacheGet(p){try{const c=JSON.parse(sessionStorage.getItem(PCACHE)||'null');if(!c||c.pin!==p||Date.now()-c.ts>PCACHE_TTL)return null;return c;}catch{return null;}}
+function pinCacheSet(p,d){try{sessionStorage.setItem(PCACHE,JSON.stringify({...d,pin:p,ts:Date.now()}));}catch{}}
+function unlockAdmin(){
+  document.getElementById('pin-overlay').classList.add('hide');
+  document.getElementById('admin-name').textContent=`${A.user?.nombre||'Admin'} · ${A.user?.cargo||'RH'}`;
+  refreshAll();
+}
+function lockAdmin(){
+  A.user=null;
+  sessionStorage.removeItem(PCACHE);
+  document.getElementById('pin-overlay').classList.remove('hide');
+  apin='';odots('');
+}
+
+/* ═══ REFRESH ALL ══════════════════════════════════ */
+function refreshAll(){
+  loadIncidencias();
+  loadBioAll();
+}
+
+/* ═══ LOAD INCIDENCIAS ═════════════════════════════ */
+async function loadIncidencias(){
+  document.getElementById('inc-list').innerHTML='<div class="empty"><span class="spin"></span> Cargando…</div>';
+  document.getElementById('req-list').innerHTML='<div class="empty"><span class="spin"></span> Cargando…</div>';
+  try{
+    const res=await fetch(`${GAS_INC}?file=incidencias_all&_=${Date.now()}`);
+    const d=await res.json();
+    if(d&&Array.isArray(d.incidencias)){
+      allIncidents=d.incidencias;
+    } else {
+      // Try alternate endpoint
+      allIncidents=d.data||d.rows||[];
+    }
+  }catch{
+    allIncidents=[];
+  }
+  renderIncidencias();
+}
+
+function renderIncidencias(){
+  const today=new Date().toISOString().slice(0,10);
+  const hoy=allIncidents.filter(i=>String(i.Fecha||i.fecha||'').slice(0,10)===today);
+  const pendTXT=allIncidents.filter(i=>{
+    const tipo=String(i.Tipo||i.tipo||'').toLowerCase();
+    const nota=String(i.Nota||i.nota||'');
+    const estado=String(i.Estado||i.estado||'').toLowerCase();
+    return tipo==='txt'&&nota.includes('[SOLICITUD TXT]')&&estado!=='aprobado'&&estado!=='rechazado';
+  });
+
+  // Stats
+  document.getElementById('st-pending').textContent=pendTXT.length;
+  document.getElementById('st-inc-hoy').textContent=hoy.length;
+  document.getElementById('st-total').textContent=allIncidents.length;
+  document.getElementById('badge-pending').textContent=`${pendTXT.length} pendiente${pendTXT.length!==1?'s':''}`;
+  document.getElementById('badge-inc').textContent=`${hoy.length} hoy`;
+
+  // Render TXT requests
+  const reqList=document.getElementById('req-list');
+  if(!pendTXT.length){
+    reqList.innerHTML='<div class="empty">✅ Sin solicitudes TXT pendientes.</div>';
+  } else {
+    reqList.innerHTML=pendTXT.map((r,i)=>{
+      const nombre=r.Nombre||r.nombre||'—';
+      const nota=String(r.Nota||r.nota||'');
+      const fecha=String(r.Fecha||r.fecha||'').slice(0,10);
+      // Extract date/hours from note
+      const fechaSol=nota.match(/Fecha: ([^\|]+)/)?.[1]?.trim()||'—';
+      const horasSol=nota.match(/Horas: ([^\|]+)/)?.[1]?.trim()||'—';
+      const motivoSol=nota.match(/Motivo: (.+)/)?.[1]?.trim()||'—';
+      return `<div class="req-item pending" id="req-${i}">
+        <div class="req-top">
+          <div class="req-ico">⏱</div>
+          <div class="req-name">${nombre}</div>
+          <div class="req-time">${fecha}</div>
+        </div>
+        <div class="req-detail">📅 Fecha solicitada: <strong>${fechaSol}</strong> · ⏱ Horas: <strong>${horasSol}</strong><br>📝 ${motivoSol}</div>
+        <div class="req-actions">
+          <button class="btn-approve" onclick="approveReq(${i},'${encodeURIComponent(JSON.stringify(r))}')">✓ Aprobar</button>
+          <button class="btn-deny"    onclick="denyReq(${i},'${encodeURIComponent(JSON.stringify(r))}')">✗ Rechazar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Render today's incidents
+  const incList=document.getElementById('inc-list');
+  if(!hoy.length){
+    incList.innerHTML='<div class="empty">📋 Sin incidencias reportadas hoy.</div>';
+    return;
+  }
+  const tipoClass={tardanza:'tardanza',ausencia:'ausencia','baja-medica':'baja',txt:'txt'};
+  const tipoIco={tardanza:'⏰',ausencia:'📋','baja-medica':'🩺',art16:'⚖️',capacitacion:'🎓',txt:'⏱',otro:'💬'};
+  incList.innerHTML=hoy.map(r=>{
+    const nombre=r.Nombre||r.nombre||'—';
+    const tipo=String(r.Tipo||r.tipo||'otro').toLowerCase();
+    const nota=String(r.Nota||r.nota||'—');
+    const hora=String(r.Timestamp||r.timestamp||r.hora||'').slice(11,16)||'—';
+    const cls=tipoClass[tipo]||'';
+    const ico=tipoIco[tipo]||'💬';
+    return `<div class="inc-item ${cls}">
+      <div class="inc-ico">${ico}</div>
+      <div style="flex:1">
+        <div class="inc-name">${nombre}</div>
+        <div class="inc-tipo">${r.Estado||r.estado||tipo}</div>
+        <div class="inc-nota">${nota.slice(0,80)}</div>
+      </div>
+      <div class="inc-time">${hora}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── Sequential permit counter (session-based; GAS endpoint can persist it) ─ */
+let permitSeq = parseInt(sessionStorage.getItem('ps_seq')||'0');
+function nextPermitNum(){
+  permitSeq++;
+  sessionStorage.setItem('ps_seq', permitSeq);
+  const y=new Date().getFullYear();
+  return `PS-${y}-${String(permitSeq).padStart(4,'0')}`;
+}
+
+async function approveReq(i,raw){
+  const r=JSON.parse(decodeURIComponent(raw));
+  const nombre=r.Nombre||r.nombre||'—';
+  const nota=String(r.Nota||r.nota||'');
+  const fechaSol=nota.match(/Fecha: ([^\|]+)/)?.[1]?.trim()||'—';
+  const horasSol=nota.match(/Horas: ([^\|]+)/)?.[1]?.trim()||'—';
+  const motivoSol=nota.match(/Motivo: (.+)/)?.[1]?.trim()||'Tiempo compensatorio (TXT)';
+  const seqNum=nextPermitNum();
+  const adminName=A.user?.nombre||'Paola Moreno';
+
+  // Update UI with approve + print button
+  document.getElementById(`req-${i}`).innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0">
+      <span class="status-badge ok">✓ Aprobado · ${seqNum}</span>
+      <span style="font-size:12px;font-weight:700;color:var(--navy)">${nombre} · ${fechaSol} · ${horasSol}</span>
+      <button class="btn-approve" style="margin-left:auto;font-size:11px;padding:5px 12px" onclick="printPermit('${encodeURIComponent(nombre)}','${fechaSol}','${horasSol}','${encodeURIComponent(motivoSol)}','${seqNum}','${encodeURIComponent(adminName)}')">🖨 Imprimir permiso</button>
+    </div>`;
+  toast(`✓ Solicitud de ${nombre} aprobada · ${seqNum}`);
+  // WhatsApp notification
+  const msg=`✅ *SOLICITUD TXT APROBADA*\n*Colaborador:* ${nombre}\n*Fecha:* ${fechaSol}\n*Horas a usar:* ${horasSol}\n*N° Permiso:* ${seqNum}\n_Aprobado por ${adminName} — CEDIS PANAMÁ_\n_Presenta este mensaje o imprime el permiso._`;
+  openWA_admin(msg);
+}
+
+async function denyReq(i,raw){
+  const r=JSON.parse(decodeURIComponent(raw));
+  const nombre=r.Nombre||r.nombre||'—';
+  const nota=String(r.Nota||r.nota||'');
+  const fechaSol=nota.match(/Fecha: ([^\|]+)/)?.[1]?.trim()||'—';
+  document.getElementById(`req-${i}`).innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span class="status-badge bad">✗ Rechazado</span>
+      <span style="font-size:12px;font-weight:700;color:var(--navy)">${nombre} · ${fechaSol}</span>
+    </div>`;
+  toast(`Solicitud de ${nombre} rechazada`);
+  const msg=`❌ *SOLICITUD TXT NO APROBADA*\n*Colaborador:* ${nombre}\n*Fecha solicitada:* ${fechaSol}\n_Comunícate con RH para más información._\n_CEDIS PANAMÁ_`;
+  openWA_admin(msg);
+}
+
+function printPermit(nombreEnc,fecha,horas,motivoEnc,seq,adminEnc){
+  const nombre=decodeURIComponent(nombreEnc);
+  const motivo=decodeURIComponent(motivoEnc);
+  const admin=decodeURIComponent(adminEnc);
+  // Calcular hora inicio y fin aproximado (8h = jornada completa, sino ajusta)
+  const horasN=parseFloat(horas)||8;
+  const inicio='07:30';
+  const finH=7+Math.floor(horasN);const finM=Math.round((horasN%1)*60);
+  const fin=`${String(finH).padStart(2,'0')}:${String(finM).padStart(2,'0')}`;
+  const fechaFmt=new Date(fecha+'T12:00:00').toLocaleDateString('es-PA',{day:'numeric',month:'long',year:'numeric'});
+  const win=window.open('','_blank','width=700,height=600');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Permiso de Salida ${seq}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:13px;margin:0;padding:24px;color:#000}
+    .css-hdr{text-align:center;margin-bottom:18px;border-bottom:2px solid #000;padding-bottom:12px}
+    .css-hdr .inst{font-size:14px;font-weight:bold}
+    .css-hdr .dept{font-size:12px}
+    .css-hdr .title{font-size:15px;font-weight:bold;text-transform:uppercase;margin-top:6px}
+    .seq-badge{background:#f0f0f0;border:1px solid #999;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:bold;float:right}
+    .form-body{border:1.5px solid #000;padding:20px;min-height:320px}
+    .dest-line{margin-bottom:14px;font-size:13px}
+    .dest-line span{border-bottom:1px solid #000;display:inline-block;min-width:200px;padding:0 4px}
+    .motivo{border:1px solid #555;padding:8px 12px;min-height:36px;margin:8px 0;font-size:13px}
+    .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px}
+    .sign-box{text-align:center}
+    .sign-line{border-top:1px solid #000;margin-top:40px;padding-top:5px;font-size:11px;color:#333}
+    .watermark{font-size:10px;color:#777;margin-top:20px;text-align:center}
+    @media print{.no-print{display:none}body{padding:12px}}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div class="css-hdr" style="flex:1">
+      <div class="inst">CAJA DE SEGURO SOCIAL</div>
+      <div class="dept">DIRECCIÓN DE PERSONAL</div>
+      <div class="title">Permiso de Salida</div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:#555;padding-left:16px">
+      <div>Cód. 02-970-22 (digital)</div>
+      <div class="seq-badge">N° ${seq}</div>
+    </div>
+  </div>
+  <div class="form-body">
+    <div class="dest-line">Sr(a): <span>${nombre}</span></div>
+    <div class="dest-line">Jefe de: <span>CEDIS PANAMÁ — Torre de Control</span></div>
+    <br>
+    <div style="margin-bottom:10px">Por este medio solicito a UD., me conceda permiso para ausentarme del lugar de trabajo,</div>
+    <div style="margin-bottom:10px">el día <b>${fechaFmt}</b>, a partir de las <b>${inicio}</b> hasta las <b>${fin}</b>.</div>
+    <div>Este permiso es con el objeto de:</div>
+    <div class="motivo">${motivo}</div>
+    <div class="sign-row">
+      <div class="sign-box">
+        <div style="height:50px"></div>
+        <div class="sign-line">Firma del Solicitante</div>
+        <div style="font-size:11px;margin-top:3px">${nombre}</div>
+      </div>
+      <div class="sign-box">
+        <div style="height:50px"></div>
+        <div class="sign-line">V°B° — Jefe de la Unidad Ejecutora</div>
+        <div style="font-size:11px;margin-top:3px">${admin}</div>
+      </div>
+    </div>
+  </div>
+  <div class="watermark">Generado digitalmente por Sistema CEDIS · ${new Date().toLocaleString('es-PA')} · N° ${seq}</div>
+  <div class="no-print" style="margin-top:20px;text-align:center">
+    <button onclick="window.print()" style="background:#0B1F3A;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">🖨 Imprimir</button>
+    <button onclick="window.close()" style="margin-left:12px;background:#e5e7eb;color:#374151;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">Cerrar</button>
+  </div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>win.focus(),200);
+}
+
+/* ═══ LOAD BIOMETRICO ══════════════════════════════ */
+async function loadBioAll(){
+  document.getElementById('emp-grid').innerHTML='<div class="empty"><span class="spin"></span> Consultando datos biométricos de todos los empleados…</div>';
+  // Build cycle range
+  const today=new Date();const day=today.getDate();
+  let s,e;
+  if(day>=16){s=new Date(today.getFullYear(),today.getMonth(),16);e=new Date(today.getFullYear(),today.getMonth()+1,15);}
+  else{s=new Date(today.getFullYear(),today.getMonth()-1,16);e=new Date(today.getFullYear(),today.getMonth(),15);}
+  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const from=fmt(s);const to=fmt(today<e?today:e);
+  try{
+    const res=await fetch(`${GAS_BIO}?action=query&token=${TOKEN}&employee=TODOS&from=${from}&to=${to}&_=${Date.now()}`);
+    const d=await res.json();
+    if(!d.ok){document.getElementById('emp-grid').innerHTML=`<div class="empty">⚠️ ${d.error||'Error al cargar datos'}</div>`;return;}
+    renderBioAll(d);
+  }catch{
+    document.getElementById('emp-grid').innerHTML='<div class="empty">⚠️ No se pudo conectar con el servidor biométrico.</div>';
+  }
+}
+
+function renderBioAll(d){
+  // Group asistencia by employee
+  const empMap={};
+  (d.asistencia||[]).forEach(r=>{
+    const n=r.full_name||r.nombre||'?';
+    if(!empMap[n])empMap[n]={name:n,days:0,he:'00:00',flags:0,total_usd:0};
+    empMap[n].days++;
+    if(r.audit_flag!=='OK')empMap[n].flags++;
+  });
+  // Enrich with resumen_ciclo
+  (d.resumen_ciclo||[]).forEach(r=>{
+    const n=r.employee||r.full_name||r.nombre||'?';
+    if(!empMap[n])empMap[n]={name:n,days:0,he:'00:00',flags:0,total_usd:0};
+    empMap[n].he=r.he_paid_capped_hhmm||'00:00';
+    empMap[n].txt=r.txt_total_hhmm||'00:00';
+    empMap[n].total_usd=(+(r.he_amount_paid_capped||0))+(+(r.beneficios_total||0));
+  });
+  const emps=Object.values(empMap).sort((a,b)=>a.name.localeCompare(b.name));
+  // Update stats
+  document.getElementById('st-emps').textContent=emps.length;
+  const totalHE=emps.reduce((acc,e)=>acc+hhmm2m(e.he),0);
+  document.getElementById('st-he').textContent=min2hhmm(totalHE);
+
+  if(!emps.length){document.getElementById('emp-grid').innerHTML='<div class="empty">Sin datos para este ciclo.</div>';return;}
+  document.getElementById('emp-grid').innerHTML=emps.map(e=>{
+    const status=e.flags>2?'bad':e.flags>0?'warn':'ok';
+    const statusTxt=e.flags>2?'Revisar':e.flags>0?'Alertas':'Al día';
+    const initials=e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="emp-card">
+      <div class="emp-card-top">
+        <div class="emp-av ${status}">${initials}</div>
+        <div>
+          <div class="emp-name">${e.name}</div>
+          <div class="emp-area">${statusTxt} · ${e.flags} alerta${e.flags!==1?'s':''}</div>
+        </div>
+      </div>
+      <div class="emp-metrics">
+        <div><div>HE</div><div class="emp-metric-val">${e.he}</div></div>
+        <div><div>TXT</div><div class="emp-metric-val">${e.txt||'00:00'}</div></div>
+        <div><div>Total</div><div class="emp-metric-val">$${(e.total_usd||0).toFixed(0)}</div></div>
+        <div><div>Días</div><div class="emp-metric-val">${e.days}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══ UTILS ════════════════════════════════════════ */
+function hhmm2m(hhmm){const[h,m]=(hhmm||'00:00').split(':').map(Number);return(h||0)*60+(m||0);}
+function min2hhmm(m){return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
+
+function openWA_admin(msg){
+  // Try to find this person's phone from PERSONAL if available
+  // For now, open WhatsApp with Paola to notify
+  const enc=encodeURIComponent(msg);
+  window.open(`https://wa.me/50762767366?text=${enc}`,'_blank');
+}
+
+/* ═══ COMPARATIVA ══════════════════════════════════ */
+let compData = [];
+
+// Auto-fill date range with current cycle
+(function initCompDates(){
+  const today = new Date();
+  const day   = today.getDate();
+  let s, e;
+  if(day>=16){s=new Date(today.getFullYear(),today.getMonth(),16);e=today;}
+  else{s=new Date(today.getFullYear(),today.getMonth()-1,16);e=today;}
+  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('comp-from').value=fmt(s);
+  document.getElementById('comp-to').value=fmt(e);
+})();
+
+async function loadComparativa(){
+  const from=document.getElementById('comp-from').value;
+  const to=document.getElementById('comp-to').value;
+  if(!from||!to){toast('⚠ Selecciona el rango de fechas.');return;}
+  document.getElementById('comp-body').innerHTML='<div class="empty"><span class="spin"></span> Cruzando datos biométricos vs listas… puede tomar 20-30 segundos.</div>';
+  document.getElementById('comp-stats').style.display='none';
+  try{
+    const url=`${GAS_BIO}?action=comparativa&token=${TOKEN}&from=${from}&to=${to}&_=${Date.now()}`;
+    const res=await fetch(url);
+    const d=await res.json();
+    if(!d.ok){document.getElementById('comp-body').innerHTML=`<div class="empty">⚠️ ${d.error||'Error al cargar comparativa'}</div>`;return;}
+    compData=d.discrepancias||[];
+    const rs=d.resumen||{};
+    document.getElementById('cs-solo-bio').textContent=rs.solo_bio||0;
+    document.getElementById('cs-solo-lista').textContent=rs.solo_lista||0;
+    document.getElementById('cs-entrada-diff').textContent=rs.entrada_diff||0;
+    document.getElementById('cs-tard-oculta').textContent=rs.tardanza_oculta||0;
+    document.getElementById('cs-coincide').textContent=rs.coincidencias||0;
+    document.getElementById('comp-stats').style.display='flex';
+    renderComp();
+  }catch(e){
+    document.getElementById('comp-body').innerHTML='<div class="empty">⚠️ No se pudo conectar con el servidor biométrico.</div>';
+  }
+}
+
+function renderComp(){
+  const filter=document.getElementById('comp-filter').value;
+  const rows=filter==='ALL'?compData:compData.filter(r=>r.tipo===filter);
+  if(!rows.length){
+    document.getElementById('comp-body').innerHTML=`<div class="empty">✅ Sin discrepancias del tipo "${filter==='ALL'?'ninguno':filter}".</div>`;
+    return;
+  }
+  const tipoColors={
+    SOLO_BIOMETRICO:'var(--warn)',SOLO_LISTA:'var(--bad)',
+    ENTRADA_DIFF:'var(--warn)',TARDANZA_OCULTA:'var(--bad)',
+    TARDANZA_LISTA:'var(--info)',PENDIENTE_LISTA:'#94a3b8'
+  };
+  const tipoIcon={
+    SOLO_BIOMETRICO:'📡',SOLO_LISTA:'📝',
+    ENTRADA_DIFF:'⏱',TARDANZA_OCULTA:'⚠️',
+    TARDANZA_LISTA:'🔔',PENDIENTE_LISTA:'🔍'
+  };
+  const html=`<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--navy)">
+      <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:9.5px">Fecha</th>
+      <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:9.5px">Empleado</th>
+      <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:9.5px">Tipo</th>
+      <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:9.5px">Biométrico</th>
+      <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:9.5px">Lista firmada</th>
+      <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:9.5px">Descripción</th>
+    </tr></thead>
+    <tbody>${rows.map((r,i)=>`<tr style="border-bottom:1px solid var(--border);background:#fff">
+      <td style="padding:7px 10px;font-family:var(--mono)">${r.fecha}</td>
+      <td style="padding:7px 10px;font-weight:700;color:var(--navy)">${r.nombre}</td>
+      <td style="padding:7px 10px"><span style="background:${tipoColors[r.tipo]||'#e5e7eb'};color:#fff;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap">${tipoIcon[r.tipo]||''} ${r.tipo.replace(/_/g,' ')}</span></td>
+      <td style="padding:7px 10px;font-family:var(--mono);color:var(--ok)">${r.bio_entrada||'—'} → ${r.bio_salida||'—'}</td>
+      <td style="padding:7px 10px;font-family:var(--mono);color:var(--info)">${r.lista_entrada||'—'} → ${r.lista_salida||'—'}</td>
+      <td style="padding:7px 10px;color:var(--muted);max-width:220px">${r.desc||''}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+  document.getElementById('comp-body').innerHTML=html;
+}
+</script>
+</body>
+</html>
