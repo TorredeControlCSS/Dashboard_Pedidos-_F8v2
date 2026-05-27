@@ -468,9 +468,12 @@ function buildCycleList(){
   // ── Opción 1: Acumulado total (default) ──
   const today=new Date();
   const todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  // From: 6 cycles back (6 months) to cover full history without timeout
+  const fromD=new Date(today.getFullYear(),today.getMonth()-5,16);
+  const fromStr=fromD.getFullYear()+'-'+String(fromD.getMonth()+1).padStart(2,'0')+'-'+String(fromD.getDate()).padStart(2,'0');
   const allOpt=document.createElement('option');
-  allOpt.value=JSON.stringify({from:'2025-12-01',to:todayStr,all:true});
-  allOpt.textContent='📊 Acumulado total (todos los ciclos)';
+  allOpt.value=JSON.stringify({from:fromStr,to:todayStr,all:true});
+  allOpt.textContent='📊 Acumulado total (últimos 6 ciclos)';
   allOpt.selected=true;
   sel.appendChild(allOpt);
   // ── Opciones por ciclo individual ──
@@ -580,7 +583,25 @@ async function loadBio(){
     const d=await res.json();
     if(!d.ok){document.getElementById('err-msg').textContent=d.error||'Sin datos para este ciclo.';go('scr-error');return;}
     S.data=d;renderBio(d,cycle);go('scr-app');switchTab('tiempos');
-  }catch{document.getElementById('err-msg').textContent='No se pudo conectar con el servidor.';go('scr-error');}
+  }catch(err){
+    // If all-time query fails, fall back to current cycle only
+    const c=getCycleFromSel();
+    if(c&&c.all){
+      document.getElementById('load-msg').textContent='Reintentando con ciclo actual…';
+      try{
+        const today2=new Date();
+        const day=today2.getDate();
+        let s2,e2;
+        if(day>=16){s2=new Date(today2.getFullYear(),today2.getMonth(),16);e2=new Date(today2.getFullYear(),today2.getMonth()+1,15);}
+        else{s2=new Date(today2.getFullYear(),today2.getMonth()-1,16);e2=new Date(today2.getFullYear(),today2.getMonth(),15);}
+        const fmt2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        const r2=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+encodeURIComponent(S.user?.nombre||'')+'&from='+fmt2(s2)+'&to='+fmt2(e2)+'&_='+Date.now());
+        const d2=await r2.json();
+        if(d2.ok){S.data=d2;renderBio(d2,{from:fmt2(s2),to:fmt2(e2),all:false});go('scr-app');switchTab('tiempos');return;}
+      }catch{}
+    }
+    document.getElementById('err-msg').textContent='No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.';go('scr-error');
+  }
 }
 function renderBio(d,cycle){
   const t=d.totals||{};const ct=d.resumen_ciclo_totales||{};
