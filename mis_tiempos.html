@@ -19,7 +19,7 @@
   --navy:#0B1F3A;--navy2:#133a74;--gold:#F59E0B;
   --bg:#F1F5F9;--white:#fff;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;
   --ok:#059669;--ok-bg:#ECFDF5;--bad:#DC2626;--bad-bg:#FEF2F2;
-  --warn:#D97706;--warn-bg:#FFFBEB;--info:#2563EB;
+  --warn:#D97706;--warn-bg:#FFFBEB;--info:#2563EB;--info-bg:#EFF6FF;
   --r:12px;--touch:52px;--ff:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
   --nav-h:68px;
 }
@@ -49,13 +49,12 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .pin-sheet{flex:1;background:var(--bg);border-radius:28px 28px 0 0;padding:28px 24px 20px;display:flex;flex-direction:column}
 .pin-title{font-size:22px;font-weight:800;color:var(--navy)}
 .pin-sub{font-size:13px;color:var(--muted);margin-top:3px;margin-bottom:20px;line-height:1.5}
-/* Variable dots — shows typed characters */
-.pin-display{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:24px;font-weight:800;font-family:var(--mono);color:var(--navy);letter-spacing:6px;text-align:center;min-height:54px;margin-bottom:8px;transition:border-color .14s}
+.pin-display{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:24px;font-weight:800;font-family:var(--mono);color:var(--navy);letter-spacing:8px;text-align:center;min-height:56px;margin-bottom:6px;transition:border-color .14s}
 .pin-display.err{border-color:var(--bad);animation:shake .3s ease}
 .pin-display.filled{border-color:var(--navy)}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 .pin-hint{font-size:11px;color:var(--muted);text-align:center;margin-bottom:14px}
-.pin-spinner{display:none;justify-content:center;align-items:center;gap:8px;margin:6px 0}
+.pin-spinner{display:none;justify-content:center;align-items:center;gap:8px;margin:4px 0}
 .pin-spinner.show{display:flex}
 .pin-ring{width:18px;height:18px;border:2.5px solid rgba(11,31,58,.1);border-top-color:var(--navy);border-radius:50%;animation:rot .7s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
@@ -64,7 +63,6 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .pk{background:var(--white);border:1px solid var(--border);border-radius:var(--r);height:64px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--navy);cursor:pointer;user-select:none;transition:transform .07s,background .07s}
 .pk:active{transform:scale(.9);background:#FEF3C7}
 .pk.del{font-size:18px;color:var(--bad);background:#FEF2F2;border-color:#FECACA}
-.pk.blank{visibility:hidden;pointer-events:none}
 .pk.confirm{background:var(--navy);color:#fff;font-size:14px;font-weight:700;border-color:var(--navy)}
 .pk.confirm:active{background:var(--navy2)}
 
@@ -81,28 +79,21 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .err-msg{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:22px}
 .btn-err{background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:14px 24px;font-size:14px;font-weight:700;cursor:pointer;width:100%;font-family:var(--ff)}
 
-/* MAIN APP */
-#scr-app{background:#F1F5F9}
-.app-hdr{background:var(--navy);padding:max(env(safe-area-inset-top,0px),14px) 18px 0;flex-shrink:0}
-.app-hdr-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+/* APP HEADER */
+#scr-app{background:var(--bg)}
+.app-hdr{background:var(--navy);padding:max(env(safe-area-inset-top,0px),14px) 18px 12px;flex-shrink:0}
+.app-hdr-row{display:flex;align-items:center;gap:10px}
 .app-hdr-logo{width:32px;height:32px;object-fit:contain}
 .app-hdr-info{flex:1}
 .app-hdr-info .lbl{font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.8px;text-transform:uppercase}
 .app-hdr-info .name{font-size:15px;font-weight:800;color:#fff;margin-top:1px}
 .app-hdr-info .role{font-size:11px;color:#64748b}
 .btn-out{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:600;padding:7px 11px;border-radius:9px;cursor:pointer}
-.cycle-bar{background:rgba(255,255,255,.06);border-radius:10px 10px 0 0;padding:10px 14px 0;margin:0 -18px}
-.cycle-info{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cycle-sel{background:transparent;border:none;color:#e2e8f0;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer;outline:none;max-width:220px}
-.cycle-sel option{background:var(--navy);color:#fff}
-.cycle-days-txt{font-size:11px;color:#64748b}
-.cycle-prog-wrap{background:rgba(255,255,255,.08);border-radius:4px;height:4px;overflow:hidden;margin-bottom:0}
-.cycle-prog-fill{height:100%;background:var(--gold);border-radius:4px;transition:width .6s ease}
 
 /* BOTTOM NAV */
 .bot-nav{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--border);display:flex;height:var(--nav-h);padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;font-family:var(--ff);padding:8px 4px}
-.nav-btn:active{background:#F1F5F9}
+.nav-btn:active{background:var(--bg)}
 .nav-ico{font-size:20px;line-height:1}
 .nav-lbl{font-size:10px;font-weight:700;color:var(--muted)}
 .nav-btn.active .nav-lbl{color:var(--navy)}
@@ -111,37 +102,50 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .tab-panel{display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(8px + env(safe-area-inset-bottom,0));flex-direction:column;gap:12px}
 .tab-panel.active{display:flex}
 
-/* CARDS */
-.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px}
-.card.gold{border-top:3px solid var(--gold)}
-.card.green{border-top:3px solid var(--ok)}
+/* ── TAB 1: MIS TIEMPOS ── */
+
+/* HERO: TXT saldo */
+.txt-hero{background:linear-gradient(135deg,#0B1F3A,#1a3a6e);border-radius:var(--r);padding:22px 20px;text-align:center}
+.txt-hero-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.txt-hero-val{font-size:48px;font-weight:800;color:var(--gold);font-family:var(--mono);line-height:1}
+.txt-hero-sub{font-size:12px;color:#64748b;margin-top:6px}
+.txt-hero-note{font-size:11px;color:#475569;margin-top:4px}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.kpi-card.gold{border-top:3px solid var(--gold)}
+.kpi-card.green{border-top:3px solid var(--ok)}
 .kpi-lbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
-.kpi-val{font-size:22px;font-weight:800;color:var(--navy);font-family:var(--mono);line-height:1}
+.kpi-val{font-size:20px;font-weight:800;color:var(--navy);font-family:var(--mono);line-height:1}
 .kpi-sub{font-size:10px;color:var(--muted);margin-top:2px}
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;padding:3px 7px;border-radius:6px;margin-top:5px}
-.kpi-badge.ok{background:var(--ok-bg);color:var(--ok)}
-.kpi-badge.warn{background:var(--warn-bg);color:var(--warn)}
-.total-card{background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;justify-content:space-between}
-.total-lbl{font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase}
-.total-val{font-size:28px;font-weight:800;color:var(--gold);font-family:var(--mono);margin-top:4px}
-.total-right{text-align:right}
-.total-sub{font-size:11px;color:#64748b;font-family:var(--mono)}
-.cap-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.cap-title{font-size:12px;font-weight:700;color:var(--navy)}
-.cap-pct{font-size:12px;font-weight:800;color:var(--navy);font-family:var(--mono)}
-.cap-bar{background:#F1F5F9;border-radius:6px;height:10px;overflow:hidden}
-.cap-fill{height:100%;border-radius:6px;transition:width .8s;background:var(--ok)}
-.cap-fill.near{background:var(--warn)}.cap-fill.over{background:var(--bad)}
-.cap-legend{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--muted)}
-.ben-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ben-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:8px}
-.ben-ico{font-size:20px;flex-shrink:0}
-.ben-lbl{font-size:10px;color:var(--muted);font-weight:600}
-.ben-val{font-size:15px;font-weight:800;color:var(--navy);font-family:var(--mono)}
-.sec-hdr{display:flex;align-items:center;justify-content:space-between}
-.sec-title{font-size:13px;font-weight:800;color:var(--navy)}
-.sec-link{font-size:11px;color:var(--gold);font-weight:700;cursor:pointer}
+
+/* Cycle table */
+.cycle-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.cycle-card-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.cycle-card-title{font-size:13px;font-weight:800;color:var(--navy)}
+.cycle-card-sub{font-size:10px;color:var(--muted)}
+.cycle-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.cycle-row:last-child{border:none}
+.cycle-row:active{background:var(--bg)}
+.cycle-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cycle-name{font-size:11px;font-weight:700;color:var(--navy);flex:1}
+.cycle-txt{font-size:12px;font-weight:800;font-family:var(--mono);color:var(--gold)}
+.cycle-usd{font-size:11px;font-family:var(--mono);color:var(--ok);margin-left:8px}
+.cycle-chev{color:var(--muted);font-size:14px}
+.cycle-total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg);font-size:11px}
+.cycle-total-lbl{font-weight:700;color:var(--navy)}
+.cycle-total-vals{display:flex;gap:12px}
+.cycle-total-val{font-family:var(--mono);font-weight:800}
+
+/* DETAIL VIEW (within tab 1) */
+.detail-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.btn-back{background:var(--white);border:1px solid var(--border);color:var(--navy);border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff)}
+.detail-cycle-name{font-size:13px;font-weight:800;color:var(--navy)}
+.detail-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.detail-kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
+.detail-kpi-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.detail-kpi-val{font-size:15px;font-weight:800;color:var(--navy);font-family:var(--mono);margin-top:3px}
 .day-list{display:flex;flex-direction:column;gap:6px}
 .day-row{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;display:flex;align-items:center;gap:9px}
 .day-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -153,24 +157,27 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .day-flag.ok{background:var(--ok-bg);color:var(--ok)}.day-flag.warn{background:var(--warn-bg);color:var(--warn)}
 .day-flag.bad{background:var(--bad-bg);color:var(--bad)}.day-flag.rest{background:#F1F5F9;color:#94a3b8}
 
+/* LOADING inline (within tab) */
+.inline-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:12px}
+.inline-ring{width:32px;height:32px;border:3px solid rgba(245,158,11,.15);border-top-color:var(--gold);border-radius:50%;animation:rot .8s linear infinite}
+.inline-txt{font-size:12px;color:var(--muted);text-align:center}
+
 /* TAB 2: REPORTAR */
 .tipo-list{display:flex;flex-direction:column;gap:8px}
 .tipo-item{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
-.tipo-item:active{background:#F8FAFC}
+.tipo-item:active{background:var(--bg)}
 .tipo-ico{font-size:22px;flex-shrink:0}
 .tipo-lbl{font-size:13px;font-weight:700;color:var(--navy)}
 .tipo-desc{font-size:11px;color:var(--muted);margin-top:1px}
 .tipo-chev{font-size:16px;color:var(--muted);margin-left:auto}
 .rep-form{display:none;flex-direction:column;gap:12px}
 .rep-form.show{display:flex}
-.rep-title{font-size:15px;font-weight:800;color:var(--navy)}
-.rep-sub{font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:4px}
 textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--r);padding:12px;font-size:13px;font-family:var(--ff);color:var(--text);resize:none;min-height:90px;background:var(--white)}
 textarea:focus{outline:none;border-color:var(--navy)}
-.btn-back{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:var(--r);padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff)}
+.btn-back-rep{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:var(--r);padding:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff)}
 
 /* TAB 3: TXT */
-.txt-balance{background:linear-gradient(135deg,#0B1F3A,#1a3a6e);border-radius:var(--r);padding:20px;text-align:center}
+.txt-balance-card{background:linear-gradient(135deg,#0B1F3A,#1a3a6e);border-radius:var(--r);padding:20px;text-align:center}
 .txt-bal-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .txt-bal-val{font-size:40px;font-weight:800;color:var(--gold);font-family:var(--mono)}
 .txt-bal-sub{font-size:11px;color:#64748b;margin-top:4px}
@@ -184,25 +191,25 @@ textarea:focus{outline:none;border-color:var(--navy)}
 
 /* CONFIRM */
 .confirm-box{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.confirm-hdr{background:var(--ok);padding:16px;text-align:center}
+.confirm-hdr{padding:16px;text-align:center}
+.confirm-hdr.ok-bg{background:var(--ok)}
 .confirm-hdr-ico{font-size:36px}
 .confirm-hdr-lbl{font-size:14px;font-weight:800;color:#fff;margin-top:4px}
-.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.confirm-row{display:flex;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px}
 .confirm-row:last-child{border:none}
 .confirm-row-lbl{color:var(--muted)}
 .confirm-row-val{font-weight:700;color:var(--navy)}
 .wa-btn{background:#25D366;color:#fff;border:none;border-radius:var(--r);padding:14px;font-size:14px;font-weight:700;cursor:pointer;width:100%;font-family:var(--ff);display:flex;align-items:center;justify-content:center;gap:8px}
 
-/* SHARED BUTTONS */
+/* SHARED */
 .btn-primary{background:var(--navy);color:#fff;border:none;border-radius:var(--r);padding:15px;font-size:14px;font-weight:700;cursor:pointer;width:100%;min-height:var(--touch);display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--ff)}
 .btn-primary:disabled{opacity:.45;pointer-events:none}
 .btn-gold{background:var(--gold);color:var(--navy);border:none;border-radius:var(--r);padding:15px;font-size:14px;font-weight:700;cursor:pointer;width:100%;min-height:var(--touch);font-family:var(--ff)}
-
 .empty-state{text-align:center;padding:28px 16px}
 .empty-ico{font-size:36px;margin-bottom:10px}
 .empty-msg{font-size:13px;font-weight:700;color:var(--navy)}
 .empty-sub{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5}
-.toast{position:fixed;bottom:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:11px 20px;border-radius:99px;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;white-space:nowrap}
+.toast{position:fixed;bottom:calc(var(--nav-h)+12px);left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:11px 20px;border-radius:99px;box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;white-space:nowrap}
 .toast.show{opacity:1}
 </style>
 </head>
@@ -230,7 +237,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
   </div>
   <div class="pin-sheet">
     <div class="pin-title">Identifícate</div>
-    <div class="pin-sub">Ingresa tu PIN y presiona ✓ para acceder a tus horas, beneficios e incidencias.</div>
+    <div class="pin-sub">Ingresa tu PIN y presiona ✓ para ver tus horas, TXT y beneficios acumulados.</div>
     <div class="pin-display" id="pin-display">—</div>
     <div class="pin-hint">PIN de 4 a 8 dígitos · Presiona ✓ para confirmar</div>
     <div class="pin-spinner" id="pin-spinner"><div class="pin-ring"></div><span style="font-size:12px;color:var(--navy);font-weight:600">Verificando…</span></div>
@@ -247,7 +254,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
 <!-- LOADING -->
 <div id="scr-loading" class="screen">
   <div class="load-ring"></div>
-  <div class="load-txt" id="load-msg">Cargando tus registros…</div>
+  <div class="load-txt" id="load-msg">Cargando tus tiempos acumulados…</div>
 </div>
 
 <!-- ERROR -->
@@ -266,76 +273,92 @@ textarea:focus{outline:none;border-color:var(--navy)}
     <div class="app-hdr-row">
       <img src="./icons/icon-512.png" class="app-hdr-logo" alt="CSS">
       <div class="app-hdr-info">
-        <div class="lbl">PORTAL DEL COLABORADOR · ALMACÉN</div>
+        <div class="lbl">PORTAL DEL COLABORADOR · CEDIS</div>
         <div class="name" id="dh-nombre">—</div>
         <div class="role" id="dh-role">—</div>
       </div>
       <button class="btn-out" onclick="goPin()">← Salir</button>
     </div>
-    <div class="cycle-bar" id="cycle-bar-wrap">
-      <div class="cycle-info">
-        <select class="cycle-sel" id="cycle-sel" onchange="onCycleChange()"></select>
-        <span class="cycle-days-txt" id="cycle-days-txt"></span>
-      </div>
-      <div class="cycle-prog-wrap"><div class="cycle-prog-fill" id="cycle-prog" style="width:0%"></div></div>
-    </div>
   </div>
 
-  <!-- TAB: TIEMPOS -->
+  <!-- TAB 1: MIS TIEMPOS -->
   <div class="tab-panel active" id="tab-tiempos">
-    <div class="kpi-grid">
-      <div class="card gold">
-        <div class="kpi-lbl">HE Calculadas</div>
-        <div class="kpi-val" id="kpi-calc">—</div>
-        <div class="kpi-sub">horas extras brutas</div>
+
+    <!-- Vista resumen (default) -->
+    <div id="view-summary">
+      <!-- Hero TXT acumulado -->
+      <div class="txt-hero">
+        <div class="txt-hero-lbl">Saldo TXT acumulado</div>
+        <div class="txt-hero-val" id="saldo-txt">—</div>
+        <div class="txt-hero-sub">horas disponibles para ausentarse con goce de sueldo</div>
+        <div class="txt-hero-note" id="saldo-ciclos-note">calculando…</div>
       </div>
-      <div class="card green">
-        <div class="kpi-lbl">HE a Cobrar</div>
-        <div class="kpi-val" id="kpi-paid">—</div>
-        <div class="kpi-sub">cap 40h / ciclo</div>
-        <div class="kpi-badge ok" id="badge-cap">✓ Dentro del cap</div>
+
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi-card gold">
+          <div class="kpi-lbl">HE Calculadas</div>
+          <div class="kpi-val" id="saldo-he-calc">—</div>
+          <div class="kpi-sub">total histórico</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-lbl">Total a Cobrar</div>
+          <div class="kpi-val" id="saldo-total-usd">—</div>
+          <div class="kpi-sub">HE + beneficios</div>
+        </div>
+      </div>
+
+      <!-- Tabla de ciclos -->
+      <div class="cycle-card">
+        <div class="cycle-card-hdr">
+          <div class="cycle-card-title">📋 Historial por ciclo</div>
+          <div class="cycle-card-sub">Toca un ciclo para ver el detalle</div>
+        </div>
+        <div id="ciclo-list">
+          <div class="inline-loading"><div class="inline-ring"></div><div class="inline-txt">Cargando historial…</div></div>
+        </div>
+        <div class="cycle-total-row">
+          <span class="cycle-total-lbl">TOTAL ACUMULADO</span>
+          <div class="cycle-total-vals">
+            <span class="cycle-total-val" style="color:var(--gold)" id="total-txt-all">—</span>
+            <span class="cycle-total-val" style="color:var(--ok)" id="total-usd-all">—</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <div class="cap-hdr">
-        <div class="cap-title">⏱ TXT — Tiempo × Tiempo (Bolsón)</div>
-        <div class="cap-pct" id="kpi-txt">—</div>
+
+    <!-- Vista detalle de un ciclo (se muestra al tocar una fila) -->
+    <div id="view-detail" style="display:none;flex-direction:column;gap:12px">
+      <div class="detail-hdr">
+        <button class="btn-back" onclick="showSummary()">← Todos los ciclos</button>
+        <div class="detail-cycle-name" id="detail-cycle-name"></div>
       </div>
-      <div class="cap-bar"><div class="cap-fill" id="cap-fill" style="width:0%"></div></div>
-      <div class="cap-legend">
-        <span id="cap-leg">HE pagadas: —</span>
-        <span>Límite: 40:00</span>
+      <!-- KPIs del ciclo -->
+      <div class="detail-kpis">
+        <div class="detail-kpi">
+          <div class="detail-kpi-lbl">HE Calc</div>
+          <div class="detail-kpi-val" id="dcyc-he-calc">—</div>
+        </div>
+        <div class="detail-kpi">
+          <div class="detail-kpi-lbl">HE Pagadas</div>
+          <div class="detail-kpi-val" id="dcyc-he-paid">—</div>
+        </div>
+        <div class="detail-kpi" style="border-top:2px solid var(--gold)">
+          <div class="detail-kpi-lbl">TXT generado</div>
+          <div class="detail-kpi-val" style="color:var(--gold)" id="dcyc-txt">—</div>
+        </div>
       </div>
+      <!-- Loading / day list -->
+      <div id="detail-loading" class="inline-loading">
+        <div class="inline-ring"></div>
+        <div class="inline-txt">Cargando días del ciclo…</div>
+      </div>
+      <div class="day-list" id="detail-day-list" style="display:none"></div>
     </div>
-    <div class="total-card">
-      <div>
-        <div class="total-lbl">💰 Total a Cobrar</div>
-        <div class="total-val" id="kpi-total">USD 0.00</div>
-      </div>
-      <div class="total-right">
-        <div class="total-sub" id="kpi-he-usd">HE: USD 0.00</div>
-        <div class="total-sub" id="kpi-ben-usd">Ben: USD 0.00</div>
-      </div>
-    </div>
-    <div>
-      <div class="sec-hdr" style="margin-bottom:8px">
-        <div class="sec-title">🍽 Beneficios del ciclo</div>
-      </div>
-      <div class="ben-row">
-        <div class="ben-card"><div class="ben-ico">🍱</div><div><div class="ben-lbl">ALIMENTACIÓN</div><div class="ben-val" id="kpi-alim">USD 0.00</div></div></div>
-        <div class="ben-card"><div class="ben-ico">🚌</div><div><div class="ben-lbl">TRANSPORTE</div><div class="ben-val" id="kpi-transp">USD 0.00</div></div></div>
-      </div>
-    </div>
-    <div>
-      <div class="sec-hdr" style="margin-bottom:8px">
-        <div class="sec-title">Registro diario</div>
-        <div class="sec-link" id="btn-ver-mas" onclick="toggleAllDays()">Ver todos →</div>
-      </div>
-      <div class="day-list" id="day-list"></div>
-    </div>
+
   </div>
 
-  <!-- TAB: REPORTAR -->
+  <!-- TAB 2: REPORTAR -->
   <div class="tab-panel" id="tab-reportar">
     <div id="rep-step-a">
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">¿Qué deseas reportar?</div>
@@ -343,24 +366,24 @@ textarea:focus{outline:none;border-color:var(--navy)}
     </div>
     <div class="rep-form" id="rep-step-b">
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn-back" onclick="repBack()">← Atrás</button>
+        <button class="btn-back-rep" onclick="repBack()">← Atrás</button>
         <div>
-          <div class="rep-title" id="rep-tipo-title"></div>
-          <div class="rep-sub" id="rep-tipo-sub"></div>
+          <div style="font-size:14px;font-weight:800;color:var(--navy)" id="rep-tipo-title"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px" id="rep-tipo-sub"></div>
         </div>
       </div>
       <div>
         <label class="form-label">Nota / Motivo</label>
         <textarea id="rep-nota" placeholder="Describe brevemente el motivo…" rows="4"></textarea>
       </div>
-      <!-- FOTO UPLOAD -->
+      <!-- FOTO -->
       <div>
         <input type="file" id="foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
         <div id="foto-preview" style="display:none;margin-bottom:8px;position:relative;border-radius:var(--r);overflow:hidden">
           <img id="foto-img" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--r)">
           <button onclick="clearFoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;line-height:1">×</button>
         </div>
-        <button id="foto-btn" onclick="document.getElementById('foto-input').click()" style="width:100%;background:#F1F5F9;border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;font-family:var(--ff)">
+        <button id="foto-btn" onclick="document.getElementById('foto-input').click()" style="width:100%;background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;font-family:var(--ff)">
           📷 Adjuntar foto / evidencia (opcional)
         </button>
       </div>
@@ -368,7 +391,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
     </div>
     <div id="rep-step-c" style="display:none;flex-direction:column;gap:10px">
       <div class="confirm-box">
-        <div class="confirm-hdr"><div class="confirm-hdr-ico">✅</div><div class="confirm-hdr-lbl">Reporte enviado</div></div>
+        <div class="confirm-hdr ok-bg"><div class="confirm-hdr-ico">✅</div><div class="confirm-hdr-lbl">Reporte enviado</div></div>
         <div id="rep-confirm-rows"></div>
       </div>
       <button class="wa-btn" id="rep-wa-btn"><span style="font-size:18px">💬</span> Abrir WhatsApp</button>
@@ -376,11 +399,11 @@ textarea:focus{outline:none;border-color:var(--navy)}
     </div>
   </div>
 
-  <!-- TAB: USAR TXT -->
+  <!-- TAB 3: USAR TXT -->
   <div class="tab-panel" id="tab-txt">
     <div id="txt-balance-wrap"></div>
     <div id="txt-step-a" style="display:none">
-      <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div class="card" style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:14px">
         <div style="font-size:14px;font-weight:800;color:var(--navy)">📋 Nueva solicitud de TXT</div>
         <div>
           <label class="form-label">Fecha que deseas tomar</label>
@@ -405,11 +428,11 @@ textarea:focus{outline:none;border-color:var(--navy)}
     </div>
     <div id="txt-step-b" style="display:none;flex-direction:column;gap:10px">
       <div class="confirm-box">
-        <div class="confirm-hdr"><div class="confirm-hdr-ico">📬</div><div class="confirm-hdr-lbl">Solicitud enviada a RH</div></div>
+        <div class="confirm-hdr" style="background:var(--navy)"><div class="confirm-hdr-ico">📬</div><div class="confirm-hdr-lbl">Solicitud enviada a RH</div></div>
         <div id="txt-confirm-rows"></div>
       </div>
-      <div style="background:var(--info-bg,#eff6ff);border:1px solid #bfdbfe;border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--info)">
-        ℹ️ RH revisará tu solicitud y recibirás confirmación.
+      <div style="background:var(--info-bg);border:1px solid #bfdbfe;border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--info)">
+        ℹ️ RH revisará tu solicitud y te confirmará por WhatsApp.
       </div>
       <button class="wa-btn" id="txt-wa-btn"><span style="font-size:18px">💬</span> Avisar a RH por WhatsApp</button>
       <button class="btn-primary" onclick="mostrarPermiso()" style="background:#1e3a6e">📄 Ver / Imprimir Permiso de Salida</button>
@@ -433,12 +456,12 @@ textarea:focus{outline:none;border-color:var(--navy)}
 <div class="toast" id="toast"></div>
 
 <script>
-/* CONFIG */
-const GAS_INC  = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
-const GAS_BIO  = 'https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec';
-const TOKEN    = 'RH_DINALOG';
-const PAOLA_WA = '50762767366';
-const PCACHE   = 'mt_v4';
+/* ═══ CONFIG ════════════════════════════════════════ */
+const GAS_INC = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+const GAS_BIO = 'https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec';
+const TOKEN   = 'RH_DINALOG';
+const PAOLA_WA= '50762767366';
+const PCACHE  = 'mt_v5';
 const PCACHE_TTL = 8*3600*1000;
 
 const TIPOS = [
@@ -450,224 +473,217 @@ const TIPOS = [
   {id:'otro',        lbl:'Otra novedad',             desc:'Cualquier otra situación que reportar',      em:'💬', est:'Novedad'},
 ];
 
-/* STATE */
-let S = {user:null, data:null, showAllDays:false, selTipo:null, txtHoras:'8'};
+/* ═══ STATE ══════════════════════════════════════════ */
+let S = {user:null, saldo:null, selTipo:null, txtHoras:'8'};
 
-/* UTILS */
+/* ═══ UTILS ══════════════════════════════════════════ */
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function toast(msg,ms=2800){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),ms);}
-function goPin(){S={user:null,data:null,showAllDays:false,selTipo:null,txtHoras:'8'};pin='';renderDisplay();setSpinner(false);document.getElementById('pin-err').textContent='';go('scr-pin');}
-function hhmm2m(hhmm){const[h,m]=(hhmm||'00:00').split(':').map(Number);return(h||0)*60+(m||0);}
+function goPin(){S={user:null,saldo:null,selTipo:null,txtHoras:'8'};pin='';renderDisplay();setSpinner(false);document.getElementById('pin-err').textContent='';go('scr-pin');}
+function hhmm2m(h){const[hh,mm]=(h||'00:00').split(':').map(Number);return(hh||0)*60+(mm||0);}
 function todayISO(){return new Date().toISOString().slice(0,10);}
 function openWA(msg){const enc=encodeURIComponent(msg);const a=document.createElement('a');a.href='whatsapp://send?phone='+PAOLA_WA+'&text='+enc;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>{if(!document.hidden)window.open('https://wa.me/'+PAOLA_WA+'?text='+enc,'_blank');},2000);}
 
-/* CYCLE */
-function buildCycleList(){
-  const sel=document.getElementById('cycle-sel');
-  sel.innerHTML='';
-  // ── Opción 1: Acumulado total (default) ──
-  const today=new Date();
-  const todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  // From: 6 cycles back (6 months) to cover full history without timeout
-  const fromD=new Date(today.getFullYear(),today.getMonth()-5,16);
-  const fromStr=fromD.getFullYear()+'-'+String(fromD.getMonth()+1).padStart(2,'0')+'-'+String(fromD.getDate()).padStart(2,'0');
-  const allOpt=document.createElement('option');
-  allOpt.value=JSON.stringify({from:fromStr,to:todayStr,all:true});
-  allOpt.textContent='📊 Acumulado total (últimos 6 ciclos)';
-  allOpt.selected=true;
-  sel.appendChild(allOpt);
-  // ── Opciones por ciclo individual ──
-  for(let i=0;i<14;i++){
-    const d=new Date(today.getFullYear(),today.getMonth()-i,1);
-    let s,e;
-    if(today.getDate()>=16&&i===0){s=new Date(d.getFullYear(),d.getMonth(),16);e=new Date(d.getFullYear(),d.getMonth()+1,15);}
-    else{s=new Date(d.getFullYear(),d.getMonth()-1,16);e=new Date(d.getFullYear(),d.getMonth(),15);}
-    const fmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
-    const lbl=x=>x.toLocaleDateString('es-PA',{day:'numeric',month:'short',year:'2-digit'});
-    const opt=document.createElement('option');
-    opt.value=JSON.stringify({from:fmt(s),to:fmt(e),all:false});
-    opt.textContent=lbl(s)+' – '+lbl(e);
-    sel.appendChild(opt);
-  }
-}
-function getCycleFromSel(){try{return JSON.parse(document.getElementById('cycle-sel').value);}catch{return null;}}
-function onCycleChange(){loadBio();}
-function updateCycleProgress(from,to,isAll){
-  if(isAll){
-    document.getElementById('cycle-prog').style.width='100%';
-    document.getElementById('cycle-days-txt').textContent='Todos los ciclos desde Dic 2025';
-    return;
-  }
-  const today=new Date();const s=new Date(from+'T12:00:00');const e=new Date(to+'T12:00:00');
-  const elapsed=Math.max(0,Math.floor((today-s)/86400000));
-  const total=Math.floor((e-s)/86400000)+1;
-  document.getElementById('cycle-prog').style.width=Math.min(100,Math.round(elapsed/total*100))+'%';
-  document.getElementById('cycle-days-txt').textContent='Día '+Math.min(elapsed,total)+' / '+total;
-}
-
-/* PIN — variable length, confirm button */
+/* ═══ PIN ════════════════════════════════════════════ */
 let pin='';
-function renderDisplay(){
-  const el=document.getElementById('pin-display');
-  if(!pin){el.textContent='—';el.classList.remove('filled','err');}
-  else{el.textContent='•'.repeat(pin.length);el.classList.add('filled');el.classList.remove('err');}
-}
+function renderDisplay(){const el=document.getElementById('pin-display');if(!pin){el.textContent='—';el.classList.remove('filled','err');}else{el.textContent='•'.repeat(pin.length);el.classList.add('filled');el.classList.remove('err');}}
 function setSpinner(v){document.getElementById('pin-spinner').classList.toggle('show',v);document.querySelectorAll('.pk').forEach(k=>k.style.pointerEvents=v?'none':'');}
-function pinErr(m){
-  document.getElementById('pin-err').textContent=m;
-  const el=document.getElementById('pin-display');
-  el.classList.add('err');setTimeout(()=>el.classList.remove('err'),400);
-  pin='';renderDisplay();setSpinner(false);
-}
+function pinErr(m){document.getElementById('pin-err').textContent=m;const el=document.getElementById('pin-display');el.classList.add('err');setTimeout(()=>el.classList.remove('err'),400);pin='';renderDisplay();setSpinner(false);}
 function pinCacheGet(p){try{const c=JSON.parse(sessionStorage.getItem(PCACHE)||'null');if(!c||c.pin!==p||Date.now()-c.ts>PCACHE_TTL)return null;return c;}catch{return null;}}
 function pinCacheSet(p,d){try{sessionStorage.setItem(PCACHE,JSON.stringify({...d,pin:p,ts:Date.now()}));}catch{}}
 
 document.querySelectorAll('.pk[data-v]').forEach(k=>{
-  k.addEventListener('click',()=>{
-    if(pin.length>=8)return; /* max 8 digits */
-    pin+=k.dataset.v;renderDisplay();
-    document.getElementById('pin-err').textContent='';
-  });
+  k.addEventListener('click',()=>{if(pin.length>=8)return;pin+=k.dataset.v;renderDisplay();document.getElementById('pin-err').textContent='';});
 });
-document.getElementById('pk-del').addEventListener('click',()=>{
-  if(pin.length)pin=pin.slice(0,-1);renderDisplay();
-  document.getElementById('pin-err').textContent='';
-});
+document.getElementById('pk-del').addEventListener('click',()=>{if(pin.length)pin=pin.slice(0,-1);renderDisplay();document.getElementById('pin-err').textContent='';});
 document.getElementById('pk-ok').addEventListener('click',async()=>{
   if(!pin||pin.length<4){pinErr('Mínimo 4 dígitos.');return;}
-  setSpinner(true);
-  await new Promise(r=>setTimeout(r,80));
+  setSpinner(true);await new Promise(r=>setTimeout(r,80));
   const p=pin;pin='';renderDisplay();
   const cached=pinCacheGet(p);
-  if(cached){setSpinner(false);S.user=cached;initApp();}
-  else if(!navigator.onLine){setSpinner(false);pinErr('Sin conexión.');}
-  else{
-    try{
-      const res=await fetch(GAS_INC+'?file=validate_pin&pin='+encodeURIComponent(p)+'&_='+Date.now());
-      const d=await res.json();setSpinner(false);
-      if(d.result==='error'){pinErr(d.msg||'PIN incorrecto. Intenta de nuevo.');return;}
-      pinCacheSet(p,d);S.user={...d,pin:p};initApp();
-    }catch{setSpinner(false);pinErr('Error de conexión.');}
-  }
+  if(cached){setSpinner(false);S.user=cached;initApp();return;}
+  if(!navigator.onLine){setSpinner(false);pinErr('Sin conexión.');return;}
+  try{
+    const res=await fetch(GAS_INC+'?file=validate_pin&pin='+encodeURIComponent(p)+'&_='+Date.now());
+    const d=await res.json();setSpinner(false);
+    if(d.result==='error'){pinErr(d.msg||'PIN incorrecto.');return;}
+    pinCacheSet(p,d);S.user={...d,pin:p};initApp();
+  }catch{setSpinner(false);pinErr('Error de conexión.');}
 });
 
-/* APP INIT */
+/* ═══ APP INIT ═══════════════════════════════════════ */
 function initApp(){
   document.getElementById('dh-nombre').textContent=S.user?.nombre||'—';
   document.getElementById('dh-role').textContent=S.user?.cargo||'Colaborador CEDIS';
-  buildCycleList();
   buildTipoList();
   go('scr-app');
   switchTab('tiempos');
-  loadBio();
+  loadSaldo();
 }
 
-/* TAB SWITCHING */
+/* ═══ TAB SWITCHING ═══════════════════════════════════ */
 function switchTab(tab){
   ['tiempos','reportar','txt'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById('nav-'+t).classList.toggle('active',t===tab);
   });
-  document.getElementById('cycle-bar-wrap').style.display=tab==='tiempos'?'block':'none';
 }
 
-/* TAB 1: BIOMETRICO */
-async function loadBio(){
-  const cycle=getCycleFromSel();if(!cycle)return;
-  updateCycleProgress(cycle.from,cycle.to,cycle.all);
+/* ═══════════════════════════════════════════════════
+   TAB 1: SALDO ACUMULADO
+   Llamada rápida action=saldo — solo devuelve resumen_ciclo
+   Sin timeout porque no incluye datos diarios
+═══════════════════════════════════════════════════ */
+async function loadSaldo(){
   go('scr-loading');
-  document.getElementById('load-msg').textContent='Cargando ciclo…';
+  document.getElementById('load-msg').textContent='Calculando tu saldo acumulado…';
   const emp=encodeURIComponent(S.user?.nombre||'');
   try{
-    const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+cycle.from+'&to='+cycle.to+'&_='+Date.now());
+    const res=await fetch(GAS_BIO+'?action=saldo&token='+TOKEN+'&employee='+emp+'&_='+Date.now());
     const d=await res.json();
-    if(!d.ok){document.getElementById('err-msg').textContent=d.error||'Sin datos para este ciclo.';go('scr-error');return;}
-    S.data=d;renderBio(d,cycle);go('scr-app');switchTab('tiempos');
-  }catch(err){
-    // If all-time query fails, fall back to current cycle only
-    const c=getCycleFromSel();
-    if(c&&c.all){
-      document.getElementById('load-msg').textContent='Reintentando con ciclo actual…';
-      try{
-        const today2=new Date();
-        const day=today2.getDate();
-        let s2,e2;
-        if(day>=16){s2=new Date(today2.getFullYear(),today2.getMonth(),16);e2=new Date(today2.getFullYear(),today2.getMonth()+1,15);}
-        else{s2=new Date(today2.getFullYear(),today2.getMonth()-1,16);e2=new Date(today2.getFullYear(),today2.getMonth(),15);}
-        const fmt2=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-        const r2=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+encodeURIComponent(S.user?.nombre||'')+'&from='+fmt2(s2)+'&to='+fmt2(e2)+'&_='+Date.now());
-        const d2=await r2.json();
-        if(d2.ok){S.data=d2;renderBio(d2,{from:fmt2(s2),to:fmt2(e2),all:false});go('scr-app');switchTab('tiempos');return;}
-      }catch{}
+    if(!d.ok){
+      // Fallback: if saldo endpoint not deployed yet, use query for current cycle
+      await loadSaldoFallback();
+      return;
     }
-    document.getElementById('err-msg').textContent='No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.';go('scr-error');
+    S.saldo=d;
+    renderSaldo(d);
+    go('scr-app');
+    switchTab('tiempos');
+  }catch{
+    await loadSaldoFallback();
   }
-}
-function renderBio(d,cycle){
-  const t=d.totals||{};const ct=d.resumen_ciclo_totales||{};
-  document.getElementById('kpi-calc').textContent=t.he_calc_hhmm||'00:00';
-  document.getElementById('kpi-paid').textContent=t.he_paid_capped_hhmm||'00:00';
-  document.getElementById('kpi-txt').textContent=t.txt_total_hhmm||'00:00';
-  const heUSD=+(t.he_amount_paid_capped||0);const benUSD=+(t.total_beneficios||0);
-  document.getElementById('kpi-total').textContent='USD '+(heUSD+benUSD).toFixed(2);
-  document.getElementById('kpi-he-usd').textContent='HE: USD '+heUSD.toFixed(2);
-  document.getElementById('kpi-ben-usd').textContent='Ben: USD '+benUSD.toFixed(2);
-  document.getElementById('kpi-alim').textContent='USD '+(ct.total_alim_total||t.total_alim||0).toFixed(2);
-  document.getElementById('kpi-transp').textContent='USD '+(ct.total_transp_total||t.total_transp||0).toFixed(2);
-  const paidMin=hhmm2m(t.he_paid_capped_hhmm||'00:00');
-  const capPct=Math.min(105,Math.round(paidMin/(40*60)*100));
-  const fill=document.getElementById('cap-fill');
-  fill.style.width=capPct+'%';fill.className='cap-fill'+(capPct>=100?' over':capPct>=80?' near':'');
-  document.getElementById('cap-leg').textContent='HE pagadas: '+(t.he_paid_capped_hhmm||'00:00');
-  const txtMin=hhmm2m(t.txt_total_hhmm||'00:00');
-  const badge=document.getElementById('badge-cap');
-  if(txtMin>0){badge.className='kpi-badge warn';badge.textContent='⏱ '+t.txt_total_hhmm+' pasan a TXT';}
-  else{badge.className='kpi-badge ok';badge.textContent='✓ Dentro del cap';}
-  const isAll=cycle&&cycle.all;
-  // Update KPI labels for all-time vs single cycle
-  document.getElementById('kpi-calc').parentElement.querySelector('.kpi-sub').textContent=isAll?'acumulado histórico':'horas extras brutas';
-  document.getElementById('kpi-paid').parentElement.querySelector('.kpi-sub').textContent=isAll?'total cobrado histórico':'cap 40h / ciclo';
-  renderDays(d.he_daily||[]);
-  renderCycleSummary(d.resumen_ciclo||[], isAll);
-  renderTXTBalance(t.txt_total_hhmm||'00:00',txtMin);
 }
 
-function renderCycleSummary(rows, isAll){
-  let el=document.getElementById('cycle-summary-section');
-  if(!isAll||!rows.length){if(el)el.style.display='none';return;}
-  if(!el){
-    // Insert before day-list section
-    const parent=document.getElementById('tab-tiempos');
-    el=document.createElement('div');el.id='cycle-summary-section';
-    // Insert before the last section (day list)
-    const daySection=parent.querySelector('.sec-hdr');
-    parent.insertBefore(el,daySection);
+async function loadSaldoFallback(){
+  // action=saldo no desplegado aún — usar action=query con ciclo actual
+  const today=new Date();
+  const day=today.getDate();
+  let s,e;
+  if(day>=16){s=new Date(today.getFullYear(),today.getMonth(),16);e=new Date(today.getFullYear(),today.getMonth()+1,15);}
+  else{s=new Date(today.getFullYear(),today.getMonth()-1,16);e=new Date(today.getFullYear(),today.getMonth(),15);}
+  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const from=fmt(s);const to=fmt(today<e?today:e);
+  const emp=encodeURIComponent(S.user?.nombre||'');
+  try{
+    const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+from+'&to='+to+'&_='+Date.now());
+    const d=await res.json();
+    if(!d.ok){document.getElementById('err-msg').textContent=d.error||'Sin datos disponibles.';go('scr-error');return;}
+    // Adapt query response to saldo format
+    const t=d.totals||{};
+    const fakeSaldo={
+      ok:true,
+      employee:S.user?.nombre||'',
+      saldo_txt_hhmm:t.txt_total_hhmm||'00:00',
+      total_he_calc_hhmm:t.he_calc_hhmm||'00:00',
+      total_he_paid_hhmm:t.he_paid_capped_hhmm||'00:00',
+      total_he_usd:+(t.he_amount_paid_capped||0),
+      total_beneficios_usd:+(t.total_beneficios||0),
+      total_usd:+(t.he_amount_paid_capped||0)+(+(t.total_beneficios||0)),
+      num_ciclos:1,
+      resumen_ciclo:d.resumen_ciclo||[],
+      _fallback:true,
+      _cycle:{from,to},
+      _he_daily:d.he_daily||[]
+    };
+    S.saldo=fakeSaldo;
+    renderSaldo(fakeSaldo);
+    go('scr-app');switchTab('tiempos');
+  }catch{
+    document.getElementById('err-msg').textContent='No se pudo conectar con el servidor.';go('scr-error');
   }
-  el.style.display='block';
-  const hhmm2m=h=>{const[hh,mm]=(h||'00:00').split(':').map(Number);return hh*60+mm;};
-  let html='<div style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:var(--navy);margin-bottom:8px">📋 Historial por ciclo</div>';
-  html+='<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:11px">';
-  html+='<thead><tr style="background:var(--navy)"><th style="padding:7px 10px;text-align:left;color:#94a3b8;font-size:9.5px;font-weight:700;text-transform:uppercase">Ciclo</th><th style="padding:7px 6px;text-align:right;color:#94a3b8;font-size:9.5px;font-weight:700">HE Calc</th><th style="padding:7px 6px;text-align:right;color:#94a3b8;font-size:9.5px;font-weight:700">HE Pag</th><th style="padding:7px 6px;text-align:right;color:#fcd34d;font-size:9.5px;font-weight:700">TXT</th><th style="padding:7px 8px;text-align:right;color:#6ee7b7;font-size:9.5px;font-weight:700">Total $</th></tr></thead><tbody>';
-  let gtxt=0,gtotal=0;
-  rows.forEach((r,i)=>{
-    const tot=(+(r.he_amount_paid_capped||0))+(+(r.beneficios_total||0));
-    const txth=hhmm2m(r.txt_total_hhmm||'00:00');
-    gtxt+=txth;gtotal+=tot;
-    const bg=i%2===0?'#fff':'#f8fafc';
-    html+='<tr style="border-bottom:1px solid var(--border);background:'+bg+'"><td style="padding:7px 10px;font-size:10px;font-weight:600;color:var(--navy)">'+(r.cycle||'—')+'</td><td style="padding:7px 6px;text-align:right;font-family:var(--mono);font-size:10.5px">'+(r.he_calc_total_hhmm||'00:00')+'</td><td style="padding:7px 6px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--ok)">'+(r.he_paid_capped_hhmm||'00:00')+'</td><td style="padding:7px 6px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--gold);font-weight:700">'+(r.txt_total_hhmm||'00:00')+'</td><td style="padding:7px 8px;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--ok);font-weight:700">$'+tot.toFixed(2)+'</td></tr>';
-  });
-  const gtxtH=Math.floor(gtxt/60);const gtxtM=gtxt%60;
-  html+='<tr style="background:#f1f5f9;border-top:2px solid var(--border)"><td style="padding:8px 10px;font-weight:800;font-size:10px;color:var(--navy)">TOTAL ACUMULADO</td><td colspan="2"></td><td style="padding:8px 6px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--gold)">'+String(gtxtH).padStart(2,'0')+':'+String(gtxtM).padStart(2,'0')+'</td><td style="padding:8px 8px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--ok)">$'+gtotal.toFixed(2)+'</td></tr>';
-  html+='</tbody></table></div></div>';
-  el.innerHTML=html;
 }
-function renderDays(days){
-  const list=document.getElementById('day-list');
-  const shown=S.showAllDays?days:days.slice(-10);
-  document.getElementById('btn-ver-mas').textContent=S.showAllDays?'Mostrar menos ↑':'Ver todos ('+days.length+') →';
+
+function renderSaldo(d){
+  const isFallback=d._fallback;
+  // Hero TXT
+  document.getElementById('saldo-txt').textContent=d.saldo_txt_hhmm||'00:00';
+  document.getElementById('saldo-he-calc').textContent=d.total_he_calc_hhmm||'00:00';
+  document.getElementById('saldo-total-usd').textContent='$'+(d.total_usd||0).toFixed(2);
+  document.getElementById('saldo-ciclos-note').textContent=isFallback
+    ?'⚠ Mostrando solo ciclo actual (instala endpoint saldo para historial completo)'
+    :'Desde '+d.fecha_primer_evento+' · '+d.num_ciclos+' ciclo'+(d.num_ciclos===1?'':'s');
+
+  // Cycle total row
+  document.getElementById('total-txt-all').textContent=d.saldo_txt_hhmm||'00:00';
+  document.getElementById('total-usd-all').textContent='$'+(d.total_usd||0).toFixed(2);
+
+  // Cycle table
+  renderCicloList(d.resumen_ciclo||[]);
+
+  // Update TXT tab balance
+  renderTXTTab(d.saldo_txt_hhmm||'00:00',hhmm2m(d.saldo_txt_hhmm||'00:00'));
+
+  // If fallback and has daily data — pre-populate detail view
+  if(isFallback&&d._he_daily?.length){
+    S._cachedDetail={key:d._cycle?.from+'|'+d._cycle?.to, days:d._he_daily};
+  }
+}
+
+function renderCicloList(rows){
+  const el=document.getElementById('ciclo-list');
+  if(!rows.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-ico">📊</div><div class="empty-msg">Sin historial de ciclos</div></div>';
+    return;
+  }
+  el.innerHTML=rows.map(r=>{
+    const txtMin=hhmm2m(r.txt_total_hhmm||'00:00');
+    const dotColor=txtMin>0?'var(--gold)':hhmm2m(r.he_paid_capped_hhmm||'00:00')>0?'var(--ok)':'#CBD5E1';
+    const tot=(+(r.he_amount_paid_capped||0))+(+(r.beneficios_total||0));
+    return '<div class="cycle-row" onclick="loadCycleDetail(\''+r.cycle_from+'\',\''+r.cycle_to+'\','+JSON.stringify(r).replace(/"/g,"'")+')">'
+      +'<div class="cycle-dot" style="background:'+dotColor+'"></div>'
+      +'<div class="cycle-name">'+(r.cycle||'—')+'</div>'
+      +'<div class="cycle-txt">'+(txtMin>0?r.txt_total_hhmm:'—')+'</div>'
+      +'<div class="cycle-usd">$'+tot.toFixed(2)+'</div>'
+      +'<div class="cycle-chev">›</div>'
+      +'</div>';
+  }).join('');
+}
+
+/* ═══ CYCLE DETAIL ═══════════════════════════════════ */
+async function loadCycleDetail(from, to, cycleData){
+  // Show detail view
+  document.getElementById('view-summary').style.display='none';
+  document.getElementById('view-detail').style.display='flex';
+  document.getElementById('detail-cycle-name').textContent=cycleData.cycle||'';
+
+  // Fill cycle KPIs from summary data (instant)
+  document.getElementById('dcyc-he-calc').textContent=cycleData.he_calc_total_hhmm||'00:00';
+  document.getElementById('dcyc-he-paid').textContent=cycleData.he_paid_capped_hhmm||'00:00';
+  document.getElementById('dcyc-txt').textContent=cycleData.txt_total_hhmm||'00:00';
+
+  // Check cache
+  const cacheKey=from+'|'+to;
+  if(S._cachedDetail?.key===cacheKey){
+    renderDetailDays(S._cachedDetail.days);
+    return;
+  }
+
+  // Load per-day detail
+  document.getElementById('detail-loading').style.display='flex';
+  document.getElementById('detail-day-list').style.display='none';
+  const emp=encodeURIComponent(S.user?.nombre||'');
+  try{
+    const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+from+'&to='+to+'&_='+Date.now());
+    const d=await res.json();
+    if(d.ok){
+      S._cachedDetail={key:cacheKey, days:d.he_daily||[]};
+      renderDetailDays(d.he_daily||[]);
+    }else{
+      document.getElementById('detail-loading').innerHTML='<div class="inline-txt">No hay datos para este ciclo.</div>';
+    }
+  }catch{
+    document.getElementById('detail-loading').innerHTML='<div class="inline-txt">Error cargando los días. Toca para reintentar.</div>';
+  }
+}
+
+function renderDetailDays(days){
+  document.getElementById('detail-loading').style.display='none';
+  const list=document.getElementById('detail-day-list');
+  list.style.display='flex';
   list.innerHTML='';
-  if(!shown.length){list.innerHTML='<div class="empty-state"><div class="empty-ico">📅</div><div class="empty-msg">Sin registros en este período</div></div>';return;}
-  Array.from(shown).reverse().forEach(r=>{
+  if(!days.length){list.innerHTML='<div class="empty-state"><div class="empty-ico">📅</div><div class="empty-msg">Sin registros en este ciclo</div></div>';return;}
+  Array.from(days).reverse().forEach(r=>{
     const rest=r.day_type==='FIN_DE_SEMANA'||r.day_type==='FERIADO';
     const ok=r.audit_flag==='OK';
     const dotC=rest?'rest':ok?'ok':'bad';
@@ -678,34 +694,40 @@ function renderDays(days){
     list.innerHTML+='<div class="day-row"><div class="day-dot '+dotC+'"></div><div class="day-date">'+(r.weekday||'')+' '+dl+'</div><div class="day-span">'+(r.first_in||'—')+' → '+(r.last_out||'—')+'</div><div class="day-he">'+he+'</div><div class="day-flag '+flagC+'">'+flagT+'</div></div>';
   });
 }
-function toggleAllDays(){S.showAllDays=!S.showAllDays;renderDays(S.data?.he_daily||[]);}
 
-/* TAB 2: REPORTAR */
+function showSummary(){
+  document.getElementById('view-detail').style.display='none';
+  document.getElementById('view-summary').style.display='block';
+}
+
+/* ═══ TAB 2: REPORTAR ═══════════════════════════════ */
 function buildTipoList(){
-  const list=document.getElementById('tipo-list');
-  list.innerHTML=TIPOS.map(t=>'<div class="tipo-item" onclick="selectTipo(\''+t.id+'\')"><div class="tipo-ico">'+t.em+'</div><div><div class="tipo-lbl">'+t.lbl+'</div><div class="tipo-desc">'+t.desc+'</div></div><div class="tipo-chev">›</div></div>').join('');
+  document.getElementById('tipo-list').innerHTML=TIPOS.map(t=>'<div class="tipo-item" onclick="selectTipo(\''+t.id+'\')"><div class="tipo-ico">'+t.em+'</div><div><div class="tipo-lbl">'+t.lbl+'</div><div class="tipo-desc">'+t.desc+'</div></div><div class="tipo-chev">›</div></div>').join('');
 }
 function selectTipo(id){
   S.selTipo=TIPOS.find(t=>t.id===id);
   document.getElementById('rep-tipo-title').textContent=S.selTipo.em+' '+S.selTipo.lbl;
   document.getElementById('rep-tipo-sub').textContent=S.selTipo.desc;
-  document.getElementById('rep-nota').value='';
+  document.getElementById('rep-nota').value='';clearFoto();
   document.getElementById('rep-step-a').style.display='none';
   document.getElementById('rep-step-b').classList.add('show');
   document.getElementById('rep-step-c').style.display='none';
 }
 function repBack(){document.getElementById('rep-step-a').style.display='block';document.getElementById('rep-step-b').classList.remove('show');}
 function repReset(){document.getElementById('rep-step-a').style.display='block';document.getElementById('rep-step-b').classList.remove('show');document.getElementById('rep-step-c').style.display='none';S.selTipo=null;}
+function previewFoto(input){if(!input.files[0])return;const r=new FileReader();r.onload=e=>{document.getElementById('foto-img').src=e.target.result;document.getElementById('foto-preview').style.display='block';document.getElementById('foto-btn').textContent='📷 Cambiar foto';};r.readAsDataURL(input.files[0]);}
+function clearFoto(){document.getElementById('foto-input').value='';document.getElementById('foto-preview').style.display='none';document.getElementById('foto-btn').textContent='📷 Adjuntar foto / evidencia (opcional)';}
+async function getFotoBase64(){const input=document.getElementById('foto-input');if(!input||!input.files[0])return null;return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(input.files[0]);});}
 async function submitIncidencia(){
   const nota=document.getElementById('rep-nota').value.trim();
   if(!nota){toast('⚠️ Escribe una nota con el motivo.');return;}
   const btn=document.getElementById('rep-submit-btn');btn.disabled=true;btn.textContent='Enviando…';
   const t=S.selTipo;const nombre=S.user?.nombre||'DESCONOCIDO';
-  let ok=false;
   const fotoData=await getFotoBase64();
   const payload={action:'reportIncidencia',pin:S.user?.pin,nombre,tipo:t.id,estado:t.est,nota,fecha:todayISO()};
   if(fotoData)payload.fotoData=fotoData;
-  try{const res=await fetch(GAS_INC,{method:'POST',body:JSON.stringify(payload)});const d=await res.json();ok=d.ok!==false;}catch{ok=false;}
+  let ok=false;
+  try{const res=await fetch(GAS_INC,{method:'POST',body:JSON.stringify(payload)});const d=await res.json();ok=d.result==='success'||d.ok!==false;}catch{ok=false;}
   btn.disabled=false;btn.textContent='📤 Enviar reporte';
   if(!ok){toast('⚠️ Error al enviar. Reintenta.');return;}
   document.getElementById('rep-step-b').classList.remove('show');
@@ -716,22 +738,21 @@ async function submitIncidencia(){
   setTimeout(()=>openWA(msg),800);
 }
 
-/* TAB 3: TXT */
-function renderTXTBalance(hhmm,min){
+/* ═══ TAB 3: USAR TXT ════════════════════════════════ */
+function renderTXTTab(hhmm,min){
   const wrap=document.getElementById('txt-balance-wrap');
   const stepA=document.getElementById('txt-step-a');
-  if(min<=0){wrap.innerHTML='<div class="txt-no-bal">✅ No tienes horas en el bolsón TXT este ciclo.</div><div class="empty-state"><div class="empty-ico">⏱</div><div class="empty-msg">Sin saldo TXT</div><div class="empty-sub">Las horas que excedan el cap de 40h por ciclo se acumulan aquí.</div></div>';stepA.style.display='none';return;}
-  wrap.innerHTML='<div class="txt-balance"><div class="txt-bal-lbl">Saldo TXT disponible</div><div class="txt-bal-val">'+hhmm+'</div><div class="txt-bal-sub">Úsalas para ausentarte con goce de sueldo</div></div>';
+  if(min<=0){
+    wrap.innerHTML='<div class="txt-no-bal">✅ No tienes horas en el bolsón TXT disponibles actualmente.</div><div class="empty-state"><div class="empty-ico">⏱</div><div class="empty-msg">Sin saldo TXT</div><div class="empty-sub">Las horas que superen el cap de 40h por ciclo se acumulan aquí.</div></div>';
+    stepA.style.display='none';return;
+  }
+  wrap.innerHTML='<div class="txt-balance-card"><div class="txt-bal-lbl">Saldo TXT disponible</div><div class="txt-bal-val">'+hhmm+'</div><div class="txt-bal-sub">Úsalas para ausentarte con goce de sueldo</div></div>';
   stepA.style.display='block';
   const tom=new Date();tom.setDate(tom.getDate()+1);
   const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   document.getElementById('txt-fecha').value=fmt(tom);
 }
-function selHoras(el,val){
-  document.querySelectorAll('.h-btn').forEach(b=>b.classList.remove('selected'));
-  el.classList.add('selected');S.txtHoras=val;
-  document.getElementById('txt-horas-custom').style.display=val==='custom'?'block':'none';
-}
+function selHoras(el,val){document.querySelectorAll('.h-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');S.txtHoras=val;document.getElementById('txt-horas-custom').style.display=val==='custom'?'block':'none';}
 async function submitTXT(){
   const fecha=document.getElementById('txt-fecha').value;
   const horas=S.txtHoras==='custom'?document.getElementById('txt-horas-custom').value:S.txtHoras;
@@ -741,7 +762,8 @@ async function submitTXT(){
   const nombre=S.user?.nombre||'DESCONOCIDO';
   const notaCompleta='[SOLICITUD TXT] Fecha: '+fecha+' | Horas: '+horas+'h | Motivo: '+nota;
   try{await fetch(GAS_INC,{method:'POST',body:JSON.stringify({action:'reportIncidencia',pin:S.user?.pin,nombre,tipo:'txt',estado:'TXT',nota:notaCompleta,fecha:todayISO()})});}catch{}
-  document.getElementById('txt-confirm-rows').innerHTML='<div class="confirm-row"><span class="confirm-row-lbl">Colaborador</span><span class="confirm-row-val">'+nombre+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Fecha</span><span class="confirm-row-val">'+fecha+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Horas</span><span class="confirm-row-val">'+horas+'h</span></div><div class="confirm-row"><span class="confirm-row-lbl">Estado</span><span class="confirm-row-val">Pendiente aprobación</span></div>';
+  S._lastTxtRequest={nombre,fecha,horas,nota};
+  document.getElementById('txt-confirm-rows').innerHTML='<div class="confirm-row"><span class="confirm-row-lbl">Colaborador</span><span class="confirm-row-val">'+nombre+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Fecha solicitada</span><span class="confirm-row-val">'+fecha+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Horas</span><span class="confirm-row-val">'+horas+'h</span></div><div class="confirm-row"><span class="confirm-row-lbl">Estado</span><span class="confirm-row-val">Pendiente aprobación</span></div>';
   const msg='⏱ *SOLICITUD TXT — CEDIS*\n*Colaborador:* '+nombre+'\n*Fecha:* '+fecha+'\n*Horas:* '+horas+'h\n*Motivo:* '+nota;
   document.getElementById('txt-wa-btn').onclick=()=>openWA(msg);
   document.getElementById('txt-step-a').style.display='none';
@@ -750,102 +772,22 @@ async function submitTXT(){
 }
 function txtReset(){document.getElementById('txt-step-a').style.display='block';document.getElementById('txt-step-b').style.display='none';}
 
-/* ── PHOTO UPLOAD ───────────────────────────────────── */
-function previewFoto(input) {
-  if (!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('foto-img').src = e.target.result;
-    document.getElementById('foto-preview').style.display = 'block';
-    document.getElementById('foto-btn').textContent = '📷 Cambiar foto';
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-function clearFoto() {
-  document.getElementById('foto-input').value = '';
-  document.getElementById('foto-preview').style.display = 'none';
-  document.getElementById('foto-btn').textContent = '📷 Adjuntar foto / evidencia (opcional)';
-}
-async function getFotoBase64() {
-  const input = document.getElementById('foto-input');
-  if (!input || !input.files[0]) return null;
-  return new Promise(res => {
-    const r = new FileReader();
-    r.onload = e => res(e.target.result); // full data URI — GAS la decodifica
-    r.readAsDataURL(input.files[0]);
-  });
-}
-
-
-/* ── PERMISO DE SALIDA ─────────────────────────────── */
+/* ═══ PERMISO DE SALIDA ══════════════════════════════ */
 function mostrarPermiso(){
-  const nombre  = S.user?.nombre||'—';
-  const fecha   = document.getElementById('txt-fecha')?.value||todayISO();
-  const horas   = S.txtHoras==='custom'?document.getElementById('txt-horas-custom')?.value:'8'==='custom'?'8':S.txtHoras||'8';
-  const nota    = document.getElementById('txt-nota')?.value||'Tiempo compensatorio (TXT)';
-  const h       = parseFloat(horas)||8;
-  const fin     = String(7+Math.floor(h)).padStart(2,'0')+':'+String(Math.round((h%1)*60)).padStart(2,'0');
-  const fmtFecha= new Date(fecha+'T12:00:00').toLocaleDateString('es-PA',{day:'numeric',month:'long',year:'numeric'});
-  const reqNum  = 'REQ-'+todayISO().replace(/-/g,'')+'-'+String(Math.floor(Math.random()*9000)+1000);
-  const win=window.open('','_blank','width=700,height=620');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Solicitud de Tiempo Compensatorio</title>
-  <style>body{font-family:Arial,sans-serif;font-size:13px;margin:0;padding:24px;color:#000}
-  .hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:18px}
-  .inst{font-size:14px;font-weight:bold}.dept{font-size:12px}
-  .title{font-size:15px;font-weight:bold;text-transform:uppercase;margin-top:6px}
-  .req-num{float:right;background:#f0f0f0;border:1px solid #999;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:bold}
-  .form-body{border:1.5px solid #000;padding:20px;min-height:300px}
-  .field{margin-bottom:12px;font-size:13px}
-  .field span{border-bottom:1px solid #000;display:inline-block;min-width:200px;padding:0 4px}
-  .motivo{border:1px solid #555;padding:8px 12px;min-height:36px;margin:8px 0}
-  .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px}
-  .sign-box{text-align:center}
-  .sign-line{border-top:1px solid #000;margin-top:50px;padding-top:5px;font-size:11px;color:#333}
-  .note{font-size:10px;color:#777;margin-top:16px;text-align:center;border-top:1px solid #ccc;padding-top:8px}
-  .pending{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:14px}
-  @media print{.no-print{display:none}body{padding:12px}}
-  </style></head><body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div class="hdr" style="flex:1">
-      <div class="inst">CAJA DE SEGURO SOCIAL</div>
-      <div class="dept">DIRECCIÓN DE PERSONAL</div>
-      <div class="title">Solicitud de Tiempo Compensatorio (TXT)</div>
-    </div>
-    <div style="text-align:right;font-size:11px;color:#555;padding-left:16px">
-      <div>Cód. referencia interna</div>
-      <div class="req-num">${reqNum}</div>
-    </div>
-  </div>
-  <div class="pending">⏳ <b>Estado: PENDIENTE DE APROBACIÓN</b> — El número de permiso oficial será asignado por RH al aprobar.</div>
-  <div class="form-body">
-    <div class="field">Sr(a): <span>${nombre}</span></div>
-    <div class="field">Unidad: <span>CEDIS PANAMÁ — Torre de Control</span></div>
-    <br>
-    <div style="margin-bottom:10px">Por este medio solicito se me conceda permiso para ausentarme del lugar de trabajo,</div>
-    <div style="margin-bottom:10px">el día <b>${fmtFecha}</b>, a partir de las <b>07:30</b> hasta las <b>${fin}</b> (${horas} horas).</div>
-    <div>Motivo:</div>
-    <div class="motivo">${nota||'Uso de Tiempo Compensatorio (TXT) acumulado'}</div>
-    <div class="sign-row">
-      <div class="sign-box">
-        <div class="sign-line">Firma del Solicitante</div>
-        <div style="font-size:11px;margin-top:3px">${nombre}</div>
-      </div>
-      <div class="sign-box">
-        <div class="sign-line">V°B° — Jefe de la Unidad Ejecutora</div>
-        <div style="font-size:11px;margin-top:3px">Paola Moreno</div>
-      </div>
-    </div>
-  </div>
-  <div class="note">Solicitud generada desde Portal del Colaborador — CEDIS PANAMÁ · ${new Date().toLocaleString('es-PA')} · ${reqNum}</div>
-  <div class="no-print" style="margin-top:16px;text-align:center">
-    <button onclick="window.print()" style="background:#0B1F3A;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">🖨 Imprimir / Guardar PDF</button>
-    <button onclick="window.close()" style="margin-left:12px;background:#e5e7eb;color:#374151;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">Cerrar</button>
-  </div>
-  </body></html>`);
+  const r=S._lastTxtRequest||{};
+  const nombre=r.nombre||S.user?.nombre||'—';
+  const fecha=r.fecha||todayISO();
+  const horas=parseFloat(r.horas)||8;
+  const nota=r.nota||'Uso de Tiempo Compensatorio (TXT)';
+  const fin=String(7+Math.floor(horas)).padStart(2,'0')+':'+String(Math.round((horas%1)*60)).padStart(2,'0');
+  const fmtFecha=new Date(fecha+'T12:00:00').toLocaleDateString('es-PA',{day:'numeric',month:'long',year:'numeric'});
+  const reqNum='REQ-'+todayISO().replace(/-/g,'')+'-'+String(Math.floor(Math.random()*9000)+1000);
+  const win=window.open('','_blank','width=700,height=640');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Solicitud TXT - '+reqNum+'</title><style>body{font-family:Arial,sans-serif;font-size:13px;margin:0;padding:24px;color:#000}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:18px}.inst{font-size:14px;font-weight:bold}.dept{font-size:12px}.title{font-size:15px;font-weight:bold;text-transform:uppercase;margin-top:6px}.req-num{float:right;background:#f0f0f0;border:1px solid #999;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:bold}.form-body{border:1.5px solid #000;padding:20px;min-height:300px}.field{margin-bottom:12px;font-size:13px}.field span{border-bottom:1px solid #000;display:inline-block;min-width:200px;padding:0 4px}.motivo{border:1px solid #555;padding:8px 12px;min-height:36px;margin:8px 0}.sign-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px}.sign-box{text-align:center}.sign-line{border-top:1px solid #000;margin-top:50px;padding-top:5px;font-size:11px}.note{font-size:10px;color:#777;margin-top:16px;text-align:center;border-top:1px solid #ccc;padding-top:8px}.pending{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:14px}@media print{.no-print{display:none}body{padding:12px}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="hdr" style="flex:1"><div class="inst">CAJA DE SEGURO SOCIAL</div><div class="dept">DIRECCIÓN DE PERSONAL</div><div class="title">Solicitud de Tiempo Compensatorio (TXT)</div></div><div style="text-align:right;font-size:11px;color:#555;padding-left:16px"><div>Ref. interna</div><div class="req-num">'+reqNum+'</div></div></div><div class="pending">⏳ <b>PENDIENTE DE APROBACIÓN</b> — El N° de permiso oficial (PS-XXXX) será asignado por RH al aprobar.</div><div class="form-body"><div class="field">Sr(a): <span>'+nombre+'</span></div><div class="field">Unidad: <span>CEDIS PANAMÁ — Torre de Control</span></div><br><div style="margin-bottom:10px">Por este medio solicito se me conceda permiso para ausentarme del lugar de trabajo,</div><div style="margin-bottom:10px">el día <b>'+fmtFecha+'</b>, a partir de las <b>07:30</b> hasta las <b>'+fin+'</b> ('+horas+' horas).</div><div>Motivo:</div><div class="motivo">'+nota+'</div><div class="sign-row"><div class="sign-box"><div class="sign-line">Firma del Solicitante</div><div style="font-size:11px;margin-top:3px">'+nombre+'</div></div><div class="sign-box"><div class="sign-line">V°B° — Jefe de la Unidad Ejecutora</div><div style="font-size:11px;margin-top:3px">Paola Moreno</div></div></div></div><div class="note">Generado desde Portal del Colaborador CEDIS · '+new Date().toLocaleString('es-PA')+' · '+reqNum+'</div><div class="no-print" style="margin-top:16px;text-align:center"><button onclick="window.print()" style="background:#0B1F3A;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">🖨 Imprimir / Guardar PDF</button><button onclick="window.close()" style="margin-left:12px;background:#e5e7eb;color:#374151;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">Cerrar</button></div></body></html>');
   win.document.close();
 }
 
-/* INIT */
+/* ═══ INIT ═══════════════════════════════════════════ */
 window.addEventListener('load',()=>setTimeout(()=>go('scr-pin'),1500));
 </script>
 </body>
