@@ -602,7 +602,6 @@ function renderBio(d,cycle){
   const badge=document.getElementById('badge-cap');
   if(txtMin>0){badge.className='kpi-badge warn';badge.textContent='⏱ '+t.txt_total_hhmm+' pasan a TXT';}
   else{badge.className='kpi-badge ok';badge.textContent='✓ Dentro del cap';}
-  const cycle=getCycleFromSel();
   const isAll=cycle&&cycle.all;
   // Update KPI labels for all-time vs single cycle
   document.getElementById('kpi-calc').parentElement.querySelector('.kpi-sub').textContent=isAll?'acumulado histórico':'horas extras brutas';
