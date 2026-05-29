@@ -477,13 +477,15 @@ async function approveReq(i,raw){
   const r=JSON.parse(decodeURIComponent(raw));
   const nombre=r.Nombre||r.nombre||'—';
   const nota=String(r.Nota||r.nota||'');
+  const fechaInc=String(r.Fecha||r.fecha||'').slice(0,10);
   const fechaSol=nota.match(/Fecha: ([^\|]+)/)?.[1]?.trim()||'—';
   const horasSol=nota.match(/Horas: ([^\|]+)/)?.[1]?.trim()||'—';
   const motivoSol=nota.match(/Motivo: (.+)/)?.[1]?.trim()||'Tiempo compensatorio (TXT)';
   const seqNum=nextPermitNum();
   const adminName=A.user?.nombre||'Paola Moreno';
+  const horasN=parseFloat(horasSol)||0;
 
-  // Update UI with approve + print button
+  // 1. Actualizar UI inmediatamente
   document.getElementById(`req-${i}`).innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0">
       <span class="status-badge ok">✓ Aprobado · ${seqNum}</span>
@@ -491,7 +493,30 @@ async function approveReq(i,raw){
       <button class="btn-approve" style="margin-left:auto;font-size:11px;padding:5px 12px" onclick="printPermit('${encodeURIComponent(nombre)}','${fechaSol}','${horasSol}','${encodeURIComponent(motivoSol)}','${seqNum}','${encodeURIComponent(adminName)}')">🖨 Imprimir permiso</button>
     </div>`;
   toast(`✓ Solicitud de ${nombre} aprobada · ${seqNum}`);
-  // WhatsApp notification
+
+  // 2. Registrar en TXT_APROBADOS del biométrico (descuenta el saldo)
+  fetch(`${GAS_BIO}?action=registrarTXT&token=${TOKEN}`
+    +`&employee=${encodeURIComponent(nombre)}`
+    +`&fecha_uso=${encodeURIComponent(fechaSol)}`
+    +`&horas=${horasN}`
+    +`&seq_num=${encodeURIComponent(seqNum)}`
+    +`&aprobado_por=${encodeURIComponent(adminName)}`
+    +`&_=${Date.now()}`
+  ).then(r=>r.json()).then(d=>{
+    if(d.ok) toast(`✅ ${horasN}h descontadas del saldo TXT de ${nombre}`);
+    else toast(`⚠ Saldo no actualizado: ${d.error}`);
+  }).catch(()=>toast('⚠ No se pudo registrar el descuento en biométrico'));
+
+  // 3. Marcar como aprobado en ASISTENCIA_DIARIA (evita que reaparezca)
+  fetch(`${GAS_INC}?file=actualizar_estado`
+    +`&nombre=${encodeURIComponent(nombre)}`
+    +`&fecha=${encodeURIComponent(fechaInc)}`
+    +`&estado=aprobado`
+    +`&nota=${encodeURIComponent(nota.slice(0,100))}`
+    +`&_=${Date.now()}`
+  ).catch(()=>{});
+
+  // 4. WhatsApp al colaborador
   const msg=`✅ *SOLICITUD TXT APROBADA*\n*Colaborador:* ${nombre}\n*Fecha:* ${fechaSol}\n*Horas a usar:* ${horasSol}\n*N° Permiso:* ${seqNum}\n_Aprobado por ${adminName} — CEDIS PANAMÁ_\n_Presenta este mensaje o imprime el permiso._`;
   openWA_admin(msg);
 }
@@ -500,6 +525,7 @@ async function denyReq(i,raw){
   const r=JSON.parse(decodeURIComponent(raw));
   const nombre=r.Nombre||r.nombre||'—';
   const nota=String(r.Nota||r.nota||'');
+  const fechaInc=String(r.Fecha||r.fecha||'').slice(0,10);
   const fechaSol=nota.match(/Fecha: ([^\|]+)/)?.[1]?.trim()||'—';
   document.getElementById(`req-${i}`).innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
@@ -507,6 +533,14 @@ async function denyReq(i,raw){
       <span style="font-size:12px;font-weight:700;color:var(--navy)">${nombre} · ${fechaSol}</span>
     </div>`;
   toast(`Solicitud de ${nombre} rechazada`);
+  // Marcar como rechazado en ASISTENCIA_DIARIA
+  fetch(`${GAS_INC}?file=actualizar_estado`
+    +`&nombre=${encodeURIComponent(nombre)}`
+    +`&fecha=${encodeURIComponent(fechaInc)}`
+    +`&estado=rechazado`
+    +`&nota=${encodeURIComponent(nota.slice(0,100))}`
+    +`&_=${Date.now()}`
+  ).catch(()=>{});
   const msg=`❌ *SOLICITUD TXT NO APROBADA*\n*Colaborador:* ${nombre}\n*Fecha solicitada:* ${fechaSol}\n_Comunícate con RH para más información._\n_CEDIS PANAMÁ_`;
   openWA_admin(msg);
 }
