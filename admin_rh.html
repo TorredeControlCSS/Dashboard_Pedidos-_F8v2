@@ -396,10 +396,10 @@ function renderIncidencias(){
   const today=new Date().toISOString().slice(0,10);
   const hoy=allIncidents.filter(i=>String(i.Fecha||i.fecha||'').slice(0,10)===today);
   const pendTXT=allIncidents.filter(i=>{
-    const tipo=String(i.Tipo||i.tipo||'').toLowerCase();
     const nota=String(i.Nota||i.nota||'');
     const estado=String(i.Estado||i.estado||'').toLowerCase();
-    return tipo==='txt'&&nota.includes('[SOLICITUD TXT]')&&estado!=='aprobado'&&estado!=='rechazado';
+    // El tipo no viene en incidencias_all — filtramos por nota
+    return nota.includes('[SOLICITUD TXT]')&&estado!=='aprobado'&&estado!=='rechazado';
   });
 
   // Stats
