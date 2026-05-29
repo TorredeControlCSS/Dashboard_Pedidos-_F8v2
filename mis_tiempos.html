@@ -291,6 +291,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
         <div class="txt-hero-lbl">Saldo TXT acumulado</div>
         <div class="txt-hero-val" id="saldo-txt">—</div>
         <div class="txt-hero-sub">horas disponibles para ausentarse con goce de sueldo</div>
+        <div id="saldo-txt-detalle" style="display:none;font-size:10px;color:#94a3b8;margin-top:3px"></div>
         <div class="txt-hero-note" id="saldo-ciclos-note">calculando…</div>
       </div>
 
@@ -646,7 +647,19 @@ async function loadSaldoFallback(){
 function renderSaldo(d){
   const isFallback=d._fallback;
   // Hero TXT
-  document.getElementById('saldo-txt').textContent=d.saldo_txt_hhmm||'00:00';
+  const saldoNeto=d.saldo_txt_hhmm||'00:00';
+  const txtAcum=d.txt_acumulado_hhmm||d.saldo_txt_hhmm||'00:00';
+  const txtUsado=d.txt_usado_hhmm||'00:00';
+  document.getElementById('saldo-txt').textContent=saldoNeto;
+  // Mostrar detalle acumulado/usado si hay descuentos
+  const usadoEl=document.getElementById('saldo-txt-detalle');
+  if(usadoEl){
+    const usadoMin=hhmm2m(txtUsado);
+    usadoEl.textContent=usadoMin>0
+      ?`Acumulado: ${txtAcum} · Usado: ${txtUsado}`
+      :'';
+    usadoEl.style.display=usadoMin>0?'block':'none';
+  }
   document.getElementById('saldo-he-calc').textContent=d.total_he_calc_hhmm||'00:00';
   document.getElementById('saldo-total-usd').textContent='$'+(d.total_usd||0).toFixed(2);
   const fc=d._fallback_cycle;
@@ -675,13 +688,15 @@ function renderCicloList(rows){
   // Populate jump selector
   const sel=document.getElementById('cycle-jump');
   if(sel&&rows.length){
-    sel.innerHTML='<option value="">Ir a ciclo…</option>'+rows.map(r=>'<option value="'+r.cycle_from+'|'+r.cycle_to+'">'+r.cycle+'</option>').join('');
+    sel.innerHTML='<option value="">Ir a ciclo…</option>'+sortedRows.map(r=>'<option value="'+r.cycle_from+'|'+r.cycle_to+'">'+r.cycle+'</option>').join('');
   }
   if(!rows.length){
     el.innerHTML='<div class="empty-state"><div class="empty-ico">📊</div><div class="empty-msg">Sin historial de ciclos</div></div>';
     return;
   }
-  el.innerHTML=rows.map(r=>{
+  // Ordenar ciclos del más reciente al más antiguo
+  const sortedRows=[...rows].sort((a,b)=>(b.cycle_from||'').localeCompare(a.cycle_from||''));
+  el.innerHTML=sortedRows.map(r=>{
     const txtMin=hhmm2m(r.txt_total_hhmm||'00:00');
     const dotColor=txtMin>0?'var(--gold)':hhmm2m(r.he_paid_capped_hhmm||'00:00')>0?'var(--ok)':'#CBD5E1';
     const heUSD=+(r.he_amount_paid_capped||0);
