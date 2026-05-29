@@ -1236,6 +1236,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
   const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
+  const GAS_TRANSCRIPTOR = 'https://script.google.com/macros/s/AKfycbxEf7WYik5-BW9Z8FHrUIYbXI8VsFKKOQSZYOGjSe85jrbFOB1Sxtx-awJSBSMgz5sQ/exec';
   const ATTENDANCE_KEY  = 'pase_lista';
   const HISTORY_KEY     = 'historial_asistencia';
   const LOCK_KEY        = 'asistencia_lock_v1';
@@ -2836,7 +2837,12 @@
         const p = photos.find(p => p.id === id);
         if (p) { p.driveUrl = resp.url; savePhotos(photos, date); }
         renderFotoGallery();
-        toast('📋 Foto guardada en Google Drive ✓', 3000);
+        toast('📋 Foto guardada — transcribiendo lista…', 3000);
+        // Transcripción automática en background (no bloquea la UI)
+        fetch(GAS_TRANSCRIPTOR + '?action=transcribir&_=' + Date.now())
+          .then(r => r.json())
+          .then(tr => { if (tr.ok) toast('✅ Lista transcrita en CONTROL_ASISTENCIA', 3500); })
+          .catch(() => {}); // silencioso si falla
       } else {
         toast('📋 Foto guardada localmente — ' + (resp.msg || 'verificar permisos Drive'), 4000);
       }
