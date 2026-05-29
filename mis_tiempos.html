@@ -685,6 +685,8 @@ function renderSaldo(d){
 
 function renderCicloList(rows){
   const el=document.getElementById('ciclo-list');
+  // Ordenar ciclos del más reciente al más antiguo — declarar PRIMERO
+  const sortedRows=[...rows].sort((a,b)=>(b.cycle_from||'').localeCompare(a.cycle_from||''));
   // Populate jump selector
   const sel=document.getElementById('cycle-jump');
   if(sel&&rows.length){
@@ -694,8 +696,6 @@ function renderCicloList(rows){
     el.innerHTML='<div class="empty-state"><div class="empty-ico">📊</div><div class="empty-msg">Sin historial de ciclos</div></div>';
     return;
   }
-  // Ordenar ciclos del más reciente al más antiguo
-  const sortedRows=[...rows].sort((a,b)=>(b.cycle_from||'').localeCompare(a.cycle_from||''));
   el.innerHTML=sortedRows.map(r=>{
     const txtMin=hhmm2m(r.txt_total_hhmm||'00:00');
     const dotColor=txtMin>0?'var(--gold)':hhmm2m(r.he_paid_capped_hhmm||'00:00')>0?'var(--ok)':'#CBD5E1';
