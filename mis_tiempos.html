@@ -312,7 +312,11 @@ textarea:focus{outline:none;border-color:var(--navy)}
       <div class="cycle-card">
         <div class="cycle-card-hdr">
           <div class="cycle-card-title">📋 Historial por ciclo</div>
-          <div class="cycle-card-sub">Toca un ciclo para ver el detalle</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select id="cycle-jump" onchange="jumpToCycle(this.value)" style="border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;font-family:var(--ff);background:var(--bg);color:var(--navy);font-weight:700">
+              <option value="">Filtrar ciclo…</option>
+            </select>
+          </div>
         </div>
         <div id="ciclo-list">
           <div class="inline-loading"><div class="inline-ring"></div><div class="inline-txt">Cargando historial…</div></div>
@@ -556,42 +560,72 @@ async function loadSaldo(){
 }
 
 async function loadSaldoFallback(){
-  // action=saldo no desplegado aún — usar action=query con ciclo actual
+  // action=saldo no desplegado aún.
+  // Construye los últimos 6 ciclos y prueba hasta encontrar uno con datos
   const today=new Date();
-  const day=today.getDate();
-  let s,e;
-  if(day>=16){s=new Date(today.getFullYear(),today.getMonth(),16);e=new Date(today.getFullYear(),today.getMonth()+1,15);}
-  else{s=new Date(today.getFullYear(),today.getMonth()-1,16);e=new Date(today.getFullYear(),today.getMonth(),15);}
   const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const from=fmt(s);const to=fmt(today<e?today:e);
+  const todayStr=fmt(today);
   const emp=encodeURIComponent(S.user?.nombre||'');
-  try{
-    const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+from+'&to='+to+'&_='+Date.now());
-    const d=await res.json();
-    if(!d.ok){document.getElementById('err-msg').textContent=d.error||'Sin datos disponibles.';go('scr-error');return;}
-    // Adapt query response to saldo format
-    const t=d.totals||{};
-    const fakeSaldo={
-      ok:true,
-      employee:S.user?.nombre||'',
-      saldo_txt_hhmm:t.txt_total_hhmm||'00:00',
-      total_he_calc_hhmm:t.he_calc_hhmm||'00:00',
-      total_he_paid_hhmm:t.he_paid_capped_hhmm||'00:00',
-      total_he_usd:+(t.he_amount_paid_capped||0),
-      total_beneficios_usd:+(t.total_beneficios||0),
-      total_usd:+(t.he_amount_paid_capped||0)+(+(t.total_beneficios||0)),
-      num_ciclos:1,
-      resumen_ciclo:d.resumen_ciclo||[],
-      _fallback:true,
-      _cycle:{from,to},
-      _he_daily:d.he_daily||[]
-    };
-    S.saldo=fakeSaldo;
-    renderSaldo(fakeSaldo);
-    go('scr-app');switchTab('tiempos');
-  }catch{
-    document.getElementById('err-msg').textContent='No se pudo conectar con el servidor.';go('scr-error');
+
+  // Generar lista de ciclos (del más reciente al más antiguo)
+  const cycles=[];
+  for(let i=0;i<6;i++){
+    const ref=new Date(today.getFullYear(),today.getMonth()-i,1);
+    let s,e;
+    if(i===0&&today.getDate()>=16){
+      s=new Date(today.getFullYear(),today.getMonth(),16);
+      e=new Date(today.getFullYear(),today.getMonth()+1,15);
+    }else{
+      s=new Date(ref.getFullYear(),ref.getMonth()-1,16);
+      e=new Date(ref.getFullYear(),ref.getMonth(),15);
+    }
+    const toDate=e<today?fmt(e):todayStr;
+    cycles.push({from:fmt(s),to:toDate});
   }
+
+  // Probar ciclos hasta encontrar datos
+  let found=null;
+  for(const c of cycles){
+    try{
+      document.getElementById('load-msg').textContent='Buscando datos en '+c.from+' → '+c.to+'…';
+      const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+c.from+'&to='+c.to+'&_='+Date.now());
+      const d=await res.json();
+      if(d.ok&&d.totals&&hhmm2m(d.totals.he_calc_hhmm||'00:00')>0){
+        found={d,c};break;
+      }
+    }catch{}
+  }
+
+  if(!found){
+    // Ningún ciclo tiene datos — mostrar vacío con el ciclo anterior
+    const c=cycles[1]||cycles[0];
+    try{
+      const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+c.from+'&to='+c.to+'&_='+Date.now());
+      const d=await res.json();
+      if(d.ok){found={d,c};}
+    }catch{}
+  }
+
+  if(!found){document.getElementById('err-msg').textContent='Sin datos disponibles. Verifica que el backend esté publicado.';go('scr-error');return;}
+
+  const {d,c}=found;
+  const t=d.totals||{};
+  const fakeSaldo={
+    ok:true,employee:S.user?.nombre||'',
+    saldo_txt_hhmm:t.txt_total_hhmm||'00:00',
+    total_he_calc_hhmm:t.he_calc_hhmm||'00:00',
+    total_he_paid_hhmm:t.he_paid_capped_hhmm||'00:00',
+    total_he_usd:+(t.he_amount_paid_capped||0),
+    total_beneficios_usd:+(t.total_beneficios||0),
+    total_usd:+(t.he_amount_paid_capped||0)+(+(t.total_beneficios||0)),
+    num_ciclos:1,
+    resumen_ciclo:d.resumen_ciclo||[],
+    _fallback:true,_fallback_cycle:c,
+    _he_daily:d.he_daily||[]
+  };
+  S.saldo=fakeSaldo;
+  renderSaldo(fakeSaldo);
+  go('scr-app');switchTab('tiempos');
 }
 
 function renderSaldo(d){
@@ -600,8 +634,9 @@ function renderSaldo(d){
   document.getElementById('saldo-txt').textContent=d.saldo_txt_hhmm||'00:00';
   document.getElementById('saldo-he-calc').textContent=d.total_he_calc_hhmm||'00:00';
   document.getElementById('saldo-total-usd').textContent='$'+(d.total_usd||0).toFixed(2);
+  const fc=d._fallback_cycle;
   document.getElementById('saldo-ciclos-note').textContent=isFallback
-    ?'⚠ Mostrando solo ciclo actual (instala endpoint saldo para historial completo)'
+    ?'⚠ Ciclo: '+(fc?fc.from+' → '+fc.to:'más reciente')+' · Instala endpoint saldo para historial completo'
     :'Desde '+d.fecha_primer_evento+' · '+d.num_ciclos+' ciclo'+(d.num_ciclos===1?'':'s');
 
   // Cycle total row
@@ -622,6 +657,11 @@ function renderSaldo(d){
 
 function renderCicloList(rows){
   const el=document.getElementById('ciclo-list');
+  // Populate jump selector
+  const sel=document.getElementById('cycle-jump');
+  if(sel&&rows.length){
+    sel.innerHTML='<option value="">Ir a ciclo…</option>'+rows.map(r=>'<option value="'+r.cycle_from+'|'+r.cycle_to+'">'+r.cycle+'</option>').join('');
+  }
   if(!rows.length){
     el.innerHTML='<div class="empty-state"><div class="empty-ico">📊</div><div class="empty-msg">Sin historial de ciclos</div></div>';
     return;
@@ -693,6 +733,17 @@ function renderDetailDays(days){
     const dl=(r.date||'').slice(5).replace('-','/');
     list.innerHTML+='<div class="day-row"><div class="day-dot '+dotC+'"></div><div class="day-date">'+(r.weekday||'')+' '+dl+'</div><div class="day-span">'+(r.first_in||'—')+' → '+(r.last_out||'—')+'</div><div class="day-he">'+he+'</div><div class="day-flag '+flagC+'">'+flagT+'</div></div>';
   });
+}
+
+
+function jumpToCycle(val){
+  if(!val)return;
+  const [from,to]=val.split('|');
+  // Find cycle data from saldo resumen
+  const rows=S.saldo?.resumen_ciclo||[];
+  const row=rows.find(r=>r.cycle_from===from&&r.cycle_to===to)||{cycle:from+' – '+to,cycle_from:from,cycle_to:to,he_calc_total_hhmm:'—',he_paid_capped_hhmm:'—',txt_total_hhmm:'—'};
+  loadCycleDetail(from,to,row);
+  document.getElementById('cycle-jump').value='';
 }
 
 function showSummary(){
