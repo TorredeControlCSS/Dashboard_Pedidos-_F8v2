@@ -352,6 +352,21 @@ textarea:focus{outline:none;border-color:var(--navy)}
           <div class="detail-kpi-val" style="color:var(--gold)" id="dcyc-txt">—</div>
         </div>
       </div>
+      <!-- Benefits row -->
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="dcyc-benefits">
+        <div style="text-align:center">
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">HE USD</div>
+          <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--ok)" id="dcyc-he-usd">—</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">🍱 Alimentación</div>
+          <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="dcyc-alim">—</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">🚌 Transporte</div>
+          <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="dcyc-transp">—</div>
+        </div>
+      </div>
       <!-- Loading / day list -->
       <div id="detail-loading" class="inline-loading">
         <div class="inline-ring"></div>
@@ -669,13 +684,12 @@ function renderCicloList(rows){
   el.innerHTML=rows.map(r=>{
     const txtMin=hhmm2m(r.txt_total_hhmm||'00:00');
     const dotColor=txtMin>0?'var(--gold)':hhmm2m(r.he_paid_capped_hhmm||'00:00')>0?'var(--ok)':'#CBD5E1';
-    const tot=(+(r.he_amount_paid_capped||0))+(+(r.beneficios_total||0));
-    return '<div class="cycle-row" onclick="loadCycleDetail(\''+r.cycle_from+'\',\''+r.cycle_to+'\','+JSON.stringify(r).replace(/"/g,"'")+')">'
-      +'<div class="cycle-dot" style="background:'+dotColor+'"></div>'
-      +'<div class="cycle-name">'+(r.cycle||'—')+'</div>'
-      +'<div class="cycle-txt">'+(txtMin>0?r.txt_total_hhmm:'—')+'</div>'
-      +'<div class="cycle-usd">$'+tot.toFixed(2)+'</div>'
-      +'<div class="cycle-chev">›</div>'
+    const heUSD=+(r.he_amount_paid_capped||0);
+    const alim=+(r.alim_total||0);
+    const transp=+(r.transp_total||0);
+    const tot=heUSD+alim+transp;
+    const benNote=alim>0||transp>0?' 🍱$'+alim.toFixed(0)+' 🚌$'+transp.toFixed(0):'';
+    return '<div class="cycle-row" onclick="loadCycleDetail(\''+r.cycle_from+'\',\''+r.cycle_to+'\','+JSON.stringify(r).replace(/"/g,"'")+')">'      +'<div class="cycle-dot" style="background:'+dotColor+'"></div>'      +'<div class="cycle-name" style="flex:1">'+(r.cycle||'—')+'<br><span style="font-size:9px;color:#94a3b8">'+r.he_paid_capped_hhmm+' pagadas</span></div>'      +'<div style="text-align:right"><div class="cycle-txt">'+(txtMin>0?r.txt_total_hhmm:'—')+'</div><div style="font-size:9.5px;color:var(--ok)">$'+tot.toFixed(2)+'<span style="font-size:8.5px;color:#94a3b8">'+benNote+'</span></div></div>'      +'<div class="cycle-chev">›</div>'
       +'</div>';
   }).join('');
 }
@@ -691,6 +705,9 @@ async function loadCycleDetail(from, to, cycleData){
   document.getElementById('dcyc-he-calc').textContent=cycleData.he_calc_total_hhmm||'00:00';
   document.getElementById('dcyc-he-paid').textContent=cycleData.he_paid_capped_hhmm||'00:00';
   document.getElementById('dcyc-txt').textContent=cycleData.txt_total_hhmm||'00:00';
+  document.getElementById('dcyc-he-usd').textContent='$'+(+(cycleData.he_amount_paid_capped||0)).toFixed(2);
+  document.getElementById('dcyc-alim').textContent='$'+(+(cycleData.alim_total||0)).toFixed(2);
+  document.getElementById('dcyc-transp').textContent='$'+(+(cycleData.transp_total||0)).toFixed(2);
 
   // Check cache
   const cacheKey=from+'|'+to;
