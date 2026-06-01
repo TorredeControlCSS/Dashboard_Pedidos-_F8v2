@@ -219,7 +219,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
 <div id="scr-splash" class="screen active">
   <div class="spl-logo"><img src="./icons/icon-512.png" alt="CSS"></div>
   <div class="spl-title">Mis Tiempos</div>
-  <div class="spl-sub">CEDIS PANAMÁ · Torre de Control</div>
+  <div class="spl-sub">CEDIS Panamá</div>
   <div class="spl-badge">PORTAL DEL COLABORADOR</div>
   <div class="spl-dots"><div class="spl-dot"></div><div class="spl-dot"></div><div class="spl-dot"></div></div>
 </div>
@@ -502,7 +502,7 @@ function toast(msg,ms=2800){const el=document.getElementById('toast');el.textCon
 function goPin(){S={user:null,saldo:null,selTipo:null,txtHoras:'8'};pin='';renderDisplay();setSpinner(false);document.getElementById('pin-err').textContent='';go('scr-pin');}
 function hhmm2m(h){const[hh,mm]=(h||'00:00').split(':').map(Number);return(hh||0)*60+(mm||0);}
 function todayISO(){return new Date().toISOString().slice(0,10);}
-function openWA(msg){const enc=encodeURIComponent(msg);const a=document.createElement('a');a.href='whatsapp://send?phone='+PAOLA_WA+'&text='+enc;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>{if(!document.hidden)window.open('https://wa.me/'+PAOLA_WA+'?text='+enc,'_blank');},2000);}
+function openWA(msg){window.location.href='https://wa.me/'+PAOLA_WA+'?text='+encodeURIComponent(msg);}
 
 /* ═══ PIN ════════════════════════════════════════════ */
 let pin='';
@@ -555,6 +555,17 @@ function switchTab(tab){
    Sin timeout porque no incluye datos diarios
 ═══════════════════════════════════════════════════ */
 async function loadSaldo(){
+  // Intentar mostrar desde cache primero (carga instantánea)
+  try{
+    const cached=JSON.parse(sessionStorage.getItem(PCACHE+'_saldo')||'null');
+    if(cached&&cached.emp===S.user?.nombre&&Date.now()-cached.ts<7200000){
+      S.saldo=cached.data;renderSaldo(cached.data);go('scr-app');switchTab('tiempos');
+      // Refrescar en background silencioso
+      fetch(GAS_BIO+'?action=saldo&token='+TOKEN+'&employee='+encodeURIComponent(S.user?.nombre||'')+'&_='+Date.now())
+        .then(r=>r.json()).then(d=>{if(d.ok){S.saldo=d;try{sessionStorage.setItem(PCACHE+'_saldo',JSON.stringify({data:d,ts:Date.now(),emp:S.user?.nombre}));}catch{}renderSaldo(d);}}).catch(()=>{});
+      return;
+    }
+  }catch{}
   go('scr-loading');
   document.getElementById('load-msg').textContent='Calculando tu saldo acumulado…';
   const emp=encodeURIComponent(S.user?.nombre||'');
@@ -567,6 +578,8 @@ async function loadSaldo(){
       return;
     }
     S.saldo=d;
+    // Cachear saldo en sessionStorage para carga instantánea en próximas visitas
+    try{sessionStorage.setItem(PCACHE+'_saldo',JSON.stringify({data:d,ts:Date.now(),emp:S.user?.nombre}));}catch{}
     renderSaldo(d);
     go('scr-app');
     switchTab('tiempos');
@@ -861,14 +874,139 @@ function mostrarPermiso(){
   const nombre=r.nombre||S.user?.nombre||'—';
   const fecha=r.fecha||todayISO();
   const horas=parseFloat(r.horas)||8;
-  const nota=r.nota||'Uso de Tiempo Compensatorio (TXT)';
-  const fin=String(7+Math.floor(horas)).padStart(2,'0')+':'+String(Math.round((horas%1)*60)).padStart(2,'0');
-  const fmtFecha=new Date(fecha+'T12:00:00').toLocaleDateString('es-PA',{day:'numeric',month:'long',year:'numeric'});
+  const nota=r.nota||'Uso de Tiempo Compensatorio';
   const reqNum='REQ-'+todayISO().replace(/-/g,'')+'-'+String(Math.floor(Math.random()*9000)+1000);
-  const win=window.open('','_blank','width=700,height=640');
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Solicitud TXT - '+reqNum+'</title><style>body{font-family:Arial,sans-serif;font-size:13px;margin:0;padding:24px;color:#000}.hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:18px}.inst{font-size:14px;font-weight:bold}.dept{font-size:12px}.title{font-size:15px;font-weight:bold;text-transform:uppercase;margin-top:6px}.req-num{float:right;background:#f0f0f0;border:1px solid #999;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:bold}.form-body{border:1.5px solid #000;padding:20px;min-height:300px}.field{margin-bottom:12px;font-size:13px}.field span{border-bottom:1px solid #000;display:inline-block;min-width:200px;padding:0 4px}.motivo{border:1px solid #555;padding:8px 12px;min-height:36px;margin:8px 0}.sign-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:40px}.sign-box{text-align:center}.sign-line{border-top:1px solid #000;margin-top:50px;padding-top:5px;font-size:11px}.note{font-size:10px;color:#777;margin-top:16px;text-align:center;border-top:1px solid #ccc;padding-top:8px}.pending{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:14px}@media print{.no-print{display:none}body{padding:12px}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="hdr" style="flex:1"><div class="inst">CAJA DE SEGURO SOCIAL</div><div class="dept">DIRECCIÓN DE PERSONAL</div><div class="title">Solicitud de Tiempo Compensatorio (TXT)</div></div><div style="text-align:right;font-size:11px;color:#555;padding-left:16px"><div>Ref. interna</div><div class="req-num">'+reqNum+'</div></div></div><div class="pending">⏳ <b>PENDIENTE DE APROBACIÓN</b> — El N° de permiso oficial (PS-XXXX) será asignado por RH al aprobar.</div><div class="form-body"><div class="field">Sr(a): <span>'+nombre+'</span></div><div class="field">Unidad: <span>CEDIS PANAMÁ — Torre de Control</span></div><br><div style="margin-bottom:10px">Por este medio solicito se me conceda permiso para ausentarme del lugar de trabajo,</div><div style="margin-bottom:10px">el día <b>'+fmtFecha+'</b>, a partir de las <b>07:30</b> hasta las <b>'+fin+'</b> ('+horas+' horas).</div><div>Motivo:</div><div class="motivo">'+nota+'</div><div class="sign-row"><div class="sign-box"><div class="sign-line">Firma del Solicitante</div><div style="font-size:11px;margin-top:3px">'+nombre+'</div></div><div class="sign-box"><div class="sign-line">V°B° — Jefe de la Unidad Ejecutora</div><div style="font-size:11px;margin-top:3px">Paola Moreno</div></div></div></div><div class="note">Generado desde Portal del Colaborador CEDIS · '+new Date().toLocaleString('es-PA')+' · '+reqNum+'</div><div class="no-print" style="margin-top:16px;text-align:center"><button onclick="window.print()" style="background:#0B1F3A;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">🖨 Imprimir / Guardar PDF</button><button onclick="window.close()" style="margin-left:12px;background:#e5e7eb;color:#374151;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">Cerrar</button></div></body></html>');
-  win.document.close();
+
+  // Cálculo de hora fin
+  const totalMin=7*60+30+(horas*60);
+  const hFin=String(Math.floor(totalMin/60)).padStart(2,'0')+':'+String(totalMin%60).padStart(2,'0');
+
+  // Fecha en español
+  const fObj=new Date(fecha+'T12:00:00');
+  const dia=fObj.getDate();
+  const mes=fObj.toLocaleDateString('es-PA',{month:'long'});
+  const anio=fObj.getFullYear();
+
+  // Jefes disponibles — se ampliará con más jefes después
+  const JEFES=[
+    {nombre:'Ing. Paola Moreno', cargo:'Jefe de Almacén — CEDIS Panamá'},
+  ];
+
+  // Crear modal inline (funciona en móvil — sin window.open)
+  const existing=document.getElementById('permiso-modal');
+  if(existing) existing.remove();
+
+  const modal=document.createElement('div');
+  modal.id='permiso-modal';
+  modal.style.cssText='position:fixed;inset:0;background:#f5f5f0;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:Arial,sans-serif';
+
+  modal.innerHTML=`
+<style>
+@media print{
+  #permiso-modal-toolbar{display:none!important}
+  body>*:not(#permiso-modal){display:none!important}
+  #permiso-modal{position:static!important;overflow:visible!important}
+  #permiso-page{box-shadow:none!important;margin:0!important;border-radius:0!important}
 }
+</style>
+
+<!-- Toolbar -->
+<div id="permiso-modal-toolbar" style="background:#0B1F3A;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10">
+  <button onclick="document.getElementById('permiso-modal').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">← Volver</button>
+  <span style="color:rgba(255,255,255,.6);font-size:12px;flex:1">Permiso de Salida · ${reqNum}</span>
+  <button onclick="window.print()" style="background:#F59E0B;border:none;color:#0B1F3A;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">🖨 Imprimir / PDF</button>
+</div>
+
+<!-- Selector de Jefe -->
+<div id="permiso-modal-toolbar" style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;align-items:center;gap:10px">
+  <span style="font-size:12px;font-weight:700;color:#374151">Dirigido a:</span>
+  <select id="jefe-sel" onchange="actualizarJefe()" style="border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;font-size:12px;flex:1;font-family:Arial">
+    ${JEFES.map((j,i)=>'<option value="'+i+'">'+j.nombre+'</option>').join('')}
+  </select>
+</div>
+
+<!-- Formulario -->
+<div style="padding:16px;max-width:680px;margin:0 auto">
+<div id="permiso-page" style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:28px 32px;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+
+  <!-- Encabezado CSS -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+    <div style="text-align:center;flex:1">
+      <div style="font-size:13px;font-weight:bold;line-height:1.4">CAJA DE SEGURO SOCIAL</div>
+      <div style="font-size:12px;line-height:1.4">DIRECCIÓN DE PERSONAL</div>
+      <div style="font-size:13px;font-weight:bold;line-height:1.4">PERMISO DE SALIDA</div>
+    </div>
+    <div style="font-size:10px;color:#555;white-space:nowrap;padding-left:12px">Cód.02-970-22</div>
+  </div>
+  <hr style="border:1px solid #000;margin:8px 0 16px">
+
+  <!-- Fecha -->
+  <p style="font-size:12px;margin-bottom:16px">
+    Panamá, <span style="border-bottom:1px solid #000;display:inline-block;min-width:30px;text-align:center">${dia}</span>
+    de <span style="border-bottom:1px solid #000;display:inline-block;min-width:80px;text-align:center">${mes}</span>
+    de <span style="border-bottom:1px solid #000;display:inline-block;min-width:50px;text-align:center">${anio}</span>
+  </p>
+
+  <!-- Destinatario -->
+  <p style="font-size:12px;margin-bottom:6px">
+    Sr(a): <span id="p-jefe-nombre" style="border-bottom:1px solid #000;display:inline-block;min-width:220px;font-weight:bold">${JEFES[0].nombre}</span>
+  </p>
+  <p style="font-size:12px;margin-bottom:16px">
+    JEFE DE: <span id="p-jefe-cargo" style="border-bottom:1px solid #000;display:inline-block;min-width:220px">${JEFES[0].cargo}</span>
+  </p>
+
+  <!-- Cuerpo -->
+  <p style="font-size:12px;line-height:1.7;margin-bottom:8px">
+    Por este medio solicito a UD., me conceda permiso para ausentarme del lugar de trabajo,
+  </p>
+  <p style="font-size:12px;margin-bottom:16px">
+    el día <span style="border-bottom:1px solid #000;display:inline-block;min-width:30px;text-align:center">${dia}</span>,
+    a partir de las <span style="border-bottom:1px solid #000;display:inline-block;min-width:50px;text-align:center">07:30</span>
+    hasta las <span style="border-bottom:1px solid #000;display:inline-block;min-width:50px;text-align:center">${hFin}</span>
+  </p>
+  <p style="font-size:12px;margin-bottom:6px">Este permiso es con el objeto de:</p>
+  <p style="border:1px solid #555;padding:8px 10px;min-height:40px;font-size:12px;margin-bottom:28px">${nota}</p>
+
+  <!-- Firmas -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:20px">
+    <div>
+      <div style="border-top:1px solid #000;padding-top:5px;text-align:center">
+        <div style="font-size:11px;margin-bottom:2px">V°B°:</div>
+        <div style="font-size:11px;margin-top:20px" id="p-jefe-firma">${JEFES[0].nombre}</div>
+        <div style="font-size:11px">Jefe de la Unidad Ejecutora</div>
+      </div>
+    </div>
+    <div>
+      <div style="border-top:1px solid #000;padding-top:5px;text-align:center">
+        <div style="font-size:11px;margin-bottom:2px">Atentamente,</div>
+        <div style="font-size:11px">&nbsp;</div>
+        <div style="font-size:11px">Firma.</div>
+        <div style="font-size:11px;margin-top:4px;font-weight:bold">${nombre}</div>
+        <div style="font-size:11px">Nombre del Solicitante:</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:right;margin-top:14px;font-size:9px;color:#888">Imp. CASESO</div>
+  <div style="text-align:center;margin-top:8px;font-size:9px;color:#aaa">
+    Generado desde Portal del Colaborador CEDIS · ${todayISO()} · ${reqNum}
+  </div>
+</div>
+</div>`;
+
+  document.body.appendChild(modal);
+
+  // Función para actualizar jefe en el formulario
+  window.actualizarJefe=function(){
+    const idx=parseInt(document.getElementById('jefe-sel').value||'0');
+    const j=JEFES[idx];
+    document.getElementById('p-jefe-nombre').textContent=j.nombre;
+    document.getElementById('p-jefe-cargo').textContent=j.cargo;
+    document.getElementById('p-jefe-firma').textContent=j.nombre;
+  };
+}
+
 
 /* ═══ INIT ═══════════════════════════════════════════ */
 window.addEventListener('load',()=>setTimeout(()=>go('scr-pin'),1500));
