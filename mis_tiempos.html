@@ -287,16 +287,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
     <!-- Vista resumen (default) -->
     <div id="view-summary">
 
-      <!-- Mis solicitudes e incidencias — AL TOPE -->
-      <div id="historial-personal-card" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-        <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-          <div style="font-size:13px;font-weight:800;color:var(--navy)">Mis solicitudes e incidencias</div>
-          <div style="font-size:10px;color:var(--muted)" id="historial-count"></div>
-        </div>
-        <div id="historial-list"></div>
-      </div>
-
-      <!-- Hero TXT acumulado -->
+      <!-- Hero TXT acumulado — SIEMPRE ARRIBA -->
       <div class="txt-hero">
         <div class="txt-hero-lbl">Saldo TXT acumulado</div>
         <div class="txt-hero-val" id="saldo-txt">—</div>
@@ -316,6 +307,34 @@ textarea:focus{outline:none;border-color:var(--navy)}
           <div class="kpi-lbl">Total a Cobrar</div>
           <div class="kpi-val" id="saldo-total-usd">—</div>
           <div class="kpi-sub">HE + beneficios</div>
+        </div>
+      </div>
+
+      <!-- Mi marcación de hoy (desde CONTROL_ASISTENCIA) -->
+      <div id="marcacion-card" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:800;color:var(--navy)">Mi marcación de hoy</div>
+          <div style="font-size:10px;color:var(--muted)" id="marcacion-fecha"></div>
+        </div>
+        <div id="marcacion-body" style="padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px"></div>
+      </div>
+
+      <!-- Resumen de incidencias por tipo -->
+      <div id="incidencias-resumen-card" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:800;color:var(--navy)">Mis registros este mes</div>
+        </div>
+        <!-- Contadores por tipo -->
+        <div id="incidencias-contadores" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:1px;background:var(--border)"></div>
+        <!-- Calendario de la semana -->
+        <div style="padding:12px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Esta semana</div>
+          <div id="calendario-semana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px"></div>
+        </div>
+        <!-- Lista detallada (colapsable) -->
+        <div id="historial-list" style="border-top:1px solid var(--border)"></div>
+        <div style="padding:8px 14px;text-align:center;border-top:1px solid var(--border)">
+          <button onclick="toggleHistList()" id="hist-toggle-btn" style="background:none;border:none;color:var(--info);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff)">Ver detalle ▾</button>
         </div>
       </div>
 
@@ -552,6 +571,40 @@ function saveLocalRecord(record) {
   setTimeout(loadMisHistorial, 1500);
 }
 
+
+async function loadMarcacion(){
+  const nombre=(S.user?.nombre||'').toUpperCase();
+  if(!nombre)return;
+  const hoy=new Date();
+  const ds=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+  try{
+    const res=await fetch(GAS_INC+'?file=horarios&fecha='+ds+'&_='+Date.now());
+    const d=await res.json();
+    // Buscar el nombre del colaborador (match flexible)
+    let m=null;
+    for(const k in d){if(k.toUpperCase()===nombre){m=d[k];break;}}
+    const card=document.getElementById('marcacion-card');
+    const body=document.getElementById('marcacion-body');
+    const fechaEl=document.getElementById('marcacion-fecha');
+    if(!m||(!m.entrada&&!m.salida)){card.style.display='none';return;}
+    card.style.display='block';
+    fechaEl.textContent=hoy.toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'short'});
+    const item=(lbl,val,color)=>'<div style="text-align:center"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">'+lbl+'</div><div style="font-size:16px;font-weight:800;font-family:var(--mono);color:'+(color||'var(--navy)')+';margin-top:3px">'+(val||'—')+'</div></div>';
+    let html=item('Entrada',m.entrada,m.tardanza?'#DC2626':'#059669');
+    if(m.almSalida)html+=item('Almuerzo',m.almSalida);
+    if(m.almRegreso)html+=item('Regreso',m.almRegreso);
+    html+=item('Salida',m.salida,m.salidaTemprana?'#D97706':'var(--navy)');
+    body.innerHTML=html;
+    // Mostrar observación si existe
+    if(m.obs){
+      body.innerHTML+='<div style="grid-column:1/-1;font-size:11px;color:var(--muted);text-align:center;padding-top:6px;border-top:1px solid var(--border);margin-top:4px">'+m.obs+'</div>';
+    }
+    if(m.tardanza){
+      body.innerHTML+='<div style="grid-column:1/-1;font-size:11px;font-weight:700;color:#DC2626;text-align:center">⚠ Tardanza registrada</div>';
+    }
+  }catch{}
+}
+
 async function loadMisHistorial() {
   const nombre = (S.user?.nombre || '').toUpperCase();
   if (!nombre) return;
@@ -568,34 +621,87 @@ async function loadMisHistorial() {
 }
 
 function renderHistorial(records) {
-  const card  = document.getElementById('historial-personal-card');
+  const card  = document.getElementById('incidencias-resumen-card');
+  const cont  = document.getElementById('incidencias-contadores');
+  const cal   = document.getElementById('calendario-semana');
   const list  = document.getElementById('historial-list');
-  const count = document.getElementById('historial-count');
-  if (!card || !list) return;
+  if (!card) return;
   if (!records || !records.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
-  count.textContent  = records.length + ' registro' + (records.length !== 1 ? 's' : '');
 
-  const estadoColor = { presente:'#059669', aprobado:'#059669', pendiente:'#D97706',
-                        rechazado:'#DC2626', ausente:'#DC2626', txt:'#2563EB', TXT:'#2563EB' };
-  const estadoLbl   = { pendiente:'Pendiente', aprobado:'Aprobado', rechazado:'Rechazado',
-                        enviado:'Enviado', txt:'TXT', TXT:'TXT' };
+  // ── Clasificar cada registro por tipo ──
+  function clasificar(r){
+    const nota=(r.nota||'').toUpperCase();
+    const est=(r.estado||'').toUpperCase();
+    if(nota.includes('[SOLICITUD TXT]')||est==='TXT')return 'TXT';
+    if(est.includes('TARDANZA'))return 'Tardanza';
+    if(est.includes('AUSEN'))return 'Ausencia';
+    if(est.includes('BAJA')||est.includes('MEDIC'))return 'Baja médica';
+    if(est.includes('CAPACIT'))return 'Capacitación';
+    if(est.includes('ART'))return 'Artículo 16';
+    return 'Otra';
+  }
 
-  list.innerHTML = records.map(r => {
-    const est   = r.estado || 'enviado';
-    const color = estadoColor[est] || '#6B7280';
-    const lbl   = estadoLbl[est]  || est;
-    const esTXT = r.nota && r.nota.includes('[SOLICITUD TXT]');
-    const tipo  = esTXT ? 'Solicitud TXT' : (r.estado || 'Incidencia');
-    const nota  = (r.nota || '').replace('[SOLICITUD TXT]','').trim().slice(0, 60);
-    return '<div class="cycle-row" style="flex-direction:column;align-items:flex-start;gap:2px;cursor:default">'
-      + '<div style="display:flex;width:100%;align-items:center;gap:8px">'
-      + '<span style="font-size:12px;font-weight:800;color:var(--navy);flex:1">' + tipo + '</span>'
-      + '<span style="font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px;background:' + color + '20;color:' + color + '">' + lbl + '</span>'
-      + '</div>'
-      + '<div style="font-size:11px;color:var(--muted)">' + r.fecha + (nota ? ' · ' + nota : '') + '</div>'
-      + '</div>';
+  const COLORES={
+    'TXT':'#2563EB','Tardanza':'#D97706','Ausencia':'#DC2626',
+    'Baja médica':'#7C3AED','Capacitación':'#059669','Artículo 16':'#0891B2','Otra':'#6B7280'
+  };
+
+  // ── Contar por tipo ──
+  const conteos={};
+  records.forEach(r=>{const t=clasificar(r);conteos[t]=(conteos[t]||0)+1;});
+
+  cont.innerHTML=Object.entries(conteos).map(([tipo,n])=>{
+    const c=COLORES[tipo]||'#6B7280';
+    return '<div style="background:var(--white);padding:12px 8px;text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;font-family:var(--mono);color:'+c+'">'+n+'</div>'
+      +'<div style="font-size:9.5px;font-weight:700;color:var(--muted);margin-top:2px">'+tipo+'</div>'
+      +'</div>';
   }).join('');
+
+  // ── Calendario de la semana actual ──
+  const hoy=new Date();
+  const diaSem=hoy.getDay();
+  const lunes=new Date(hoy);lunes.setDate(hoy.getDate()-((diaSem+6)%7));
+  const DIAS=['L','M','X','J','V','S','D'];
+  let calHtml='';
+  for(let i=0;i<7;i++){
+    const d=new Date(lunes);d.setDate(lunes.getDate()+i);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const delDia=records.filter(r=>r.fecha===ds);
+    const esHoy=ds===hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    const tieneReg=delDia.length>0;
+    const colorDot=tieneReg?COLORES[clasificar(delDia[0])]:'transparent';
+    calHtml+='<div style="text-align:center;padding:6px 2px;border-radius:8px;background:'+(esHoy?'#EFF6FF':'var(--bg)')+';border:1px solid '+(esHoy?'#bfdbfe':'transparent')+'">'
+      +'<div style="font-size:9px;font-weight:700;color:var(--muted)">'+DIAS[i]+'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:var(--navy);margin:2px 0">'+d.getDate()+'</div>'
+      +'<div style="width:7px;height:7px;border-radius:50%;margin:0 auto;background:'+colorDot+'"></div>'
+      +(tieneReg&&delDia.length>1?'<div style="font-size:8px;color:var(--muted)">'+delDia.length+'</div>':'')
+      +'</div>';
+  }
+  cal.innerHTML=calHtml;
+
+  // ── Lista detallada (oculta por defecto) ──
+  list.style.display='none';
+  list.innerHTML=records.map(r=>{
+    const tipo=clasificar(r);
+    const c=COLORES[tipo]||'#6B7280';
+    const nota=(r.nota||'').replace('[SOLICITUD TXT]','').trim().slice(0,55);
+    return '<div class="cycle-row" style="flex-direction:column;align-items:flex-start;gap:2px;cursor:default">'
+      +'<div style="display:flex;width:100%;align-items:center;gap:8px">'
+      +'<span style="font-size:12px;font-weight:800;color:var(--navy);flex:1">'+tipo+'</span>'
+      +'<span style="font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px;background:'+c+'20;color:'+c+'">'+(r.estado||'')+'</span>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">'+r.fecha+(nota?' · '+nota:'')+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleHistList(){
+  const list=document.getElementById('historial-list');
+  const btn=document.getElementById('hist-toggle-btn');
+  if(list.style.display==='none'){list.style.display='block';btn.textContent='Ocultar detalle ▴';}
+  else{list.style.display='none';btn.textContent='Ver detalle ▾';}
 }
 
 function initApp(){
@@ -605,7 +711,8 @@ function initApp(){
   go('scr-app');
   switchTab('tiempos');
   loadSaldo();
-  loadMisHistorial(); // Cargar historial desde Google Sheets
+  loadMisHistorial();
+  loadMarcacion(); // Horas de marcado del día
 }
 
 /* ═══ TAB SWITCHING ═══════════════════════════════════ */
@@ -650,6 +757,7 @@ async function loadSaldo(){
     go('scr-app');
     switchTab('tiempos');
     loadMisHistorial();
+    loadMarcacion();
   }catch{
     await loadSaldoFallback();
   }
