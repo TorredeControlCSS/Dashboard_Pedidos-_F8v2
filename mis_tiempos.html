@@ -286,6 +286,16 @@ textarea:focus{outline:none;border-color:var(--navy)}
 
     <!-- Vista resumen (default) -->
     <div id="view-summary">
+
+      <!-- Mis solicitudes e incidencias — AL TOPE -->
+      <div id="historial-personal-card" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:800;color:var(--navy)">Mis solicitudes e incidencias</div>
+          <div style="font-size:10px;color:var(--muted)" id="historial-count"></div>
+        </div>
+        <div id="historial-list"></div>
+      </div>
+
       <!-- Hero TXT acumulado -->
       <div class="txt-hero">
         <div class="txt-hero-lbl">Saldo TXT acumulado</div>
@@ -329,14 +339,6 @@ textarea:focus{outline:none;border-color:var(--navy)}
             <span class="cycle-total-val" style="color:var(--ok)" id="total-usd-all">—</span>
           </div>
         </div>
-      </div>
-      <!-- Historial personal: TXT e Incidencias -->
-      <div class="cycle-card" id="historial-personal-card" style="display:none">
-        <div class="cycle-card-hdr">
-          <div class="cycle-card-title">📋 Mis solicitudes e incidencias</div>
-          <div class="cycle-card-sub" id="historial-count"></div>
-        </div>
-        <div id="historial-list"></div>
       </div>
     </div>
 
@@ -543,52 +545,56 @@ document.getElementById('pk-ok').addEventListener('click',async()=>{
 
 /* ═══ APP INIT ═══════════════════════════════════════ */
 
-/* ═══ HISTORIAL LOCAL (TXT + incidencias) ══════════════════════ */
-const HIST_KEY = 'mt_historial_v1';
-
+/* ═══ HISTORIAL DESDE GOOGLE SHEETS ════════════════════════════ */
 function saveLocalRecord(record) {
+  // Los datos ya se graban en ASISTENCIA_DIARIA via reportIncidencia
+  // Solo refrescamos la vista
+  setTimeout(loadMisHistorial, 1500);
+}
+
+async function loadMisHistorial() {
+  const nombre = (S.user?.nombre || '').toUpperCase();
+  if (!nombre) return;
   try {
-    const key = HIST_KEY + '_' + (S.user?.nombre || 'anon');
-    const hist = JSON.parse(localStorage.getItem(key) || '[]');
-    hist.unshift({ ...record, ts: Date.now() });
-    // Guardar máximo 20 registros
-    localStorage.setItem(key, JSON.stringify(hist.slice(0, 20)));
-    renderHistorial();
+    const res = await fetch(GAS_INC + '?file=incidencias_all&_=' + Date.now());
+    const d = await res.json();
+    if (!d.ok) return;
+    const mias = (d.incidencias || [])
+      .filter(r => (r.nombre || '').toUpperCase() === nombre)
+      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+      .slice(0, 10);
+    renderHistorial(mias);
   } catch {}
 }
 
-function loadLocalRecords() {
-  try {
-    const key = HIST_KEY + '_' + (S.user?.nombre || 'anon');
-    return JSON.parse(localStorage.getItem(key) || '[]');
-  } catch { return []; }
-}
-
-function renderHistorial() {
-  const records = loadLocalRecords();
-  const card = document.getElementById('historial-personal-card');
+function renderHistorial(records) {
+  const card  = document.getElementById('historial-personal-card');
   const list  = document.getElementById('historial-list');
   const count = document.getElementById('historial-count');
   if (!card || !list) return;
-  if (!records.length) { card.style.display = 'none'; return; }
+  if (!records || !records.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
-  count.textContent = records.length + ' registro' + (records.length !== 1 ? 's' : '');
+  count.textContent  = records.length + ' registro' + (records.length !== 1 ? 's' : '');
 
-  const estadoColor = { enviado:'#2563EB', pendiente:'#D97706', aprobado:'#059669', rechazado:'#DC2626' };
-  const estadoLbl   = { enviado:'Enviado', pendiente:'Pendiente', aprobado:'Aprobado ✓', rechazado:'Rechazado' };
+  const estadoColor = { presente:'#059669', aprobado:'#059669', pendiente:'#D97706',
+                        rechazado:'#DC2626', ausente:'#DC2626', txt:'#2563EB', TXT:'#2563EB' };
+  const estadoLbl   = { pendiente:'Pendiente', aprobado:'Aprobado', rechazado:'Rechazado',
+                        enviado:'Enviado', txt:'TXT', TXT:'TXT' };
 
   list.innerHTML = records.map(r => {
-    const color = estadoColor[r.estado] || '#6B7280';
-    const lbl   = estadoLbl[r.estado]  || r.estado;
-    const ico   = r.tipo === 'txt' ? '⏱' : '🚨';
-    return `<div class="cycle-row" style="flex-direction:column;align-items:flex-start;gap:3px;cursor:default">
-      <div style="display:flex;width:100%;align-items:center;gap:8px">
-        <span style="font-size:16px">${ico}</span>
-        <span style="font-size:12px;font-weight:800;color:var(--navy);flex:1">${r.tipoNombre}</span>
-        <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:${color}20;color:${color}">${lbl}</span>
-      </div>
-      <div style="font-size:11px;color:var(--muted);padding-left:24px">${r.fecha} ${r.horas ? '· ' + r.horas + 'h' : ''} ${r.nota ? '· ' + r.nota.slice(0, 50) : ''}</div>
-    </div>`;
+    const est   = r.estado || 'enviado';
+    const color = estadoColor[est] || '#6B7280';
+    const lbl   = estadoLbl[est]  || est;
+    const esTXT = r.nota && r.nota.includes('[SOLICITUD TXT]');
+    const tipo  = esTXT ? 'Solicitud TXT' : (r.estado || 'Incidencia');
+    const nota  = (r.nota || '').replace('[SOLICITUD TXT]','').trim().slice(0, 60);
+    return '<div class="cycle-row" style="flex-direction:column;align-items:flex-start;gap:2px;cursor:default">'
+      + '<div style="display:flex;width:100%;align-items:center;gap:8px">'
+      + '<span style="font-size:12px;font-weight:800;color:var(--navy);flex:1">' + tipo + '</span>'
+      + '<span style="font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px;background:' + color + '20;color:' + color + '">' + lbl + '</span>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">' + r.fecha + (nota ? ' · ' + nota : '') + '</div>'
+      + '</div>';
   }).join('');
 }
 
@@ -599,7 +605,7 @@ function initApp(){
   go('scr-app');
   switchTab('tiempos');
   loadSaldo();
-  renderHistorial(); // Mostrar historial guardado localmente
+  loadMisHistorial(); // Cargar historial desde Google Sheets
 }
 
 /* ═══ TAB SWITCHING ═══════════════════════════════════ */
@@ -639,11 +645,11 @@ async function loadSaldo(){
       return;
     }
     S.saldo=d;
-    // Cachear saldo en sessionStorage para carga instantánea en próximas visitas
     try{sessionStorage.setItem(PCACHE+'_saldo',JSON.stringify({data:d,ts:Date.now(),emp:S.user?.nombre}));}catch{}
     renderSaldo(d);
     go('scr-app');
     switchTab('tiempos');
+    loadMisHistorial();
   }catch{
     await loadSaldoFallback();
   }
@@ -760,7 +766,7 @@ function renderSaldo(d){
 function renderCicloList(rows){
   const el=document.getElementById('ciclo-list');
   // Ordenar ciclos del más reciente al más antiguo — declarar PRIMERO
-  const sortedRows=[...rows].sort((a,b)=>(b.cycle_from||'').localeCompare(a.cycle_from||''));
+  const sortedRows=[...rows].sort((a,b)=>(b.cycle||b.ym||'').localeCompare(a.cycle||a.ym||''));
   // Populate jump selector
   const sel=document.getElementById('cycle-jump');
   if(sel&&rows.length){
@@ -844,10 +850,11 @@ function renderDetailDays(days){
 
 function jumpToCycle(val){
   if(!val)return;
-  const [from,to]=val.split('|');
-  // Find cycle data from saldo resumen
   const rows=S.saldo?.resumen_ciclo||[];
-  const row=rows.find(r=>r.cycle_from===from&&r.cycle_to===to)||{cycle:from+' – '+to,cycle_from:from,cycle_to:to,he_calc_total_hhmm:'—',he_paid_capped_hhmm:'—',txt_total_hhmm:'—'};
+  const row=rows.find(r=>(r.cycle||r.ym||'')=== val)||{cycle:val,he_calc_total_hhmm:'—',he_paid_capped_hhmm:'—',txt_total_hhmm:'—'};
+  // Extraer from/to del campo cycle "YYYY-MM-DD_a_YYYY-MM-DD"
+  const parts=(val||'').split('_a_');
+  const from=parts[0]||'';const to=parts[1]||'';
   loadCycleDetail(from,to,row);
   document.getElementById('cycle-jump').value='';
 }
