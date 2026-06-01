@@ -330,6 +330,14 @@ textarea:focus{outline:none;border-color:var(--navy)}
           </div>
         </div>
       </div>
+      <!-- Historial personal: TXT e Incidencias -->
+      <div class="cycle-card" id="historial-personal-card" style="display:none">
+        <div class="cycle-card-hdr">
+          <div class="cycle-card-title">📋 Mis solicitudes e incidencias</div>
+          <div class="cycle-card-sub" id="historial-count"></div>
+        </div>
+        <div id="historial-list"></div>
+      </div>
     </div>
 
     <!-- Vista detalle de un ciclo (se muestra al tocar una fila) -->
@@ -360,11 +368,11 @@ textarea:focus{outline:none;border-color:var(--navy)}
           <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--ok)" id="dcyc-he-usd">—</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">🍱 Alimentación</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Alimentación</div>
           <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="dcyc-alim">—</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">🚌 Transporte</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Transporte</div>
           <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="dcyc-transp">—</div>
         </div>
       </div>
@@ -396,16 +404,18 @@ textarea:focus{outline:none;border-color:var(--navy)}
         <label class="form-label">Nota / Motivo</label>
         <textarea id="rep-nota" placeholder="Describe brevemente el motivo…" rows="4"></textarea>
       </div>
-      <!-- FOTO -->
+      <!-- FOTO: dos opciones — cámara o galería -->
       <div>
-        <input type="file" id="foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
+        <input type="file" id="foto-input-cam" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
+        <input type="file" id="foto-input-gal" accept="image/*" style="display:none" onchange="previewFoto(this)">
         <div id="foto-preview" style="display:none;margin-bottom:8px;position:relative;border-radius:var(--r);overflow:hidden">
           <img id="foto-img" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--r)">
           <button onclick="clearFoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;line-height:1">×</button>
         </div>
-        <button id="foto-btn" onclick="document.getElementById('foto-input').click()" style="width:100%;background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;font-family:var(--ff)">
-          📷 Adjuntar foto / evidencia (opcional)
-        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="document.getElementById('foto-input-cam').click()" style="background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:11px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;font-family:var(--ff)">📷 Tomar foto</button>
+          <button onclick="document.getElementById('foto-input-gal').click()" style="background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:11px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;font-family:var(--ff)">🖼 Desde galería</button>
+        </div>
       </div>
       <button class="btn-primary" id="rep-submit-btn" onclick="submitIncidencia()">📤 Enviar reporte</button>
     </div>
@@ -532,6 +542,56 @@ document.getElementById('pk-ok').addEventListener('click',async()=>{
 });
 
 /* ═══ APP INIT ═══════════════════════════════════════ */
+
+/* ═══ HISTORIAL LOCAL (TXT + incidencias) ══════════════════════ */
+const HIST_KEY = 'mt_historial_v1';
+
+function saveLocalRecord(record) {
+  try {
+    const key = HIST_KEY + '_' + (S.user?.nombre || 'anon');
+    const hist = JSON.parse(localStorage.getItem(key) || '[]');
+    hist.unshift({ ...record, ts: Date.now() });
+    // Guardar máximo 20 registros
+    localStorage.setItem(key, JSON.stringify(hist.slice(0, 20)));
+    renderHistorial();
+  } catch {}
+}
+
+function loadLocalRecords() {
+  try {
+    const key = HIST_KEY + '_' + (S.user?.nombre || 'anon');
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  } catch { return []; }
+}
+
+function renderHistorial() {
+  const records = loadLocalRecords();
+  const card = document.getElementById('historial-personal-card');
+  const list  = document.getElementById('historial-list');
+  const count = document.getElementById('historial-count');
+  if (!card || !list) return;
+  if (!records.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  count.textContent = records.length + ' registro' + (records.length !== 1 ? 's' : '');
+
+  const estadoColor = { enviado:'#2563EB', pendiente:'#D97706', aprobado:'#059669', rechazado:'#DC2626' };
+  const estadoLbl   = { enviado:'Enviado', pendiente:'Pendiente', aprobado:'Aprobado ✓', rechazado:'Rechazado' };
+
+  list.innerHTML = records.map(r => {
+    const color = estadoColor[r.estado] || '#6B7280';
+    const lbl   = estadoLbl[r.estado]  || r.estado;
+    const ico   = r.tipo === 'txt' ? '⏱' : '🚨';
+    return `<div class="cycle-row" style="flex-direction:column;align-items:flex-start;gap:3px;cursor:default">
+      <div style="display:flex;width:100%;align-items:center;gap:8px">
+        <span style="font-size:16px">${ico}</span>
+        <span style="font-size:12px;font-weight:800;color:var(--navy);flex:1">${r.tipoNombre}</span>
+        <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:${color}20;color:${color}">${lbl}</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);padding-left:24px">${r.fecha} ${r.horas ? '· ' + r.horas + 'h' : ''} ${r.nota ? '· ' + r.nota.slice(0, 50) : ''}</div>
+    </div>`;
+  }).join('');
+}
+
 function initApp(){
   document.getElementById('dh-nombre').textContent=S.user?.nombre||'—';
   document.getElementById('dh-role').textContent=S.user?.cargo||'Colaborador CEDIS';
@@ -539,6 +599,7 @@ function initApp(){
   go('scr-app');
   switchTab('tiempos');
   loadSaldo();
+  renderHistorial(); // Mostrar historial guardado localmente
 }
 
 /* ═══ TAB SWITCHING ═══════════════════════════════════ */
@@ -811,9 +872,15 @@ function selectTipo(id){
 }
 function repBack(){document.getElementById('rep-step-a').style.display='block';document.getElementById('rep-step-b').classList.remove('show');}
 function repReset(){document.getElementById('rep-step-a').style.display='block';document.getElementById('rep-step-b').classList.remove('show');document.getElementById('rep-step-c').style.display='none';S.selTipo=null;}
-function previewFoto(input){if(!input.files[0])return;const r=new FileReader();r.onload=e=>{document.getElementById('foto-img').src=e.target.result;document.getElementById('foto-preview').style.display='block';document.getElementById('foto-btn').textContent='📷 Cambiar foto';};r.readAsDataURL(input.files[0]);}
-function clearFoto(){document.getElementById('foto-input').value='';document.getElementById('foto-preview').style.display='none';document.getElementById('foto-btn').textContent='📷 Adjuntar foto / evidencia (opcional)';}
-async function getFotoBase64(){const input=document.getElementById('foto-input');if(!input||!input.files[0])return null;return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(input.files[0]);});}
+function previewFoto(input){if(!input.files[0])return;const r=new FileReader();r.onload=e=>{document.getElementById('foto-img').src=e.target.result;document.getElementById('foto-preview').style.display='block';};r.readAsDataURL(input.files[0]);}
+function clearFoto(){['foto-input-cam','foto-input-gal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('foto-preview').style.display='none';}
+async function getFotoBase64(){
+  const cam=document.getElementById('foto-input-cam');
+  const gal=document.getElementById('foto-input-gal');
+  const input=(cam&&cam.files[0])?cam:(gal&&gal.files[0])?gal:null;
+  if(!input||!input.files[0])return null;
+  return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(input.files[0]);});
+}
 async function submitIncidencia(){
   const nota=document.getElementById('rep-nota').value.trim();
   if(!nota){toast('⚠️ Escribe una nota con el motivo.');return;}
@@ -822,13 +889,16 @@ async function submitIncidencia(){
   const fotoData=await getFotoBase64();
   const payload={action:'reportIncidencia',pin:S.user?.pin,nombre,tipo:t.id,estado:t.est,nota,fecha:todayISO()};
   if(fotoData)payload.fotoData=fotoData;
-  let ok=false;
-  try{const res=await fetch(GAS_INC,{method:'POST',body:JSON.stringify(payload)});const d=await res.json();ok=d.result==='success'||d.ok!==false;}catch{ok=false;}
+  let ok=false;let driveLink='';
+  try{const res=await fetch(GAS_INC,{method:'POST',body:JSON.stringify(payload)});const d=await res.json();ok=d.result==='success'||d.ok!==false;driveLink=d.driveLink||'';}catch{ok=false;}
   btn.disabled=false;btn.textContent='📤 Enviar reporte';
   if(!ok){toast('⚠️ Error al enviar. Reintenta.');return;}
+  // Guardar incidencia en historial local del colaborador
+  saveLocalRecord({tipo:'incidencia',tipoNombre:t.lbl,fecha:todayISO(),nota,estado:'enviado'});
   document.getElementById('rep-step-b').classList.remove('show');
   document.getElementById('rep-confirm-rows').innerHTML='<div class="confirm-row"><span class="confirm-row-lbl">Colaborador</span><span class="confirm-row-val">'+nombre+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Tipo</span><span class="confirm-row-val">'+t.em+' '+t.lbl+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Fecha</span><span class="confirm-row-val">'+todayISO()+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Nota</span><span class="confirm-row-val">'+nota.slice(0,60)+'</span></div>';
-  const msg='🚨 *INCIDENCIA CEDIS*\n*Colaborador:* '+nombre+'\n*Tipo:* '+t.lbl+'\n*Fecha:* '+todayISO()+'\n*Motivo:* '+nota;
+  const fotoMsgPart=driveLink?'\n📎 Evidencia: '+driveLink:'';
+  const msg='🚨 *INCIDENCIA CEDIS*\n*Colaborador:* '+nombre+'\n*Tipo:* '+t.lbl+'\n*Fecha:* '+todayISO()+'\n*Motivo:* '+nota+fotoMsgPart;
   document.getElementById('rep-wa-btn').onclick=()=>openWA(msg);
   document.getElementById('rep-step-c').style.display='flex';
   setTimeout(()=>openWA(msg),800);
@@ -862,6 +932,8 @@ async function submitTXT(){
   document.getElementById('txt-confirm-rows').innerHTML='<div class="confirm-row"><span class="confirm-row-lbl">Colaborador</span><span class="confirm-row-val">'+nombre+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Fecha solicitada</span><span class="confirm-row-val">'+fecha+'</span></div><div class="confirm-row"><span class="confirm-row-lbl">Horas</span><span class="confirm-row-val">'+horas+'h</span></div><div class="confirm-row"><span class="confirm-row-lbl">Estado</span><span class="confirm-row-val">Pendiente aprobación</span></div>';
   const msg='⏱ *SOLICITUD TXT — CEDIS*\n*Colaborador:* '+nombre+'\n*Fecha:* '+fecha+'\n*Horas:* '+horas+'h\n*Motivo:* '+nota;
   document.getElementById('txt-wa-btn').onclick=()=>openWA(msg);
+  // Guardar en historial local
+  saveLocalRecord({tipo:'txt',tipoNombre:'Solicitud TXT',fecha,horas:horas+'h',nota,estado:'pendiente'});
   document.getElementById('txt-step-a').style.display='none';
   document.getElementById('txt-step-b').style.display='flex';
   setTimeout(()=>openWA(msg),800);
@@ -889,7 +961,7 @@ function mostrarPermiso(){
 
   // Jefes disponibles — se ampliará con más jefes después
   const JEFES=[
-    {nombre:'Ing. Paola Moreno', cargo:'Jefe de Almacén — CEDIS Panamá'},
+    {nombre:'Ing. Paola Moreno', cargo:'CEDIS Panamá'},
   ];
 
   // Crear modal inline (funciona en móvil — sin window.open)
@@ -915,6 +987,7 @@ function mostrarPermiso(){
   <button onclick="document.getElementById('permiso-modal').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">← Volver</button>
   <span style="color:rgba(255,255,255,.6);font-size:12px;flex:1">Permiso de Salida · ${reqNum}</span>
   <button onclick="window.print()" style="background:#F59E0B;border:none;color:#0B1F3A;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">🖨 Imprimir / PDF</button>
+  <button onclick="compartirPermisoWA()" style="background:#25D366;border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💬 WA</button>
 </div>
 
 <!-- Selector de Jefe -->
@@ -930,72 +1003,84 @@ function mostrarPermiso(){
 <div id="permiso-page" style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:28px 32px;box-shadow:0 2px 12px rgba(0,0,0,.08)">
 
   <!-- Encabezado CSS -->
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-    <div style="text-align:center;flex:1">
-      <div style="font-size:13px;font-weight:bold;line-height:1.4">CAJA DE SEGURO SOCIAL</div>
-      <div style="font-size:12px;line-height:1.4">DIRECCIÓN DE PERSONAL</div>
-      <div style="font-size:13px;font-weight:bold;line-height:1.4">PERMISO DE SALIDA</div>
+  <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px">
+    <img src="./icons/icon-512.png" alt="CSS" style="width:52px;height:52px;object-fit:contain;flex-shrink:0">
+    <div style="flex:1;text-align:center">
+      <div style="font-size:13px;font-weight:bold">CAJA DE SEGURO SOCIAL</div>
+      <div style="font-size:12px">DIRECCIÓN DE PERSONAL</div>
+      <div style="font-size:13px;font-weight:bold">PERMISO DE SALIDA</div>
     </div>
-    <div style="font-size:10px;color:#555;white-space:nowrap;padding-left:12px">Cód.02-970-22</div>
+    <div style="font-size:10px;color:#555;white-space:nowrap">Cód.02-970-22</div>
   </div>
-  <hr style="border:1px solid #000;margin:8px 0 16px">
+  <hr style="border:1.5px solid #000;margin:6px 0 14px">
 
   <!-- Fecha -->
-  <p style="font-size:12px;margin-bottom:16px">
-    Panamá, <span style="border-bottom:1px solid #000;display:inline-block;min-width:30px;text-align:center">${dia}</span>
-    de <span style="border-bottom:1px solid #000;display:inline-block;min-width:80px;text-align:center">${mes}</span>
-    de <span style="border-bottom:1px solid #000;display:inline-block;min-width:50px;text-align:center">${anio}</span>
+  <p style="font-size:12px;margin-bottom:14px">
+    Panamá, <u style="min-width:24px;display:inline-block;text-align:center">${dia}</u>
+    de <u style="min-width:72px;display:inline-block;text-align:center">${mes}</u>
+    de <u style="min-width:44px;display:inline-block;text-align:center">${anio}</u>
   </p>
 
   <!-- Destinatario -->
-  <p style="font-size:12px;margin-bottom:6px">
-    Sr(a): <span id="p-jefe-nombre" style="border-bottom:1px solid #000;display:inline-block;min-width:220px;font-weight:bold">${JEFES[0].nombre}</span>
-  </p>
-  <p style="font-size:12px;margin-bottom:16px">
-    JEFE DE: <span id="p-jefe-cargo" style="border-bottom:1px solid #000;display:inline-block;min-width:220px">${JEFES[0].cargo}</span>
-  </p>
+  <p style="font-size:12px;margin-bottom:5px">Sr(a): <u id="p-jefe-nombre" style="min-width:200px;display:inline-block">${JEFES[0].nombre}</u></p>
+  <p style="font-size:12px;margin-bottom:14px">JEFE DE: <u id="p-jefe-cargo" style="min-width:200px;display:inline-block">${JEFES[0].cargo}</u></p>
 
   <!-- Cuerpo -->
-  <p style="font-size:12px;line-height:1.7;margin-bottom:8px">
-    Por este medio solicito a UD., me conceda permiso para ausentarme del lugar de trabajo,
+  <p style="font-size:12px;line-height:1.8;margin-bottom:6px">Por este medio solicito a UD., me conceda permiso para ausentarme del lugar de trabajo,</p>
+  <p style="font-size:12px;margin-bottom:14px">
+    el día <u style="min-width:24px;display:inline-block;text-align:center">${dia}</u>,
+    a partir de las <u style="min-width:44px;display:inline-block;text-align:center">07:30</u>
+    hasta las <u style="min-width:44px;display:inline-block;text-align:center">${hFin}</u>
   </p>
-  <p style="font-size:12px;margin-bottom:16px">
-    el día <span style="border-bottom:1px solid #000;display:inline-block;min-width:30px;text-align:center">${dia}</span>,
-    a partir de las <span style="border-bottom:1px solid #000;display:inline-block;min-width:50px;text-align:center">07:30</span>
-    hasta las <span style="border-bottom:1px solid #000;display:inline-block;min-width:50px;text-align:center">${hFin}</span>
-  </p>
-  <p style="font-size:12px;margin-bottom:6px">Este permiso es con el objeto de:</p>
-  <p style="border:1px solid #555;padding:8px 10px;min-height:40px;font-size:12px;margin-bottom:28px">${nota}</p>
+  <p style="font-size:12px;margin-bottom:5px">Este permiso es con el objeto de:</p>
+  <div style="border:1px solid #666;padding:8px 10px;min-height:42px;font-size:12px;margin-bottom:30px">${nota}</div>
 
-  <!-- Firmas -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:20px">
-    <div>
-      <div style="border-top:1px solid #000;padding-top:5px;text-align:center">
-        <div style="font-size:11px;margin-bottom:2px">V°B°:</div>
-        <div style="font-size:11px;margin-top:20px" id="p-jefe-firma">${JEFES[0].nombre}</div>
+  <!-- Firmas: V°B° izquierda, Atentamente derecha -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:8px">
+    <!-- IZQUIERDA: VoBo -->
+    <div style="text-align:center">
+      <div style="height:40px"></div>
+      <div style="border-top:1px solid #000;padding-top:5px">
+        <div style="font-size:11px;font-weight:bold" id="p-jefe-firma">${JEFES[0].nombre}</div>
         <div style="font-size:11px">Jefe de la Unidad Ejecutora</div>
       </div>
+      <div style="font-size:11px;margin-top:3px;text-align:left">V°B°:</div>
     </div>
-    <div>
-      <div style="border-top:1px solid #000;padding-top:5px;text-align:center">
-        <div style="font-size:11px;margin-bottom:2px">Atentamente,</div>
-        <div style="font-size:11px">&nbsp;</div>
+    <!-- DERECHA: Atentamente ARRIBA, luego línea y firma -->
+    <div style="text-align:center">
+      <div style="font-size:11px;text-align:left;margin-bottom:2px">Atentamente,</div>
+      <div style="height:40px"></div>
+      <div style="border-top:1px solid #000;padding-top:5px">
         <div style="font-size:11px">Firma.</div>
-        <div style="font-size:11px;margin-top:4px;font-weight:bold">${nombre}</div>
+        <div style="font-size:11px;font-weight:bold;margin-top:4px">${nombre}</div>
         <div style="font-size:11px">Nombre del Solicitante:</div>
       </div>
     </div>
   </div>
 
-  <!-- Footer -->
-  <div style="text-align:right;margin-top:14px;font-size:9px;color:#888">Imp. CASESO</div>
-  <div style="text-align:center;margin-top:8px;font-size:9px;color:#aaa">
-    Generado desde Portal del Colaborador CEDIS · ${todayISO()} · ${reqNum}
+  <!-- Pie -->
+  <div style="text-align:right;margin-top:12px;font-size:9px;color:#999">Imp. CASESO</div>
+  <div style="text-align:center;margin-top:6px;font-size:9px;color:#bbb">
+    Generado · Portal Colaborador CEDIS · ${todayISO()} · ${reqNum}
   </div>
-</div>
-</div>`;
 
   document.body.appendChild(modal);
+
+  // Función para compartir el permiso por WhatsApp como texto
+  window.compartirPermisoWA = function(){
+    const jIdx = parseInt(document.getElementById('jefe-sel')?.value||'0');
+    const j = JEFES[jIdx];
+    const msg = '📄 *PERMISO DE SALIDA — CSS*'
+      +'\n*Cód.02-970-22 · '+reqNum+'*'
+      +'\n\n*Solicitante:* '+nombre
+      +'\n*Dirigido a:* '+j.nombre
+      +'\n*Jefe de:* '+j.cargo
+      +'\n*Fecha:* '+dia+' de '+mes+' de '+anio
+      +'\n*Horario:* 07:30 – '+hFin+' ('+horas+'h)'
+      +'\n*Objeto:* '+nota
+      +'\n\n_Generado desde Portal del Colaborador CEDIS_';
+    openWA(msg);
+  };
 
   // Función para actualizar jefe en el formulario
   window.actualizarJefe=function(){
@@ -1003,6 +1088,7 @@ function mostrarPermiso(){
     const j=JEFES[idx];
     document.getElementById('p-jefe-nombre').textContent=j.nombre;
     document.getElementById('p-jefe-cargo').textContent=j.cargo;
+    document.getElementById('p-jefe-firma').textContent=j.nombre;
     document.getElementById('p-jefe-firma').textContent=j.nombre;
   };
 }
