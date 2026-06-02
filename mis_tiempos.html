@@ -304,9 +304,9 @@ textarea:focus{outline:none;border-color:var(--navy)}
           <div class="kpi-sub">total histórico</div>
         </div>
         <div class="kpi-card green">
-          <div class="kpi-lbl">Total a Cobrar</div>
-          <div class="kpi-val" id="saldo-total-usd">—</div>
-          <div class="kpi-sub">HE + beneficios</div>
+          <div class="kpi-lbl">HE Trabajadas</div>
+          <div class="kpi-val" id="saldo-he-trab">—</div>
+          <div class="kpi-sub">total reconocido</div>
         </div>
       </div>
 
@@ -355,7 +355,6 @@ textarea:focus{outline:none;border-color:var(--navy)}
           <span class="cycle-total-lbl">TOTAL ACUMULADO</span>
           <div class="cycle-total-vals">
             <span class="cycle-total-val" style="color:var(--gold)" id="total-txt-all">—</span>
-            <span class="cycle-total-val" style="color:var(--ok)" id="total-usd-all">—</span>
           </div>
         </div>
       </div>
@@ -385,15 +384,15 @@ textarea:focus{outline:none;border-color:var(--navy)}
       <!-- Benefits row -->
       <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px" id="dcyc-benefits">
         <div style="text-align:center">
-          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">HE USD</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">HE Trabajadas</div>
           <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--ok)" id="dcyc-he-usd">—</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Alimentación</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Días Alimentación</div>
           <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="dcyc-alim">—</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Transporte</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Días Transporte</div>
           <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="dcyc-transp">—</div>
         </div>
       </div>
@@ -849,7 +848,7 @@ function renderSaldo(d){
     usadoEl.style.display=usadoMin>0?'block':'none';
   }
   document.getElementById('saldo-he-calc').textContent=d.total_he_calc_hhmm||'00:00';
-  document.getElementById('saldo-total-usd').textContent='$'+(d.total_usd||0).toFixed(2);
+  const heTrabEl=document.getElementById('saldo-he-trab');if(heTrabEl)heTrabEl.textContent=d.total_he_calc_hhmm||d.total_he_paid_hhmm||'00:00';
   const fc=d._fallback_cycle;
   document.getElementById('saldo-ciclos-note').textContent=isFallback
     ?'⚠ Ciclo: '+(fc?fc.from+' → '+fc.to:'más reciente')+' · Instala endpoint saldo para historial completo'
@@ -857,7 +856,7 @@ function renderSaldo(d){
 
   // Cycle total row
   document.getElementById('total-txt-all').textContent=d.saldo_txt_hhmm||'00:00';
-  document.getElementById('total-usd-all').textContent='$'+(d.total_usd||0).toFixed(2);
+  // USD removido — solo tiempo visible para el colaborador
 
   // Cycle table
   renderCicloList(d.resumen_ciclo||[]);
@@ -887,12 +886,10 @@ function renderCicloList(rows){
   el.innerHTML=sortedRows.map(r=>{
     const txtMin=hhmm2m(r.txt_total_hhmm||'00:00');
     const dotColor=txtMin>0?'var(--gold)':hhmm2m(r.he_paid_capped_hhmm||'00:00')>0?'var(--ok)':'#CBD5E1';
-    const heUSD=+(r.he_amount_paid_capped||0);
-    const alim=+(r.alim_total||0);
-    const transp=+(r.transp_total||0);
-    const tot=heUSD+alim+transp;
-    const benNote=alim>0||transp>0?' 🍱$'+alim.toFixed(0)+' 🚌$'+transp.toFixed(0):'';
-    return '<div class="cycle-row" onclick="loadCycleDetail(\''+r.cycle_from+'\',\''+r.cycle_to+'\','+JSON.stringify(r).replace(/"/g,"'")+')">'      +'<div class="cycle-dot" style="background:'+dotColor+'"></div>'      +'<div class="cycle-name" style="flex:1">'+(r.cycle||'—')+'<br><span style="font-size:9px;color:#94a3b8">'+r.he_paid_capped_hhmm+' pagadas</span></div>'      +'<div style="text-align:right"><div class="cycle-txt">'+(txtMin>0?r.txt_total_hhmm:'—')+'</div><div style="font-size:9.5px;color:var(--ok)">$'+tot.toFixed(2)+'<span style="font-size:8.5px;color:#94a3b8">'+benNote+'</span></div></div>'      +'<div class="cycle-chev">›</div>'
+    const diasSobre=+(r.dias_sobretiempo||r.dias_con_beneficio||0);
+    const heTrabajadas=r.he_calc_total_hhmm||r.he_paid_capped_hhmm||'00:00';
+    const diasNote=diasSobre>0?diasSobre+(diasSobre===1?' día':' días')+' c/sobretiempo':'';
+    return '<div class="cycle-row" onclick="loadCycleDetail(\''+r.cycle_from+'\',\''+r.cycle_to+'\','+JSON.stringify(r).replace(/"/g,"'")+')">'      +'<div class="cycle-dot" style="background:'+dotColor+'"></div>'      +'<div class="cycle-name" style="flex:1">'+(r.cycle||'—')+'<br><span style="font-size:9px;color:#94a3b8">'+(r.he_calc_total_hhmm||r.he_paid_capped_hhmm)+' HE trabajadas</span></div>'      +'<div style="text-align:right"><div class="cycle-txt">'+(txtMin>0?r.txt_total_hhmm:'—')+'</div><div style="font-size:9px;color:#94a3b8">'+diasNote+'</div></div>'      +'<div class="cycle-chev">›</div>'
       +'</div>';
   }).join('');
 }
@@ -908,9 +905,9 @@ async function loadCycleDetail(from, to, cycleData){
   document.getElementById('dcyc-he-calc').textContent=cycleData.he_calc_total_hhmm||'00:00';
   document.getElementById('dcyc-he-paid').textContent=cycleData.he_paid_capped_hhmm||'00:00';
   document.getElementById('dcyc-txt').textContent=cycleData.txt_total_hhmm||'00:00';
-  document.getElementById('dcyc-he-usd').textContent='$'+(+(cycleData.he_amount_paid_capped||0)).toFixed(2);
-  document.getElementById('dcyc-alim').textContent='$'+(+(cycleData.alim_total||0)).toFixed(2);
-  document.getElementById('dcyc-transp').textContent='$'+(+(cycleData.transp_total||0)).toFixed(2);
+  document.getElementById('dcyc-he-usd').textContent=cycleData.he_calc_total_hhmm||cycleData.he_paid_capped_hhmm||'00:00';
+  document.getElementById('dcyc-alim').textContent=(+(cycleData.dias_alimentacion||0))+' días';
+  document.getElementById('dcyc-transp').textContent=(+(cycleData.dias_transporte||0))+' días';
 
   // Check cache
   const cacheKey=from+'|'+to;
