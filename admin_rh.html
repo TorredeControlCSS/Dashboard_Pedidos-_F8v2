@@ -234,6 +234,97 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
     </div>
   </div>
 
+  <!-- ══ CARGA DEL BIOMÉTRICO (para RH) ══ -->
+  <div class="full-panel" style="margin-top:14px">
+    <div class="panel-hdr">
+      <div class="panel-title">📥 Cargar Reporte Biométrico</div>
+      <span class="panel-badge info">Uso administrativo</span>
+    </div>
+    <div style="padding:16px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Sube el archivo del reloj biométrico (.xls). El sistema lo procesa automáticamente y actualiza las marcaciones.
+        No necesitas abrir Google Drive ni convertir nada.
+      </p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="bio-file" accept=".xls,.xlsx" style="display:none" onchange="prepararCargaBio(this)">
+        <button onclick="document.getElementById('bio-file').click()" style="background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:700;color:#374151;cursor:pointer;font-family:var(--ff)">📁 Seleccionar archivo .xls</button>
+        <span id="bio-filename" style="font-size:12px;color:var(--muted)"></span>
+        <button onclick="cargarBiometrico()" id="bio-upload-btn" style="display:none;background:var(--ok);color:#fff;border:none;border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--ff)">⬆ Procesar archivo</button>
+      </div>
+      <div id="bio-msg" style="margin-top:12px;font-size:12px;font-weight:700"></div>
+    </div>
+  </div>
+
+  <!-- ══ AJUSTE DE TIEMPOS TXT (para RH) ══ -->
+  <div class="full-panel" style="margin-top:14px">
+    <div class="panel-hdr">
+      <div class="panel-title">⚖️ Ajuste de Tiempos TXT</div>
+      <span class="panel-badge info">Uso administrativo</span>
+    </div>
+    <div style="padding:16px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Registra cuando un colaborador <b>usa</b> horas de su saldo TXT. El descuento se aplica al instante en su app.
+        Para ver o ajustar, primero selecciona al colaborador.
+      </p>
+
+      <!-- Selector + saldo -->
+      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:16px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Colaborador</label>
+          <select id="txt-emp-sel" onchange="cargarSaldoEmp()" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:13px;font-family:var(--ff);margin-top:4px">
+            <option value="">Selecciona un colaborador…</option>
+          </select>
+        </div>
+        <button onclick="cargarSaldoEmp()" class="btn-refresh" style="background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700;padding:9px 16px">🔍 Ver saldo</button>
+      </div>
+
+      <!-- Tarjeta de saldo -->
+      <div id="txt-saldo-card" style="display:none;background:var(--bg);border-radius:var(--r);padding:16px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Acumulado</div>
+            <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--navy)" id="txt-acum">—</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Usado</div>
+            <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--bad)" id="txt-usado">—</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Saldo Neto</div>
+            <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:var(--ok)" id="txt-neto">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario de registro de uso -->
+      <div id="txt-form" style="display:none;border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:12px">Registrar uso de TXT</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:10px;align-items:end">
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Fecha de uso</label>
+            <input type="date" id="txt-fecha" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:var(--ff);margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Horas usadas</label>
+            <input type="number" id="txt-horas" step="0.5" min="0.5" placeholder="4" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:var(--ff);margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Motivo / Nota</label>
+            <input type="text" id="txt-motivo" placeholder="Permiso personal, cita, etc." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:var(--ff);margin-top:4px">
+          </div>
+          <button onclick="registrarUsoTXT()" id="txt-submit-btn" style="background:var(--ok);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--ff)">Registrar</button>
+        </div>
+        <div id="txt-msg" style="margin-top:10px;font-size:12px;font-weight:700"></div>
+      </div>
+
+      <!-- Historial de usos del colaborador -->
+      <div id="txt-historial" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:10px">Usos registrados</div>
+        <div id="txt-hist-list"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ COMPARATIVA: BIOMÉTRICO VS LISTAS ══ -->
   <div class="full-panel" style="margin-top:14px">
     <div class="panel-hdr">
@@ -292,6 +383,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 const GAS_INC = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec';
 const GAS_BIO = 'https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec';
 const TOKEN   = 'RH_DINALOG';
+const GAS_INGESTADOR = 'PEGAR_URL_DEL_INGESTADOR_AQUI'; // URL del web app del Ingestador Biométrico
 const PCACHE  = 'admin_v1';
 const PCACHE_TTL = 4*3600*1000;
 // Admin PINs — estos corresponden a roles de jefatura en PERSONAL
@@ -369,6 +461,7 @@ function lockAdmin(){
 
 /* ═══ REFRESH ALL ══════════════════════════════════ */
 function refreshAll(){
+  loadEmpleadosTXT();
   loadIncidencias();
   loadBioAll();
 }
@@ -708,6 +801,147 @@ let compData = [];
   document.getElementById('comp-from').value=fmt(s);
   document.getElementById('comp-to').value=fmt(e);
 })();
+
+
+
+/* ═══ CARGA DEL BIOMÉTRICO desde front-end ═════════════════════ */
+let BIO_FILE_DATA = null;
+let BIO_FILE_NAME = '';
+
+function prepararCargaBio(input){
+  if(!input.files[0])return;
+  const file=input.files[0];
+  BIO_FILE_NAME=file.name;
+  document.getElementById('bio-filename').textContent=file.name;
+  document.getElementById('bio-upload-btn').style.display='inline-block';
+  const reader=new FileReader();
+  reader.onload=e=>{ BIO_FILE_DATA=e.target.result; };
+  reader.readAsDataURL(file);
+}
+
+async function cargarBiometrico(){
+  const msg=document.getElementById('bio-msg');
+  const btn=document.getElementById('bio-upload-btn');
+  if(!BIO_FILE_DATA){ msg.style.color='var(--bad)'; msg.textContent='Selecciona un archivo primero.'; return; }
+  if(GAS_INGESTADOR.indexOf('PEGAR_URL')>=0){ msg.style.color='var(--bad)'; msg.textContent='Falta configurar la URL del Ingestador.'; return; }
+
+  btn.disabled=true; btn.textContent='Procesando…';
+  msg.style.color='var(--info)'; msg.textContent='Subiendo y procesando archivo… esto puede tomar un momento.';
+  try{
+    const res=await fetch(GAS_INGESTADOR,{
+      method:'POST',
+      body:JSON.stringify({ action:'cargarBiometrico', fileName:BIO_FILE_NAME.replace(/\.[^.]+$/,''), fileData:BIO_FILE_DATA })
+    });
+    const d=await res.json();
+    btn.disabled=false; btn.textContent='⬆ Procesar archivo';
+    if(d.ok){
+      msg.style.color='var(--ok)';
+      msg.textContent='✓ '+(d.mensaje||'Archivo procesado correctamente.');
+      document.getElementById('bio-filename').textContent='';
+      document.getElementById('bio-upload-btn').style.display='none';
+      BIO_FILE_DATA=null;
+    } else {
+      msg.style.color='var(--bad)';
+      msg.textContent='Error: '+(d.error||'no se pudo procesar');
+    }
+  }catch(e){
+    btn.disabled=false; btn.textContent='⬆ Procesar archivo';
+    msg.style.color='var(--bad)'; msg.textContent='Error de conexión: '+e.message;
+  }
+}
+
+/* ═══ AJUSTE DE TIEMPOS TXT (panel RH front-end) ═══════════════ */
+let TXT_EMP_LIST = [];
+
+async function loadEmpleadosTXT(){
+  try{
+    const res=await fetch(GAS_INC+'?file=personal&_='+Date.now());
+    const d=await res.json();
+    // d puede venir como {personal:[...]} o array directo
+    const arr=d.personal||d.data||d||[];
+    TXT_EMP_LIST=arr.map(p=>p.nombre||p.NOMBRE||p.name).filter(Boolean).sort();
+    const sel=document.getElementById('txt-emp-sel');
+    if(sel){
+      sel.innerHTML='<option value="">Selecciona un colaborador…</option>'+
+        TXT_EMP_LIST.map(n=>'<option value="'+n+'">'+n+'</option>').join('');
+    }
+  }catch(e){ console.error('Error cargando empleados:',e); }
+}
+
+async function cargarSaldoEmp(){
+  const emp=document.getElementById('txt-emp-sel').value;
+  if(!emp)return;
+  const card=document.getElementById('txt-saldo-card');
+  const form=document.getElementById('txt-form');
+  const hist=document.getElementById('txt-historial');
+  document.getElementById('txt-acum').textContent='…';
+  document.getElementById('txt-usado').textContent='…';
+  document.getElementById('txt-neto').textContent='…';
+  card.style.display='block';
+  try{
+    const res=await fetch(GAS_BIO+'?action=saldo&token='+TOKEN+'&employee='+encodeURIComponent(emp)+'&_='+Date.now());
+    const d=await res.json();
+    if(!d.ok){ toast('No se pudo cargar saldo: '+(d.error||'')); return; }
+    document.getElementById('txt-acum').textContent=d.txt_acumulado_hhmm||d.saldo_txt_hhmm||'00:00';
+    document.getElementById('txt-usado').textContent=d.txt_usado_hhmm||'00:00';
+    document.getElementById('txt-neto').textContent=d.saldo_txt_hhmm||'00:00';
+    form.style.display='block';
+    // Fecha por defecto = hoy
+    document.getElementById('txt-fecha').value=new Date().toISOString().slice(0,10);
+    // Historial de usos aprobados
+    if(d.txt_aprobados&&d.txt_aprobados.length){
+      hist.style.display='block';
+      document.getElementById('txt-hist-list').innerHTML=d.txt_aprobados.map(u=>
+        '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">'
+        +'<span>'+u.fecha_uso+' · '+u.horas_usadas+'h</span>'
+        +'<span style="color:var(--muted)">'+(u.seq_num||'')+' · '+(u.aprobado_por||'')+'</span>'
+        +'</div>'
+      ).join('');
+    } else {
+      hist.style.display='block';
+      document.getElementById('txt-hist-list').innerHTML='<div style="font-size:12px;color:var(--muted)">Sin usos registrados aún.</div>';
+    }
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+async function registrarUsoTXT(){
+  const emp=document.getElementById('txt-emp-sel').value;
+  const fecha=document.getElementById('txt-fecha').value;
+  const horas=parseFloat(document.getElementById('txt-horas').value||0);
+  const motivo=document.getElementById('txt-motivo').value||'Ajuste administrativo RH';
+  const msg=document.getElementById('txt-msg');
+  const btn=document.getElementById('txt-submit-btn');
+
+  if(!emp||!fecha||!horas){ msg.style.color='var(--bad)'; msg.textContent='Completa colaborador, fecha y horas.'; return; }
+
+  btn.disabled=true; btn.textContent='Registrando…';
+  const adminName=(A.user&&A.user.nombre)||'RH';
+  const seqNum='RH-'+fecha.replace(/-/g,'')+'-'+Math.floor(Math.random()*900+100);
+  try{
+    const res=await fetch(GAS_BIO+'?action=registrarTXT&token='+TOKEN
+      +'&employee='+encodeURIComponent(emp)
+      +'&fecha_uso='+encodeURIComponent(fecha)
+      +'&horas='+horas
+      +'&seq_num='+encodeURIComponent(seqNum)
+      +'&aprobado_por='+encodeURIComponent(adminName+' ('+motivo+')')
+      +'&_='+Date.now());
+    const d=await res.json();
+    btn.disabled=false; btn.textContent='Registrar';
+    if(d.ok){
+      msg.style.color='var(--ok)';
+      msg.textContent='✓ '+horas+'h registradas. Saldo actualizado en la app del colaborador.';
+      document.getElementById('txt-horas').value='';
+      document.getElementById('txt-motivo').value='';
+      cargarSaldoEmp(); // refrescar saldo
+    } else {
+      msg.style.color='var(--bad)';
+      msg.textContent='Error: '+(d.error||'no se pudo registrar');
+    }
+  }catch(e){
+    btn.disabled=false; btn.textContent='Registrar';
+    msg.style.color='var(--bad)'; msg.textContent='Error de conexión: '+e.message;
+  }
+}
 
 async function loadComparativa(){
   const from=document.getElementById('comp-from').value;
