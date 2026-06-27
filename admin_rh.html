@@ -173,6 +173,20 @@ body.solo-lectura .vac-cols{grid-template-columns:1fr}
 .ro-banner{display:none}
 body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:var(--info-bg);color:var(--info);border:1px solid #bfdbfe;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;margin-bottom:14px}
 
+/* CAPACIDAD POR ÁREA */
+.cap-row{display:grid;grid-template-columns:140px 1fr 120px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.cap-row:last-child{border-bottom:none}
+.cap-area-name{font-size:13px;font-weight:800;color:var(--navy)}
+.cap-bar-wrap{background:var(--bg);border-radius:20px;height:14px;overflow:hidden}
+.cap-bar{height:100%;border-radius:20px;transition:width .5s ease}
+.cap-area-val{font-size:12px;font-weight:700;font-family:var(--mono);color:var(--muted);text-align:right}
+@media(max-width:640px){.cap-row{grid-template-columns:90px 1fr 86px;gap:8px}.cap-area-name{font-size:11px}}
+
+/* PERFIL DIRECCIÓN: ocultar herramientas operativas (no carga biométrico ni ajusta TXT) */
+body.perfil-direccion #panel-carga-bio,
+body.perfil-direccion #panel-txt,
+body.perfil-direccion #panel-comparativa{display:none !important}
+
 /* VACACIONES */
 .vac-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
 .vac-kpi{background:var(--white);padding:16px;text-align:center}
@@ -270,27 +284,29 @@ body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:
       <div class="stat-val" id="st-emps">—</div>
       <div class="stat-sub">colaboradores en nómina</div>
     </div>
+    <div class="stat-card blue" onclick="scrollToCapacidad()">
+      <div class="stat-lbl">Capacidad operativa hoy</div>
+      <div class="stat-val" id="st-capacidad">—</div>
+      <div class="stat-sub" id="st-capacidad-sub">presentes y en ruta</div>
+    </div>
     <div class="stat-card gold">
       <div class="stat-lbl">Horas extra · ciclo</div>
       <div class="stat-val" id="st-he">—</div>
       <div class="stat-sub" id="st-he-usd">— en pago</div>
-    </div>
-    <div class="stat-card red" onclick="scrollToEquipo()">
-      <div class="stat-lbl">Requieren revisión</div>
-      <div class="stat-val" id="st-revisar">—</div>
-      <div class="stat-sub">con 3+ alertas biométricas</div>
     </div>
     <div class="stat-card warn" onclick="scrollToTop()">
       <div class="stat-lbl">Por aprobar</div>
       <div class="stat-val" id="st-pending">—</div>
       <div class="stat-sub">solicitudes TXT pendientes</div>
     </div>
-    <div class="stat-card blue">
+    <div class="stat-card red">
       <div class="stat-lbl">Incidencias hoy</div>
       <div class="stat-val" id="st-inc-hoy">—</div>
       <div class="stat-sub" id="st-total-sub">— en el ciclo</div>
     </div>
   </div>
+  <!-- KPI oculto: requieren revisión (se sigue calculando para tarjetas) -->
+  <span id="st-revisar" style="display:none">—</span>
 
   <!-- MAIN GRID -->
   <div class="main-grid">
@@ -321,24 +337,14 @@ body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:
     </div>
   </div>
 
-  <!-- ══ CARGA DEL BIOMÉTRICO (para RH) ══ -->
-  <div class="full-panel" id="panel-carga-bio" style="margin-top:14px">
+  <!-- ══ CAPACIDAD OPERATIVA POR ÁREA ══ -->
+  <div class="full-panel" id="panel-capacidad" style="margin-top:14px">
     <div class="panel-hdr">
-      <div class="panel-title">📥 Cargar Reporte Biométrico</div>
-      <span class="panel-badge info">Uso administrativo</span>
+      <div class="panel-title">🎯 Capacidad operativa por área — hoy</div>
+      <button class="btn-refresh" onclick="loadEquipoYCapacidad()">↺</button>
     </div>
-    <div style="padding:16px">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
-        Sube el archivo del reloj biométrico (.xls). El sistema lo procesa automáticamente y actualiza las marcaciones.
-        No necesitas abrir Google Drive ni convertir nada.
-      </p>
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        <input type="file" id="bio-file" accept=".xls,.xlsx" style="display:none" onchange="prepararCargaBio(this)">
-        <button onclick="document.getElementById('bio-file').click()" style="background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:700;color:#374151;cursor:pointer;font-family:var(--ff)">📁 Seleccionar archivo .xls</button>
-        <span id="bio-filename" style="font-size:12px;color:var(--muted)"></span>
-        <button onclick="cargarBiometrico()" id="bio-upload-btn" style="display:none;background:var(--ok);color:#fff;border:none;border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--ff)">⬆ Procesar archivo</button>
-      </div>
-      <div id="bio-msg" style="margin-top:12px;font-size:12px;font-weight:700"></div>
+    <div style="padding:14px 16px" id="cap-area-body">
+      <div class="empty"><span class="spin"></span> Calculando capacidad…</div>
     </div>
   </div>
 
@@ -464,7 +470,7 @@ body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:
       </div>
     </div>
   </div>
-  <div class="full-panel" style="margin-top:14px">
+  <div class="full-panel" id="panel-comparativa" style="margin-top:14px">
     <div class="panel-hdr">
       <div class="panel-title">🔍 Comparativa: Biométrico vs Listas Manuscritas</div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -496,6 +502,28 @@ body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:
       <div id="comp-body"><div class="empty">Selecciona fechas y presiona 🔍 Analizar.</div></div>
     </div>
   </div>
+
+  <!-- ══ CARGA DEL BIOMÉTRICO (para RH) ══ -->
+  <div class="full-panel" id="panel-carga-bio" style="margin-top:14px">
+    <div class="panel-hdr">
+      <div class="panel-title">📥 Cargar Reporte Biométrico</div>
+      <span class="panel-badge info">Uso administrativo</span>
+    </div>
+    <div style="padding:16px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Sube el archivo del reloj biométrico (.xls). El sistema lo procesa automáticamente y actualiza las marcaciones.
+        No necesitas abrir Google Drive ni convertir nada.
+      </p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="bio-file" accept=".xls,.xlsx" style="display:none" onchange="prepararCargaBio(this)">
+        <button onclick="document.getElementById('bio-file').click()" style="background:var(--bg);border:1.5px dashed #CBD5E1;border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:700;color:#374151;cursor:pointer;font-family:var(--ff)">📁 Seleccionar archivo .xls</button>
+        <span id="bio-filename" style="font-size:12px;color:var(--muted)"></span>
+        <button onclick="cargarBiometrico()" id="bio-upload-btn" style="display:none;background:var(--ok);color:#fff;border:none;border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--ff)">⬆ Procesar archivo</button>
+      </div>
+      <div id="bio-msg" style="margin-top:12px;font-size:12px;font-weight:700"></div>
+    </div>
+  </div>
+
 
   <!-- BIOMETRIC EMPLOYEE STATUS -->
   <div class="full-panel" id="panel-equipo">
@@ -601,6 +629,8 @@ function unlockAdmin(){
   // Modo solo-lectura para supervisores: ocultar acciones de escritura
   const puedeAprobar = A.user?.puedeAprobar !== false && nivel!=='SUPERVISION';
   document.body.classList.toggle('solo-lectura', !puedeAprobar);
+  // Perfil dirección: vista gerencial, sin herramientas operativas (carga biométrico, ajuste TXT manual, comparativa)
+  document.body.classList.toggle('perfil-direccion', nivel==='DIRECCION');
   refreshAll();
 }
 function lockAdmin(){
@@ -633,12 +663,14 @@ function refreshAll(){
   Promise.all([
     loadEmpleadosTXT(),
     loadIncidencias(),
+    loadEquipoYCapacidad(),
     loadBioAll(),
     loadVacaciones()
   ]).then(guardarCache);
 }
 function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
 function scrollToEquipo(){document.getElementById('panel-equipo')?.scrollIntoView({behavior:'smooth'});}
+function scrollToCapacidad(){document.getElementById('panel-capacidad')?.scrollIntoView({behavior:'smooth'});}
 
 /* ═══ LOAD INCIDENCIAS ═════════════════════════════ */
 async function loadIncidencias(){
@@ -886,6 +918,93 @@ function printPermit(nombreEnc,fecha,horas,motivoEnc,seq,adminEnc){
   setTimeout(()=>win.focus(),200);
 }
 
+/* ═══ EQUIPO Y CAPACIDAD OPERATIVA (fuentes confiables) ═══
+   Equipo: file=personal (PERSONAL activos)
+   Capacidad: file=attendance (ASISTENCIA_DIARIA de hoy)
+   No depende del biométrico — siempre carga. */
+let PERSONAL_CACHE = [];
+async function loadEquipoYCapacidad(){
+  try{
+    const [pRes,aRes]=await Promise.all([
+      fetch(`${GAS_INC}?file=personal&_=${Date.now()}`),
+      fetch(`${GAS_INC}?file=attendance&_=${Date.now()}`)
+    ]);
+    const personal=await pRes.json();
+    const att=await aRes.json();
+    const lista=Array.isArray(personal)?personal:(personal.data||[]);
+    PERSONAL_CACHE=lista;
+    const totalEmps=lista.length;
+    document.getElementById('st-emps').textContent=totalEmps;
+
+    // Mapa nombre → area (para desglose)
+    const areaDe={};
+    lista.forEach(p=>{areaDe[String(p.nombre||'').trim().toUpperCase()]=String(p.area||'').trim()||'Sin área';});
+
+    // Asistencia de hoy
+    const personalAtt=(att&&att.personal)||{};
+    const estados=Object.entries(personalAtt);
+    const cuenta=e=>estados.filter(([,v])=>v===e).length;
+    const presentes=cuenta('presente');
+    const enRuta=cuenta('en-ruta');
+    const ausentes=cuenta('ausente');
+    const vacaciones=cuenta('vacaciones');
+    const justif=estados.filter(([,v])=>['baja-medica','capacitacion','txt','salida-temprana'].includes(v)).length;
+    const marcados=estados.length;
+    // Capacidad = presentes+enRuta sobre total activos
+    const operativos=presentes+enRuta;
+    const pct=totalEmps>0?Math.round(operativos/totalEmps*100):0;
+
+    // KPI capacidad
+    const capEl=document.getElementById('st-capacidad');
+    if(capEl){
+      capEl.textContent=pct+'%';
+      const sub=document.getElementById('st-capacidad-sub');
+      if(sub)sub.textContent=`${operativos} de ${totalEmps} operativos hoy`;
+    }
+
+    // Hero
+    document.getElementById('hero-cycle').textContent=cicloLabel();
+    document.getElementById('hero-sub').textContent=
+      `${totalEmps} colaboradores · ${pct}% capacidad operativa hoy`+
+      (ausentes?` · ${ausentes} ausente${ausentes!==1?'s':''}`:'');
+
+    // Desglose por área
+    renderCapacidadArea(personalAtt, areaDe, lista);
+  }catch(e){
+    // Si falla, al menos intenta el conteo de personal
+    document.getElementById('st-emps').textContent='—';
+  }
+}
+
+function renderCapacidadArea(personalAtt, areaDe, lista){
+  const cont=document.getElementById('cap-area-body');
+  if(!cont)return;
+  // Agrupar por área: total activos y operativos (presente/en-ruta)
+  const areas={};
+  lista.forEach(p=>{
+    const a=String(p.area||'').trim()||'Sin área';
+    if(!areas[a])areas[a]={total:0,oper:0,aus:0};
+    areas[a].total++;
+  });
+  Object.entries(personalAtt).forEach(([nom,est])=>{
+    const a=areaDe[String(nom).trim().toUpperCase()]||'Sin área';
+    if(!areas[a])areas[a]={total:0,oper:0,aus:0};
+    if(est==='presente'||est==='en-ruta')areas[a].oper++;
+    if(est==='ausente')areas[a].aus++;
+  });
+  const filas=Object.entries(areas).sort((a,b)=>b[1].total-a[1].total);
+  if(!filas.length){cont.innerHTML='<div class="empty">Sin datos de áreas.</div>';return;}
+  cont.innerHTML=filas.map(([area,d])=>{
+    const pct=d.total>0?Math.round(d.oper/d.total*100):0;
+    const color=pct>=80?'var(--ok)':pct>=50?'var(--warn)':'var(--bad)';
+    return `<div class="cap-row">
+      <div class="cap-area-name">${area}</div>
+      <div class="cap-bar-wrap"><div class="cap-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="cap-area-val">${d.oper}/${d.total} · ${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
 /* ═══ LOAD BIOMETRICO ══════════════════════════════ */
 async function loadBioAll(){
   document.getElementById('emp-grid').innerHTML='<div class="empty"><span class="spin"></span> Consultando datos biométricos de todos los empleados…</div>';
@@ -935,24 +1054,28 @@ function renderBioAll(d){
   });
   EMP_RENDER=emps;
 
-  // ── KPIs gerenciales ──
-  const totalEmps=emps.length;
+  // ── KPIs del biométrico (solo HE en $; el conteo de equipo y capacidad
+  //     vienen de loadEquipoYCapacidad, que usa fuentes confiables) ──
+  const totalEmpsBio=emps.length;
   const totalHEmin=emps.reduce((acc,e)=>acc+hhmm2m(e.he),0);
   const totalHEusd=emps.reduce((acc,e)=>acc+(e.he_usd||0),0);
   const totalCosto=emps.reduce((acc,e)=>acc+(e.total_usd||0),0);
   const revisar=emps.filter(e=>e.flags>2).length;
 
-  document.getElementById('st-emps').textContent=totalEmps;
-  document.getElementById('st-he').textContent=min2hhmm(totalHEmin);
-  document.getElementById('st-he-usd').textContent=fmtUSD(totalHEusd)+' en pago';
-  document.getElementById('st-revisar').textContent=revisar;
-
-  // Hero costo del ciclo
-  document.getElementById('hero-cost').textContent=fmtUSD(totalCosto);
-  document.getElementById('hero-cycle').textContent=cicloLabel();
-  document.getElementById('hero-sub').textContent=
-    `${totalEmps} colaboradores · ${min2hhmm(totalHEmin)} en horas extra`+
-    (revisar?` · ${revisar} requieren tu revisión`:` · todo al día`);
+  // Solo sobreescribe estos KPIs si el biométrico SÍ trajo datos.
+  // Si vino vacío, deja lo que puso loadEquipoYCapacidad.
+  if(totalEmpsBio>0){
+    document.getElementById('st-he').textContent=min2hhmm(totalHEmin);
+    document.getElementById('st-he-usd').textContent=fmtUSD(totalHEusd)+' en pago';
+    document.getElementById('st-revisar').textContent=revisar;
+    document.getElementById('hero-cost').textContent=fmtUSD(totalCosto);
+  } else {
+    document.getElementById('st-he').textContent='00:00';
+    document.getElementById('st-he-usd').textContent='biométrico sin cargar';
+    document.getElementById('st-revisar').textContent='—';
+    document.getElementById('hero-cost').textContent='$0';
+    document.getElementById('hero-cost-sub').textContent='carga el biométrico para ver costos';
+  }
 
   renderEmpCards(emps);
 }
