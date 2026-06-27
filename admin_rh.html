@@ -163,6 +163,16 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.1);border-top-color:var(--navy);border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes rot{to{transform:rotate(360deg)}}
 
+/* MODO SOLO LECTURA (supervisores): ocultar acciones de escritura */
+body.solo-lectura .req-actions,
+body.solo-lectura #panel-carga-bio,
+body.solo-lectura #panel-txt,
+body.solo-lectura .vac-form-col,
+body.solo-lectura .vac-del{display:none !important}
+body.solo-lectura .vac-cols{grid-template-columns:1fr}
+.ro-banner{display:none}
+body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:var(--info-bg);color:var(--info);border:1px solid #bfdbfe;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;margin-bottom:14px}
+
 /* VACACIONES */
 .vac-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
 .vac-kpi{background:var(--white);padding:16px;text-align:center}
@@ -237,6 +247,8 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 
 <div class="page">
 
+  <div class="ro-banner">👁 Modo supervisión · solo lectura — puedes ver el estado del equipo pero las aprobaciones las realiza Jefatura o RH.</div>
+
   <!-- BANNER GERENCIAL -->
   <div class="hero">
     <div class="hero-left">
@@ -310,7 +322,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
   </div>
 
   <!-- ══ CARGA DEL BIOMÉTRICO (para RH) ══ -->
-  <div class="full-panel" style="margin-top:14px">
+  <div class="full-panel" id="panel-carga-bio" style="margin-top:14px">
     <div class="panel-hdr">
       <div class="panel-title">📥 Cargar Reporte Biométrico</div>
       <span class="panel-badge info">Uso administrativo</span>
@@ -331,7 +343,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
   </div>
 
   <!-- ══ AJUSTE DE TIEMPOS TXT (para RH) ══ -->
-  <div class="full-panel" style="margin-top:14px">
+  <div class="full-panel" id="panel-txt" style="margin-top:14px">
     <div class="panel-hdr">
       <div class="panel-title">⚖️ Ajuste de Tiempos TXT</div>
       <span class="panel-badge info">Uso administrativo</span>
@@ -558,15 +570,21 @@ document.querySelectorAll('.opk[data-v]').forEach(k=>{
       const res=await fetch(`${GAS_INC}?file=validate_pin&pin=${encodeURIComponent(p)}&_=${Date.now()}`);
       const d=await res.json();
       if(d.result==='error'){adminPinErr('PIN incorrecto');return;}
-      // Check if this user has admin/jefatura role
-      if(d.rol && !['JEFATURA','ADMIN','RH'].some(r=>String(d.rol).toUpperCase().includes(r))){
-        // Also accept if pin is in ADMIN_PINS list (fallback)
-        if(!ADMIN_PINS.includes(p)){adminPinErr('Sin permisos de administrador');return;}
+      // ── Control de acceso por NIVEL (taxonomía del GAS) ──
+      // DIRECCION / JEFATURA / RH → acceso completo
+      // SUPERVISION → acceso solo lectura
+      // (vacío) → sin acceso al panel admin
+      const nivel=String(d.nivel||'').toUpperCase();
+      const NIVELES_OK=['DIRECCION','JEFATURA','RH','SUPERVISION'];
+      if(!NIVELES_OK.includes(nivel)){
+        // Respaldo: PIN en lista de emergencia (para demos/contingencia)
+        if(!ADMIN_PINS.includes(p)){adminPinErr('Sin permisos para este panel');return;}
+        d.nivel='JEFATURA';d.puedeAprobar=true; // el respaldo entra como jefatura
       }
       pinCacheSet(p,d);A.user=d;unlockAdmin();
     }catch{
-      // Offline fallback: check ADMIN_PINS list
-      if(ADMIN_PINS.includes(p)){A.user={nombre:'Administrador',cargo:'RH'};unlockAdmin();}
+      // Offline fallback: lista de emergencia
+      if(ADMIN_PINS.includes(p)){A.user={nombre:'Administrador',rol:'RH',nivel:'JEFATURA',puedeAprobar:true};unlockAdmin();}
       else{adminPinErr('Sin conexión');}
     }
   });
@@ -576,7 +594,13 @@ function pinCacheGet(p){try{const c=JSON.parse(sessionStorage.getItem(PCACHE)||'
 function pinCacheSet(p,d){try{sessionStorage.setItem(PCACHE,JSON.stringify({...d,pin:p,ts:Date.now()}));}catch{}}
 function unlockAdmin(){
   document.getElementById('pin-overlay').classList.add('hide');
-  document.getElementById('admin-name').textContent=`${A.user?.nombre||'Admin'} · ${A.user?.cargo||'RH'}`;
+  const nivel=String(A.user?.nivel||'').toUpperCase();
+  const NIVEL_LBL={DIRECCION:'Dirección',JEFATURA:'Jefatura',RH:'Recursos Humanos',SUPERVISION:'Supervisión (solo lectura)'};
+  document.getElementById('admin-name').textContent=
+    `${A.user?.nombre||'Admin'} · ${NIVEL_LBL[nivel]||A.user?.rol||'RH'}`;
+  // Modo solo-lectura para supervisores: ocultar acciones de escritura
+  const puedeAprobar = A.user?.puedeAprobar !== false && nivel!=='SUPERVISION';
+  document.body.classList.toggle('solo-lectura', !puedeAprobar);
   refreshAll();
 }
 function lockAdmin(){
@@ -718,6 +742,7 @@ function nextPermitNum(){
 }
 
 async function approveReq(i,raw){
+  if(A.user?.puedeAprobar===false){toast('Tu nivel no permite aprobar. Contacta a Jefatura o RH.');return;}
   const r=JSON.parse(decodeURIComponent(raw));
   const nombre=r.Nombre||r.nombre||'—';
   const nota=String(r.Nota||r.nota||'');
@@ -1298,6 +1323,7 @@ function poblarSelectorVac(){
 }
 
 async function guardarVacacion(){
+  if(A.user?.puedeAprobar===false){toast('Tu nivel no permite registrar vacaciones.');return;}
   const nombre=document.getElementById('vac-emp').value;
   const desde=document.getElementById('vac-desde').value;
   const hasta=document.getElementById('vac-hasta').value;
