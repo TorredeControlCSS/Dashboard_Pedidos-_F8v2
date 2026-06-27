@@ -86,8 +86,8 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .app-hdr-logo{width:32px;height:32px;object-fit:contain}
 .app-hdr-info{flex:1}
 .app-hdr-info .lbl{font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.8px;text-transform:uppercase}
-.app-hdr-info .name{font-size:15px;font-weight:800;color:#fff;margin-top:1px}
-.app-hdr-info .role{font-size:11px;color:#64748b}
+.app-hdr-info .name{font-size:20px;font-weight:800;color:#fff;margin-top:2px;line-height:1.1;letter-spacing:.2px}
+.app-hdr-info .role{font-size:12px;font-weight:700;color:var(--gold);margin-top:2px}
 .btn-out{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:600;padding:7px 11px;border-radius:9px;cursor:pointer}
 
 /* BOTTOM NAV */
@@ -283,7 +283,7 @@ textarea:focus{outline:none;border-color:var(--navy)}
     <div class="app-hdr-row">
       <img src="./icons/icon-512.png" class="app-hdr-logo" alt="CSS">
       <div class="app-hdr-info">
-        <div class="lbl">PORTAL DEL COLABORADOR · CEDIS</div>
+        <div class="lbl" id="dh-saludo">PORTAL DEL COLABORADOR · CEDIS</div>
         <div class="name" id="dh-nombre">—</div>
         <div class="role" id="dh-role">—</div>
       </div>
@@ -726,7 +726,14 @@ function toggleHistList(){
 }
 
 function initApp(){
-  document.getElementById('dh-nombre').textContent=S.user?.nombre||'—';
+  const nombreCompleto=S.user?.nombre||'—';
+  document.getElementById('dh-nombre').textContent=nombreCompleto;
+  // Saludo por hora del día + primer nombre
+  const h=new Date().getHours();
+  const saludo=h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';
+  const primerNombre=nombreCompleto.split(' ')[0]||'';
+  const sal=document.getElementById('dh-saludo');
+  if(sal)sal.textContent=`${saludo}, ${primerNombre} · CEDIS PANAMÁ`;
   // Etiqueta de rol según el nivel devuelto por el GAS
   const nivel=String(S.user?.nivel||'').toUpperCase();
   const ROL_LBL={
@@ -753,11 +760,19 @@ function initApp(){
   }
 
   buildTipoList();
-  go('scr-app');
+  go('scr-app');           // PORTAL VISIBLE DE INMEDIATO
   switchTab('tiempos');
-  loadSaldo();
+  // El saldo biométrico carga en SEGUNDO PLANO (no bloquea el portal).
+  // Mostramos un estado "calculando" discreto en la tarjeta mientras llega.
+  marcarSaldoCargando();
+  loadSaldo();             // ya no hace go('scr-loading')
   loadMisHistorial();
   loadMarcacion(); // Horas de marcado del día
+}
+
+function marcarSaldoCargando(){
+  const n=document.getElementById('saldo-ciclos-note');
+  if(n)n.textContent='calculando saldo…';
 }
 
 /* ═══ TAB SWITCHING ═══════════════════════════════════ */
@@ -778,29 +793,26 @@ async function loadSaldo(){
   try{
     const cached=JSON.parse(sessionStorage.getItem(PCACHE+'_saldo')||'null');
     if(cached&&cached.emp===S.user?.nombre&&Date.now()-cached.ts<7200000){
-      S.saldo=cached.data;renderSaldo(cached.data);go('scr-app');switchTab('tiempos');
+      S.saldo=cached.data;renderSaldo(cached.data);
       // Refrescar en background silencioso
       fetch(GAS_BIO+'?action=saldo&token='+TOKEN+'&employee='+encodeURIComponent(S.user?.nombre||'')+'&_='+Date.now())
         .then(r=>r.json()).then(d=>{if(d.ok){S.saldo=d;try{sessionStorage.setItem(PCACHE+'_saldo',JSON.stringify({data:d,ts:Date.now(),emp:S.user?.nombre}));}catch{}renderSaldo(d);}}).catch(()=>{});
       return;
     }
   }catch{}
-  go('scr-loading');
-  document.getElementById('load-msg').textContent='Calculando tu saldo acumulado…';
+  // SIN go('scr-loading') — el portal ya está visible, esto carga detrás
   const emp=encodeURIComponent(S.user?.nombre||'');
   try{
     const res=await fetch(GAS_BIO+'?action=saldo&token='+TOKEN+'&employee='+emp+'&_='+Date.now());
     const d=await res.json();
     if(!d.ok){
-      // Fallback: if saldo endpoint not deployed yet, use query for current cycle
+      // Fallback: si saldo no está desplegado, probar SOLO el ciclo actual
       await loadSaldoFallback();
       return;
     }
     S.saldo=d;
     try{sessionStorage.setItem(PCACHE+'_saldo',JSON.stringify({data:d,ts:Date.now(),emp:S.user?.nombre}));}catch{}
     renderSaldo(d);
-    go('scr-app');
-    switchTab('tiempos');
     loadMisHistorial();
     loadMarcacion();
   }catch{
@@ -808,17 +820,20 @@ async function loadSaldo(){
   }
 }
 
-async function loadSaldoFallback(){
-  // action=saldo no desplegado aún.
-  // Construye los últimos 6 ciclos y prueba hasta encontrar uno con datos
+// Helper: fetch con timeout para que nada cuelgue la pantalla
+function fetchTimeout(url, ms){
+  return Promise.race([
+    fetch(url).then(r=>r.json()),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))
+  ]);
+}
+
+function buildCiclos(n){
   const today=new Date();
   const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const todayStr=fmt(today);
-  const emp=encodeURIComponent(S.user?.nombre||'');
-
-  // Generar lista de ciclos (del más reciente al más antiguo)
   const cycles=[];
-  for(let i=0;i<6;i++){
+  for(let i=0;i<n;i++){
     const ref=new Date(today.getFullYear(),today.getMonth()-i,1);
     let s,e;
     if(i===0&&today.getDate()>=16){
@@ -831,33 +846,10 @@ async function loadSaldoFallback(){
     const toDate=e<today?fmt(e):todayStr;
     cycles.push({from:fmt(s),to:toDate});
   }
+  return cycles;
+}
 
-  // Probar ciclos hasta encontrar datos
-  let found=null;
-  for(const c of cycles){
-    try{
-      document.getElementById('load-msg').textContent='Buscando datos en '+c.from+' → '+c.to+'…';
-      const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+c.from+'&to='+c.to+'&_='+Date.now());
-      const d=await res.json();
-      if(d.ok&&d.totals&&hhmm2m(d.totals.he_calc_hhmm||'00:00')>0){
-        found={d,c};break;
-      }
-    }catch{}
-  }
-
-  if(!found){
-    // Ningún ciclo tiene datos — mostrar vacío con el ciclo anterior
-    const c=cycles[1]||cycles[0];
-    try{
-      const res=await fetch(GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+c.from+'&to='+c.to+'&_='+Date.now());
-      const d=await res.json();
-      if(d.ok){found={d,c};}
-    }catch{}
-  }
-
-  if(!found){document.getElementById('err-msg').textContent='Sin datos disponibles. Verifica que el backend esté publicado.';go('scr-error');return;}
-
-  const {d,c}=found;
+function aplicarSaldo(d,c){
   const t=d.totals||{};
   const fakeSaldo={
     ok:true,employee:S.user?.nombre||'',
@@ -874,7 +866,58 @@ async function loadSaldoFallback(){
   };
   S.saldo=fakeSaldo;
   renderSaldo(fakeSaldo);
-  go('scr-app');switchTab('tiempos');
+}
+
+function saldoVacio(){
+  // Sin biométrico (ej. el director): mostrar cero con dignidad, sin error
+  const vac={
+    ok:true,employee:S.user?.nombre||'',
+    saldo_txt_hhmm:'00:00',total_he_calc_hhmm:'00:00',total_he_paid_hhmm:'00:00',
+    total_he_usd:0,total_beneficios_usd:0,total_usd:0,num_ciclos:0,
+    resumen_ciclo:[],_fallback:true,_sin_biometrico:true
+  };
+  S.saldo=vac;
+  renderSaldo(vac);
+  const n=document.getElementById('saldo-ciclos-note');
+  if(n)n.textContent='Sin marcaciones biométricas en el ciclo actual';
+}
+
+async function loadSaldoFallback(){
+  const emp=encodeURIComponent(S.user?.nombre||'');
+  // Probar SOLO el ciclo actual, con timeout de 7s.
+  const cycles=buildCiclos(6);
+  const actual=cycles[0];
+  try{
+    const d=await fetchTimeout(
+      GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+actual.from+'&to='+actual.to+'&_='+Date.now(), 7000);
+    const tieneDatos = d && d.ok && d.totals && hhmm2m(d.totals.he_calc_hhmm||'00:00')>0;
+    if(tieneDatos){
+      // Colaborador CON biométrico activo → vale la pena el historial
+      aplicarSaldo(d, actual);
+      buscarHistorialEnSegundoPlano(cycles, emp); // amplía sin bloquear
+      return;
+    }
+    // Ciclo actual vacío → SIN biométrico (ej. director). Mostrar cero y parar.
+    if(d && d.ok){ aplicarSaldo(d, actual); }
+    else { saldoVacio(); }
+  }catch{
+    // Timeout o error → no colgar la pantalla, mostrar vacío
+    saldoVacio();
+  }
+}
+
+// Solo se llama si el ciclo actual YA tuvo datos: busca ciclos previos
+// en segundo plano para enriquecer el historial, sin bloquear nada.
+async function buscarHistorialEnSegundoPlano(cycles, emp){
+  for(let i=1;i<cycles.length;i++){
+    const c=cycles[i];
+    try{
+      const d=await fetchTimeout(
+        GAS_BIO+'?action=query&token='+TOKEN+'&employee='+emp+'&from='+c.from+'&to='+c.to+'&_='+Date.now(), 7000);
+      if(!(d&&d.ok&&d.totals&&hhmm2m(d.totals.he_calc_hhmm||'00:00')>0)) break; // sin más historial
+      // (opcional) aquí se podría acumular; por ahora basta con el ciclo actual
+    }catch{ break; }
+  }
 }
 
 function renderSaldo(d){
