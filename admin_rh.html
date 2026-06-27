@@ -2,9 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Panel RH — CEDIS PANAMÁ</title>
   <link rel="icon" href="./favicon.ico?v=1">
+  <!-- PWA: reutiliza el manifest del ecosistema de personal (ya en el repo) -->
+  <link rel="manifest" href="./manifest-incidencias.json">
+  <meta name="theme-color" content="#0B1F3A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Panel RH CSS">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -44,7 +51,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .tb-sub{font-size:11px;color:#64748b;margin-top:1px}
 .tb-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
 .tb-clock{font-size:11px;color:#64748b;font-family:var(--mono)}
-.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:700;padding:7px 12px;border-radius:8px;cursor:pointer;text-decoration:none;font-family:var(--ff)}
+.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer;text-decoration:none;font-family:var(--ff)}
 .tb-btn.gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
 
 /* LAYOUT */
@@ -59,9 +66,24 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .stat-card.blue::before{background:var(--info)}
 .stat-card.red::before{background:var(--bad)}
 .stat-card.warn::before{background:var(--warn)}
-.stat-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
-.stat-val{font-size:28px;font-weight:800;color:var(--navy);font-family:var(--mono)}
-.stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.stat-lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.stat-val{font-size:38px;font-weight:800;color:var(--navy);font-family:var(--mono);line-height:1}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:5px}
+.stat-card[onclick]{cursor:pointer;transition:transform .12s,box-shadow .12s}
+.stat-card[onclick]:active{transform:scale(.97)}
+.stat-card[onclick]:hover{box-shadow:0 4px 14px rgba(11,31,58,.1)}
+
+/* HERO BANNER GERENCIAL */
+.hero{background:linear-gradient(120deg,var(--navy),var(--navy2));border-radius:16px;padding:22px 26px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;box-shadow:0 6px 22px rgba(11,31,58,.18)}
+.hero-left{flex:1;min-width:220px}
+.hero-cycle{display:inline-block;background:rgba(245,158,11,.18);color:var(--gold);font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.hero-head{font-size:22px;font-weight:800;color:#fff;line-height:1.15}
+.hero-sub{font-size:13px;color:#9fb3d1;margin-top:6px;line-height:1.5}
+.hero-cost{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px 24px;text-align:right;min-width:200px}
+.hero-cost-lbl{font-size:10.5px;font-weight:700;color:#9fb3d1;text-transform:uppercase;letter-spacing:.5px}
+.hero-cost-val{font-size:40px;font-weight:800;color:var(--gold);font-family:var(--mono);line-height:1.1;margin-top:4px}
+.hero-cost-sub{font-size:11px;color:#9fb3d1;margin-top:2px}
+@media(max-width:640px){.hero-cost{text-align:left;width:100%}.hero-cost-val{font-size:34px}}
 
 /* MAIN GRID */
 .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -88,9 +110,11 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .req-name{font-size:13px;font-weight:800;color:var(--navy)}
 .req-time{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto}
 .req-detail{font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.5}
-.req-actions{display:flex;gap:8px}
-.btn-approve{background:var(--ok);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff)}
-.btn-deny{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--ff)}
+.req-actions{display:flex;gap:10px}
+.btn-approve{background:var(--ok);color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--ff)}
+.btn-approve:active{transform:scale(.96)}
+.btn-deny{background:transparent;border:1.5px solid var(--bad);color:var(--bad);border-radius:10px;padding:11px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--ff)}
+.btn-deny:active{transform:scale(.96)}
 .status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px}
 .status-badge.ok{background:var(--ok-bg);color:var(--ok)}
 .status-badge.bad{background:var(--bad-bg);color:var(--bad)}
@@ -109,19 +133,25 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .inc-time{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto;white-space:nowrap}
 
 /* EMPLOYEE GRID */
-.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px}
-.emp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px}
-.emp-card-top{display:flex;align-items:center;gap:10px}
-.emp-av{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:14px}
+.emp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;border-left:5px solid var(--border);transition:transform .12s,box-shadow .12s}
+.emp-card:active{transform:scale(.98)}
+.emp-card.ok{border-left-color:var(--ok)}
+.emp-card.warn{border-left-color:var(--warn)}
+.emp-card.bad{border-left-color:var(--bad)}
+.emp-card-top{display:flex;align-items:center;gap:12px}
+.emp-av{width:44px;height:44px;border-radius:50%;background:var(--navy);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .emp-av.ok{background:var(--ok)}
 .emp-av.warn{background:var(--warn)}
 .emp-av.bad{background:var(--bad)}
-.emp-name{font-size:12px;font-weight:700;color:var(--navy)}
-.emp-area{font-size:10px;color:var(--muted)}
-.emp-metrics{display:flex;justify-content:space-between;font-size:11px;font-family:var(--mono);color:var(--muted)}
-.emp-metric-val{font-weight:700;color:var(--text)}
-.emp-status-bar{display:flex;gap:4px}
-.emp-dot{width:8px;height:8px;border-radius:50%}
+.emp-name{font-size:14px;font-weight:800;color:var(--navy);line-height:1.2}
+.emp-area{font-size:11px;font-weight:700;margin-top:2px}
+.emp-area.ok{color:var(--ok)}.emp-area.warn{color:var(--warn)}.emp-area.bad{color:var(--bad)}
+.emp-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--border);padding-top:10px}
+.emp-metric{text-align:center;background:var(--bg);border-radius:8px;padding:7px 4px}
+.emp-metric-lbl{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.emp-metric-val{font-weight:800;color:var(--navy);font-family:var(--mono);font-size:16px;margin-top:2px}
+.emp-search{width:100%;border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;font-family:var(--ff);margin-bottom:4px}
 
 /* Full width bottom panel */
 .full-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-top:14px;overflow:hidden}
@@ -176,32 +206,46 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 
 <div class="page">
 
-  <!-- STATS ROW -->
+  <!-- BANNER GERENCIAL -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-cycle" id="hero-cycle">Ciclo actual</div>
+      <div class="hero-head">Resumen de operación · CEDIS PANAMÁ</div>
+      <div class="hero-sub" id="hero-sub">Cargando datos del equipo en vivo…</div>
+    </div>
+    <div class="hero-cost">
+      <div class="hero-cost-lbl">Costo del ciclo (HE + beneficios)</div>
+      <div class="hero-cost-val" id="hero-cost">$—</div>
+      <div class="hero-cost-sub" id="hero-cost-sub">acumulado a la fecha</div>
+    </div>
+  </div>
+
+  <!-- KPI ROW (grande, tocable) -->
   <div class="stats-row">
-    <div class="stat-card warn">
-      <div class="stat-lbl">Solicitudes pendientes</div>
-      <div class="stat-val" id="st-pending">—</div>
-      <div class="stat-sub">esperando aprobación</div>
-    </div>
-    <div class="stat-card red">
-      <div class="stat-lbl">Incidencias hoy</div>
-      <div class="stat-val" id="st-inc-hoy">—</div>
-      <div class="stat-sub">reportadas hoy</div>
-    </div>
-    <div class="stat-card blue">
-      <div class="stat-lbl">Total ciclo actual</div>
-      <div class="stat-val" id="st-total">—</div>
-      <div class="stat-sub">incidencias este ciclo</div>
+    <div class="stat-card green" onclick="scrollToEquipo()">
+      <div class="stat-lbl">Equipo activo</div>
+      <div class="stat-val" id="st-emps">—</div>
+      <div class="stat-sub">colaboradores en nómina</div>
     </div>
     <div class="stat-card gold">
-      <div class="stat-lbl">HE Ciclo equipo</div>
+      <div class="stat-lbl">Horas extra · ciclo</div>
       <div class="stat-val" id="st-he">—</div>
-      <div class="stat-sub">horas extras acumuladas</div>
+      <div class="stat-sub" id="st-he-usd">— en pago</div>
     </div>
-    <div class="stat-card green">
-      <div class="stat-lbl">Empleados activos</div>
-      <div class="stat-val" id="st-emps">—</div>
-      <div class="stat-sub">en nómina actual</div>
+    <div class="stat-card red" onclick="scrollToEquipo()">
+      <div class="stat-lbl">Requieren revisión</div>
+      <div class="stat-val" id="st-revisar">—</div>
+      <div class="stat-sub">con 3+ alertas biométricas</div>
+    </div>
+    <div class="stat-card warn" onclick="scrollToTop()">
+      <div class="stat-lbl">Por aprobar</div>
+      <div class="stat-val" id="st-pending">—</div>
+      <div class="stat-sub">solicitudes TXT pendientes</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-lbl">Incidencias hoy</div>
+      <div class="stat-val" id="st-inc-hoy">—</div>
+      <div class="stat-sub" id="st-total-sub">— en el ciclo</div>
     </div>
   </div>
 
@@ -360,14 +404,15 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
   </div>
 
   <!-- BIOMETRIC EMPLOYEE STATUS -->
-  <div class="full-panel">
+  <div class="full-panel" id="panel-equipo">
     <div class="panel-hdr">
-      <div class="panel-title">👥 Estado biométrico del equipo — ciclo actual</div>
+      <div class="panel-title">👥 Estado del equipo — ciclo actual</div>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="btn-refresh" onclick="loadBioAll()">↺ Recargar</button>
       </div>
     </div>
     <div style="padding:14px">
+      <input type="text" class="emp-search" id="emp-search" placeholder="🔍 Buscar colaborador…" oninput="filterEmps()">
       <div class="emp-grid" id="emp-grid">
         <div class="empty"><span class="spin"></span> Cargando datos biométricos…</div>
       </div>
@@ -459,12 +504,34 @@ function lockAdmin(){
   apin='';odots('');
 }
 
-/* ═══ REFRESH ALL ══════════════════════════════════ */
-function refreshAll(){
-  loadEmpleadosTXT();
-  loadIncidencias();
-  loadBioAll();
+/* ═══ REFRESH ALL (paralelo + caché optimista) ═════ */
+const DCACHE='admin_dash_v1';
+function pintarDesdeCache(){
+  try{
+    const c=JSON.parse(sessionStorage.getItem(DCACHE)||'null');
+    if(!c)return false;
+    if(c.incidents){allIncidents=c.incidents;renderIncidencias();}
+    if(c.bio){renderBioAll(c.bio);}
+    document.getElementById('hero-sub').textContent='Mostrando últimos datos guardados · actualizando en vivo…';
+    return true;
+  }catch{return false;}
 }
+function guardarCache(){
+  try{sessionStorage.setItem(DCACHE,JSON.stringify({incidents:allIncidents,bio:LAST_BIO,ts:Date.now()}));}catch{}
+}
+
+function refreshAll(){
+  // 1) Pinta al instante lo último que vio (percepción de velocidad)
+  pintarDesdeCache();
+  // 2) Dispara TODAS las cargas en paralelo (no en serie)
+  Promise.all([
+    loadEmpleadosTXT(),
+    loadIncidencias(),
+    loadBioAll()
+  ]).then(guardarCache);
+}
+function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
+function scrollToEquipo(){document.getElementById('panel-equipo')?.scrollIntoView({behavior:'smooth'});}
 
 /* ═══ LOAD INCIDENCIAS ═════════════════════════════ */
 async function loadIncidencias(){
@@ -498,7 +565,8 @@ function renderIncidencias(){
   // Stats
   document.getElementById('st-pending').textContent=pendTXT.length;
   document.getElementById('st-inc-hoy').textContent=hoy.length;
-  document.getElementById('st-total').textContent=allIncidents.length;
+  const subT=document.getElementById('st-total-sub');
+  if(subT)subT.textContent=`${allIncidents.length} en el ciclo`;
   document.getElementById('badge-pending').textContent=`${pendTXT.length} pendiente${pendTXT.length!==1?'s':''}`;
   document.getElementById('badge-inc').textContent=`${hoy.length} hoy`;
 
@@ -730,50 +798,93 @@ async function loadBioAll(){
   }
 }
 
+let LAST_BIO=null;
+let EMP_RENDER=[]; // empleados procesados para filtrar
+
 function renderBioAll(d){
+  LAST_BIO=d;
   // Group asistencia by employee
   const empMap={};
   (d.asistencia||[]).forEach(r=>{
     const n=r.full_name||r.nombre||'?';
-    if(!empMap[n])empMap[n]={name:n,days:0,he:'00:00',flags:0,total_usd:0};
+    if(!empMap[n])empMap[n]={name:n,days:0,he:'00:00',txt:'00:00',flags:0,total_usd:0};
     empMap[n].days++;
     if(r.audit_flag!=='OK')empMap[n].flags++;
   });
   // Enrich with resumen_ciclo
   (d.resumen_ciclo||[]).forEach(r=>{
     const n=r.employee||r.full_name||r.nombre||'?';
-    if(!empMap[n])empMap[n]={name:n,days:0,he:'00:00',flags:0,total_usd:0};
+    if(!empMap[n])empMap[n]={name:n,days:0,he:'00:00',txt:'00:00',flags:0,total_usd:0};
     empMap[n].he=r.he_paid_capped_hhmm||'00:00';
     empMap[n].txt=r.txt_total_hhmm||'00:00';
+    empMap[n].he_usd=+(r.he_amount_paid_capped||0);
     empMap[n].total_usd=(+(r.he_amount_paid_capped||0))+(+(r.beneficios_total||0));
   });
-  const emps=Object.values(empMap).sort((a,b)=>a.name.localeCompare(b.name));
-  // Update stats
-  document.getElementById('st-emps').textContent=emps.length;
-  const totalHE=emps.reduce((acc,e)=>acc+hhmm2m(e.he),0);
-  document.getElementById('st-he').textContent=min2hhmm(totalHE);
+  const emps=Object.values(empMap).sort((a,b)=>{
+    // Los que requieren revisión primero (control de problemas de un vistazo)
+    if((b.flags>2)!==(a.flags>2))return (b.flags>2)-(a.flags>2);
+    return b.flags-a.flags||a.name.localeCompare(b.name);
+  });
+  EMP_RENDER=emps;
 
-  if(!emps.length){document.getElementById('emp-grid').innerHTML='<div class="empty">Sin datos para este ciclo.</div>';return;}
-  document.getElementById('emp-grid').innerHTML=emps.map(e=>{
+  // ── KPIs gerenciales ──
+  const totalEmps=emps.length;
+  const totalHEmin=emps.reduce((acc,e)=>acc+hhmm2m(e.he),0);
+  const totalHEusd=emps.reduce((acc,e)=>acc+(e.he_usd||0),0);
+  const totalCosto=emps.reduce((acc,e)=>acc+(e.total_usd||0),0);
+  const revisar=emps.filter(e=>e.flags>2).length;
+
+  document.getElementById('st-emps').textContent=totalEmps;
+  document.getElementById('st-he').textContent=min2hhmm(totalHEmin);
+  document.getElementById('st-he-usd').textContent=fmtUSD(totalHEusd)+' en pago';
+  document.getElementById('st-revisar').textContent=revisar;
+
+  // Hero costo del ciclo
+  document.getElementById('hero-cost').textContent=fmtUSD(totalCosto);
+  document.getElementById('hero-cycle').textContent=cicloLabel();
+  document.getElementById('hero-sub').textContent=
+    `${totalEmps} colaboradores · ${min2hhmm(totalHEmin)} en horas extra`+
+    (revisar?` · ${revisar} requieren tu revisión`:` · todo al día`);
+
+  renderEmpCards(emps);
+}
+
+function fmtUSD(n){return '$'+(n||0).toLocaleString('en-US',{maximumFractionDigits:0});}
+function cicloLabel(){
+  const t=new Date();const d=t.getDate();
+  const m=t.toLocaleString('es-PA',{month:'long'});
+  return d>=16?`Ciclo 16 ${m} – 15`:`Ciclo 16 – 15 ${m}`;
+}
+
+function renderEmpCards(emps){
+  const grid=document.getElementById('emp-grid');
+  if(!emps.length){grid.innerHTML='<div class="empty">Sin datos para este ciclo.</div>';return;}
+  grid.innerHTML=emps.map(e=>{
     const status=e.flags>2?'bad':e.flags>0?'warn':'ok';
-    const statusTxt=e.flags>2?'Revisar':e.flags>0?'Alertas':'Al día';
+    const statusTxt=e.flags>2?'⚠ Requiere revisión':e.flags>0?'Con alertas':'✓ Al día';
     const initials=e.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    return `<div class="emp-card">
+    return `<div class="emp-card ${status}" data-name="${e.name.toLowerCase()}">
       <div class="emp-card-top">
         <div class="emp-av ${status}">${initials}</div>
         <div>
           <div class="emp-name">${e.name}</div>
-          <div class="emp-area">${statusTxt} · ${e.flags} alerta${e.flags!==1?'s':''}</div>
+          <div class="emp-area ${status}">${statusTxt}${e.flags?` · ${e.flags} alerta${e.flags!==1?'s':''}`:''}</div>
         </div>
       </div>
       <div class="emp-metrics">
-        <div><div>HE</div><div class="emp-metric-val">${e.he}</div></div>
-        <div><div>TXT</div><div class="emp-metric-val">${e.txt||'00:00'}</div></div>
-        <div><div>Total</div><div class="emp-metric-val">$${(e.total_usd||0).toFixed(0)}</div></div>
-        <div><div>Días</div><div class="emp-metric-val">${e.days}</div></div>
+        <div class="emp-metric"><div class="emp-metric-lbl">Horas extra</div><div class="emp-metric-val">${e.he}</div></div>
+        <div class="emp-metric"><div class="emp-metric-lbl">Saldo TXT</div><div class="emp-metric-val">${e.txt||'00:00'}</div></div>
+        <div class="emp-metric"><div class="emp-metric-lbl">Costo $</div><div class="emp-metric-val">${fmtUSD(e.total_usd)}</div></div>
+        <div class="emp-metric"><div class="emp-metric-lbl">Días marc.</div><div class="emp-metric-val">${e.days}</div></div>
       </div>
     </div>`;
   }).join('');
+}
+
+function filterEmps(){
+  const q=(document.getElementById('emp-search').value||'').toLowerCase().trim();
+  if(!q){renderEmpCards(EMP_RENDER);return;}
+  renderEmpCards(EMP_RENDER.filter(e=>e.name.toLowerCase().includes(q)));
 }
 
 /* ═══ UTILS ════════════════════════════════════════ */
@@ -1004,6 +1115,15 @@ function renderComp(){
     </tr>`).join('')}</tbody>
   </table>`;
   document.getElementById('comp-body').innerHTML=html;
+}
+
+/* ═══ PWA: registrar service worker (hace la app instalable en tablet) ═══ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw-incidencias.js').catch(()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  });
 }
 </script>
 </body>
