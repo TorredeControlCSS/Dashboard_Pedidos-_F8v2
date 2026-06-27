@@ -59,13 +59,12 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 
 /* STAT CARDS */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
-.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.stat-card.gold::before{background:var(--gold)}
-.stat-card.green::before{background:var(--ok)}
-.stat-card.blue::before{background:var(--info)}
-.stat-card.red::before{background:var(--bad)}
-.stat-card.warn::before{background:var(--warn)}
+.stat-card{background:var(--white);border:2px solid var(--border);border-radius:var(--r);padding:16px 16px 14px;position:relative;overflow:hidden}
+.stat-card.gold{border-color:var(--gold);background:linear-gradient(180deg,#FFFBEB 0%,#fff 40%)}
+.stat-card.green{border-color:var(--ok);background:linear-gradient(180deg,#ECFDF5 0%,#fff 40%)}
+.stat-card.blue{border-color:var(--info);background:linear-gradient(180deg,#EFF6FF 0%,#fff 40%)}
+.stat-card.red{border-color:var(--bad);background:linear-gradient(180deg,#FEF2F2 0%,#fff 40%)}
+.stat-card.warn{border-color:var(--warn);background:linear-gradient(180deg,#FFFBEB 0%,#fff 40%)}
 .stat-lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .stat-val{font-size:38px;font-weight:800;color:var(--navy);font-family:var(--mono);line-height:1}
 .stat-sub{font-size:12px;color:var(--muted);margin-top:5px}
@@ -207,6 +206,12 @@ body.perfil-direccion #panel-comparativa{display:none !important}
 .vac-item-pill.active{background:var(--info-bg);color:var(--info)}
 .vac-item-pill.soon{background:var(--warn-bg);color:var(--warn)}
 .vac-item-pill.back{background:var(--ok-bg);color:var(--ok)}
+.vac-det{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+.vac-det-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:11.5px}
+.vac-det-k{color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px;font-size:10px}
+.vac-det-v{color:var(--navy);font-weight:600;text-align:right}
+.vac-kpi[onclick]:hover{background:var(--bg)}
+.vac-kpi[onclick]:active{transform:scale(.97)}
 .vac-del{background:none;border:none;color:var(--bad);font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px}
 .vac-del:hover{background:var(--bad-bg)}
 .vac-form-col{padding:16px}
@@ -308,6 +313,24 @@ body.perfil-direccion #panel-comparativa{display:none !important}
   <!-- KPI oculto: requieren revisión (se sigue calculando para tarjetas) -->
   <span id="st-revisar" style="display:none">—</span>
 
+  <!-- ══ CAPACIDAD OPERATIVA POR ÁREA ══ -->
+  <div class="full-panel" id="panel-capacidad" style="margin-top:14px">
+    <div class="panel-hdr">
+      <div class="panel-title">🎯 Capacidad operativa por área</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="cap-fecha" onchange="loadEquipoYCapacidad()" style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;font-family:var(--ff)">
+        <button class="btn-refresh" onclick="capHoy()">Hoy</button>
+        <button class="btn-refresh" onclick="loadEquipoYCapacidad()">↺</button>
+      </div>
+    </div>
+    <div style="padding:6px 16px 0">
+      <span id="cap-fecha-lbl" style="font-size:12px;color:var(--muted);font-weight:600"></span>
+    </div>
+    <div style="padding:14px 16px" id="cap-area-body">
+      <div class="empty"><span class="spin"></span> Calculando capacidad…</div>
+    </div>
+  </div>
+
   <!-- MAIN GRID -->
   <div class="main-grid">
 
@@ -334,17 +357,6 @@ body.perfil-direccion #panel-comparativa{display:none !important}
       <div class="panel-body" id="inc-list">
         <div class="empty"><span class="spin"></span> Cargando incidencias…</div>
       </div>
-    </div>
-  </div>
-
-  <!-- ══ CAPACIDAD OPERATIVA POR ÁREA ══ -->
-  <div class="full-panel" id="panel-capacidad" style="margin-top:14px">
-    <div class="panel-hdr">
-      <div class="panel-title">🎯 Capacidad operativa por área — hoy</div>
-      <button class="btn-refresh" onclick="loadEquipoYCapacidad()">↺</button>
-    </div>
-    <div style="padding:14px 16px" id="cap-area-body">
-      <div class="empty"><span class="spin"></span> Calculando capacidad…</div>
     </div>
   </div>
 
@@ -428,11 +440,11 @@ body.perfil-direccion #panel-comparativa{display:none !important}
       </div>
     </div>
 
-    <!-- Resumen de cobertura -->
+    <!-- Resumen de cobertura (clickeable: cambia la pestaña de abajo) -->
     <div class="vac-summary" id="vac-summary">
-      <div class="vac-kpi"><div class="vac-kpi-val" id="vk-hoy">—</div><div class="vac-kpi-lbl">De vacaciones hoy</div></div>
-      <div class="vac-kpi"><div class="vac-kpi-val" id="vk-prox">—</div><div class="vac-kpi-lbl">Salen (próx. 30 días)</div></div>
-      <div class="vac-kpi"><div class="vac-kpi-val" id="vk-reg">—</div><div class="vac-kpi-lbl">Regresan (próx. 7 días)</div></div>
+      <div class="vac-kpi" onclick="vacTab('hoy')" style="cursor:pointer"><div class="vac-kpi-val" id="vk-hoy">—</div><div class="vac-kpi-lbl">De vacaciones hoy</div></div>
+      <div class="vac-kpi" onclick="vacTab('prox')" style="cursor:pointer"><div class="vac-kpi-val" id="vk-prox">—</div><div class="vac-kpi-lbl">Salen (próx. 30 días)</div></div>
+      <div class="vac-kpi" onclick="vacTab('reg')" style="cursor:pointer"><div class="vac-kpi-val" id="vk-reg">—</div><div class="vac-kpi-lbl">Regresan (próx. 7 días)</div></div>
     </div>
 
     <div class="vac-cols">
@@ -671,6 +683,11 @@ function refreshAll(){
 function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
 function scrollToEquipo(){document.getElementById('panel-equipo')?.scrollIntoView({behavior:'smooth'});}
 function scrollToCapacidad(){document.getElementById('panel-capacidad')?.scrollIntoView({behavior:'smooth'});}
+function capHoy(){
+  const el=document.getElementById('cap-fecha');
+  if(el)el.value=new Date().toISOString().slice(0,10);
+  loadEquipoYCapacidad();
+}
 
 /* ═══ LOAD INCIDENCIAS ═════════════════════════════ */
 async function loadIncidencias(){
@@ -925,9 +942,23 @@ function printPermit(nombreEnc,fecha,horas,motivoEnc,seq,adminEnc){
 let PERSONAL_CACHE = [];
 async function loadEquipoYCapacidad(){
   try{
+    // Fecha del filtro (default hoy)
+    const fechaInput=document.getElementById('cap-fecha');
+    const hoyStr=new Date().toISOString().slice(0,10);
+    let fecha=fechaInput&&fechaInput.value?fechaInput.value:hoyStr;
+    if(fechaInput&&!fechaInput.value)fechaInput.value=hoyStr;
+    const esHoy=(fecha===hoyStr);
+    // Etiqueta legible
+    const lbl=document.getElementById('cap-fecha-lbl');
+    if(lbl){
+      const f=new Date(fecha+'T12:00:00');
+      const dStr=f.toLocaleDateString('es-PA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      lbl.textContent=(esHoy?'Hoy · ':'')+dStr.charAt(0).toUpperCase()+dStr.slice(1);
+    }
+
     const [pRes,aRes]=await Promise.all([
       fetch(`${GAS_INC}?file=personal&_=${Date.now()}`),
-      fetch(`${GAS_INC}?file=attendance&_=${Date.now()}`)
+      fetch(`${GAS_INC}?file=attendance&fecha=${fecha}&_=${Date.now()}`)
     ]);
     const personal=await pRes.json();
     const att=await aRes.json();
@@ -940,7 +971,7 @@ async function loadEquipoYCapacidad(){
     const areaDe={};
     lista.forEach(p=>{areaDe[String(p.nombre||'').trim().toUpperCase()]=String(p.area||'').trim()||'Sin área';});
 
-    // Asistencia de hoy
+    // Asistencia de la fecha consultada
     const personalAtt=(att&&att.personal)||{};
     const estados=Object.entries(personalAtt);
     const cuenta=e=>estados.filter(([,v])=>v===e).length;
@@ -954,22 +985,26 @@ async function loadEquipoYCapacidad(){
     const operativos=presentes+enRuta;
     const pct=totalEmps>0?Math.round(operativos/totalEmps*100):0;
 
-    // KPI capacidad
+    // KPI capacidad (solo refleja "hoy" en el KPI principal; el panel sí cambia con la fecha)
     const capEl=document.getElementById('st-capacidad');
-    if(capEl){
+    if(capEl && esHoy){
       capEl.textContent=pct+'%';
       const sub=document.getElementById('st-capacidad-sub');
       if(sub)sub.textContent=`${operativos} de ${totalEmps} operativos hoy`;
     }
 
-    // Hero
-    document.getElementById('hero-cycle').textContent=cicloLabel();
-    document.getElementById('hero-sub').textContent=
-      `${totalEmps} colaboradores · ${pct}% capacidad operativa hoy`+
-      (ausentes?` · ${ausentes} ausente${ausentes!==1?'s':''}`:'');
+    // Hero (solo cuando es hoy, para no confundir con fechas históricas)
+    if(esHoy){
+      document.getElementById('hero-cycle').textContent=cicloLabel();
+      document.getElementById('hero-sub').textContent=
+        `${totalEmps} colaboradores · ${pct}% capacidad operativa hoy`+
+        (ausentes?` · ${ausentes} ausente${ausentes!==1?'s':''}`:'');
+    }
 
     // Desglose por área
     renderCapacidadArea(personalAtt, areaDe, lista);
+    // PERSONAL_CACHE ya está listo → re-render vacaciones para que muestren cargo/área
+    if(typeof renderVacList==='function' && VAC_DATA && (VAC_DATA.hoy.length||VAC_DATA.prox.length||VAC_DATA.reg.length)) renderVacList();
   }catch(e){
     // Si falla, al menos intenta el conteo de personal
     document.getElementById('st-emps').textContent='—';
@@ -1411,6 +1446,16 @@ function vacTab(t){
   renderVacList();
 }
 
+function datosPersona(nombre){
+  // Cruza con PERSONAL_CACHE (cargado por loadEquipoYCapacidad) para rol y área
+  const n=String(nombre||'').trim().toUpperCase();
+  const p=(PERSONAL_CACHE||[]).find(x=>String(x.nombre||'').trim().toUpperCase()===n);
+  return {
+    rol: p?(p.rol||'').trim():'',
+    area: p?(p.area||'').trim():''
+  };
+}
+
 function renderVacList(){
   const cont=document.getElementById('vac-list');
   const rows=VAC_TAB==='hoy'?VAC_DATA.hoy:VAC_TAB==='prox'?VAC_DATA.prox:VAC_DATA.reg;
@@ -1419,22 +1464,35 @@ function renderVacList(){
     cont.innerHTML=`<div class="empty">🏖 ${txt}</div>`;
     return;
   }
-  cont.innerHTML=rows.map(r=>{
+  cont.innerHTML=rows.map((r,i)=>{
     const ini=r.nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const dp=datosPersona(r.nombre);
     let pill,cls;
     if(VAC_TAB==='hoy'){pill=`${r.dias} día${r.dias!==1?'s':''} rest.`;cls='active';}
     else if(VAC_TAB==='prox'){pill=`en ${r.dias} día${r.dias!==1?'s':''}`;cls='soon';}
     else{pill=r.dias===0?'regresa mañana':`en ${r.dias} día${r.dias!==1?'s':''}`;cls='back';}
+    const detId=`vacdet-${VAC_TAB}-${i}`;
+    const cargoArea=[dp.rol,dp.area].filter(Boolean).join(' · ')||'Sin cargo/área registrados';
     return `<div class="vac-item">
       <div class="vac-av">${ini}</div>
-      <div style="flex:1;min-width:0">
-        <div class="vac-item-name">${r.nombre}</div>
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="toggleVacDet('${detId}')">
+        <div class="vac-item-name">${r.nombre} <span style="font-size:10px;color:var(--muted);font-weight:600">▾</span></div>
         <div class="vac-item-range">${r.desde} → ${r.hasta}${r.notas?' · '+r.notas:''}</div>
+        <div class="vac-det" id="${detId}" style="display:none">
+          <div class="vac-det-row"><span class="vac-det-k">Cargo / Área</span><span class="vac-det-v">${cargoArea}</span></div>
+          <div class="vac-det-row"><span class="vac-det-k">Periodo</span><span class="vac-det-v">${r.desde} al ${r.hasta}</span></div>
+          ${r.notas?`<div class="vac-det-row"><span class="vac-det-k">Nota</span><span class="vac-det-v">${r.notas}</span></div>`:''}
+        </div>
       </div>
       <span class="vac-item-pill ${cls}">${pill}</span>
       <button class="vac-del" title="Anular" onclick="anularVacacion('${r.id}','${encodeURIComponent(r.nombre)}')">✕</button>
     </div>`;
   }).join('');
+}
+
+function toggleVacDet(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
 }
 
 function poblarSelectorVac(){
