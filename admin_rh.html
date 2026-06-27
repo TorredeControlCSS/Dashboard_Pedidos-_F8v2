@@ -45,20 +45,40 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .ov-err{min-height:18px;font-size:12px;font-weight:600;color:#f87171;text-align:center}
 
 /* TOPBAR */
-.topbar{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
-.topbar img{width:36px;height:36px;object-fit:contain}
-.tb-main{font-size:14px;font-weight:800}
-.tb-sub{font-size:11px;color:#64748b;margin-top:1px}
-.tb-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
-.tb-clock{font-size:11px;color:#64748b;font-family:var(--mono)}
-.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer;text-decoration:none;font-family:var(--ff)}
+.topbar{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);flex-wrap:wrap}
+.topbar img{width:36px;height:36px;object-fit:contain;flex-shrink:0}
+.tb-titles{min-width:0;flex:1}
+.tb-main{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-sub{font-size:11px;color:#9fb3d1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tb-clock{font-size:11px;color:#9fb3d1;font-family:var(--mono)}
+.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer;text-decoration:none;font-family:var(--ff);white-space:nowrap}
 .tb-btn.gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.tb-btn .tb-txt{margin-left:4px}
+
+/* MÓVIL: botones compactos (solo ícono), reloj oculto, sin desbordamiento */
+@media(max-width:760px){
+  .topbar{padding:9px 12px;gap:8px}
+  .tb-clock{display:none}
+  .tb-main{font-size:13px}
+  .tb-actions{gap:6px}
+  .tb-btn{padding:9px 11px;font-size:13px}
+  .tb-btn .tb-txt{display:none}      /* deja solo el emoji/ícono */
+  .tb-btn.keep-txt .tb-txt{display:inline;margin-left:4px}
+}
 
 /* LAYOUT */
 .page{padding:16px;max-width:1400px;margin:0 auto}
 
 /* STAT CARDS */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+@media(max-width:760px){
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat-val{font-size:30px}
+  .stat-lbl{font-size:11px;min-height:26px}
+  .stat-card{padding:13px 13px 11px}
+}
+@media(max-width:380px){.stats-row{grid-template-columns:1fr}}
 .stat-card{background:var(--white);border:2px solid var(--border);border-radius:var(--r);padding:16px 16px 14px;position:relative;overflow:hidden}
 .stat-card.gold{border-color:var(--gold);background:linear-gradient(180deg,#FFFBEB 0%,#fff 40%)}
 .stat-card.green{border-color:var(--ok);background:linear-gradient(180deg,#ECFDF5 0%,#fff 40%)}
@@ -88,7 +108,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:900px){.main-grid{grid-template-columns:1fr}}
 .panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.panel-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .panel-title{font-size:13px;font-weight:800;color:var(--navy)}
 .panel-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
 .panel-badge.pending{background:var(--warn-bg);color:var(--warn)}
@@ -173,13 +193,19 @@ body.solo-lectura .vac-cols{grid-template-columns:1fr}
 body.solo-lectura .ro-banner{display:flex;align-items:center;gap:8px;background:var(--info-bg);color:var(--info);border:1px solid #bfdbfe;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;margin-bottom:14px}
 
 /* CAPACIDAD POR ÁREA */
-.cap-row{display:grid;grid-template-columns:140px 1fr 120px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.cap-row{display:grid;grid-template-columns:160px 1fr 120px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
 .cap-row:last-child{border-bottom:none}
-.cap-area-name{font-size:13px;font-weight:800;color:var(--navy)}
+.cap-area-name{font-size:13px;font-weight:800;color:var(--navy);line-height:1.2}
 .cap-bar-wrap{background:var(--bg);border-radius:20px;height:14px;overflow:hidden}
 .cap-bar{height:100%;border-radius:20px;transition:width .5s ease}
-.cap-area-val{font-size:12px;font-weight:700;font-family:var(--mono);color:var(--muted);text-align:right}
-@media(max-width:640px){.cap-row{grid-template-columns:90px 1fr 86px;gap:8px}.cap-area-name{font-size:11px}}
+.cap-area-val{font-size:12px;font-weight:700;font-family:var(--mono);color:var(--muted);text-align:right;white-space:nowrap}
+@media(max-width:640px){
+  /* Apilar: nombre completo arriba, barra + valor abajo (no se corta el nombre) */
+  .cap-row{grid-template-columns:1fr auto;grid-template-areas:'name name' 'bar val';gap:5px 10px;padding:10px 0}
+  .cap-area-name{grid-area:name;font-size:12.5px}
+  .cap-bar-wrap{grid-area:bar}
+  .cap-area-val{grid-area:val}
+}
 
 /* PERFIL DIRECCIÓN: ocultar herramientas operativas (no carga biométrico ni ajusta TXT) */
 body.perfil-direccion #panel-carga-bio,
@@ -251,16 +277,16 @@ body.perfil-direccion #panel-comparativa{display:none !important}
 <!-- TOPBAR -->
 <div class="topbar">
   <img src="./icons/icon-512.png" alt="CSS">
-  <div>
+  <div class="tb-titles">
     <div class="tb-main">Panel RH — CEDIS PANAMÁ</div>
     <div class="tb-sub" id="admin-name">Cargando…</div>
   </div>
   <div class="tb-actions">
     <span class="tb-clock" id="clock"></span>
-    <a href="mis_tiempos.html" class="tb-btn">📊 Portal Empleado</a>
-    <a href="./index.html" class="tb-btn">📈 Biométrico</a>
-    <button class="tb-btn gold" onclick="refreshAll()">↺ Actualizar</button>
-    <button class="tb-btn" onclick="lockAdmin()">← Salir</button>
+    <a href="mis_tiempos.html" class="tb-btn" title="Portal Empleado">📊<span class="tb-txt">Portal Empleado</span></a>
+    <a href="./index.html" class="tb-btn" title="Biométrico">📈<span class="tb-txt">Biométrico</span></a>
+    <button class="tb-btn gold" onclick="refreshAll()" title="Actualizar">↺<span class="tb-txt">Actualizar</span></button>
+    <button class="tb-btn" onclick="lockAdmin()" title="Salir">←<span class="tb-txt">Salir</span></button>
   </div>
 </div>
 
