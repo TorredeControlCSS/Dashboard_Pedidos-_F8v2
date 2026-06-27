@@ -4,7 +4,7 @@
    Estrategia: Cache-first para app shell, network-first para API
 ════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME   = 'cedis-incidencias-v3';
+const CACHE_NAME   = 'cedis-incidencias-v4';
 const QUEUE_STORE  = 'cedis_incidencias_q';
 
 /* Archivos que se cachean en la instalación.
