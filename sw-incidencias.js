@@ -4,12 +4,13 @@
    Estrategia: Cache-first para app shell, network-first para API
 ════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME   = 'cedis-incidencias-v1';
+const CACHE_NAME   = 'cedis-incidencias-v2';
 const QUEUE_STORE  = 'cedis_incidencias_q';
 
-/* Archivos que se cachean en la instalación */
+/* Archivos que se cachean en la instalación.
+   Los HTML NO se precachean aquí: se sirven network-first (ver fetch),
+   así la tablet siempre recibe la última versión tras cada despliegue. */
 const APP_SHELL = [
-  './incidencias.html',
   './manifest-incidencias.json'
 ];
 
@@ -56,7 +57,30 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* App shell → cache-first */
+  /* ¿Es una navegación / documento HTML? → NETWORK-FIRST
+     Siempre busca la versión fresca en la red; si no hay conexión,
+     cae al caché. Evita que la tablet quede pegada en una versión vieja. */
+  const esHTML = event.request.mode === 'navigate' ||
+                 (event.request.headers.get('accept') || '').includes('text/html');
+
+  if (esHTML) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() =>
+        caches.match(event.request).then(cached =>
+          cached || caches.match('./incidencias.html')
+        )
+      )
+    );
+    return;
+  }
+
+  /* Estáticos (íconos, manifest, etc.) → cache-first */
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
