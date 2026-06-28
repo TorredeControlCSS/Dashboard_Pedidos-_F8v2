@@ -36,13 +36,18 @@ body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100
 .ov-dot{width:16px;height:16px;border-radius:50%;border:2px solid #334155;transition:all .14s}
 .ov-dot.on{background:var(--gold);border-color:var(--gold)}
 .ov-dot.err{border-color:var(--bad);animation:shake .3s}
+.ov-dot.ok{background:#22c55e;border-color:#22c55e}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes ovspin{to{transform:rotate(360deg)}}
+.ov-spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--gold);border-radius:50%;animation:ovspin .6s linear infinite;vertical-align:middle;margin-right:7px}
 .ov-grid{display:grid;grid-template-columns:repeat(3,72px);gap:8px}
 .opk{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;width:72px;height:64px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff;cursor:pointer;user-select:none;transition:background .08s}
 .opk:active{background:rgba(245,158,11,.2)}
 .opk.del{color:var(--bad);font-size:16px}
 .opk.blank{visibility:hidden;pointer-events:none}
-.ov-err{min-height:18px;font-size:12px;font-weight:600;color:#f87171;text-align:center}
+.ov-err{min-height:18px;font-size:12.5px;font-weight:700;color:#f87171;text-align:center}
+.ov-err.checking{color:#cbd5e1}
+.ov-err.success{color:#4ade80}
 
 /* TOPBAR */
 .topbar{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);flex-wrap:wrap}
@@ -616,46 +621,57 @@ function toast(msg,ms=2800){
 let apin = '';
 function odots(p){for(let i=0;i<4;i++)document.getElementById(`od${i}`).classList.toggle('on',i<p.length);}
 function adminPinErr(m){
-  document.getElementById('ov-err').textContent=m;
-  document.querySelectorAll('.ov-dot').forEach(d=>{d.classList.add('err');setTimeout(()=>d.classList.remove('err'),400)});
+  const e=document.getElementById('ov-err');
+  e.className='ov-err';e.textContent=m;
+  document.querySelectorAll('.ov-dot').forEach(d=>{d.classList.remove('ok');d.classList.add('err');setTimeout(()=>d.classList.remove('err'),400)});
   apin='';odots('');
+}
+function adminPinChecking(){
+  const e=document.getElementById('ov-err');
+  e.className='ov-err checking';
+  e.innerHTML='<span class="ov-spin"></span>Verificando PIN…';
+}
+function adminPinOk(nombre){
+  const e=document.getElementById('ov-err');
+  e.className='ov-err success';
+  e.textContent=nombre?`✓ Bienvenido, ${nombre.split(' ')[0]}`:'✓ PIN aceptado';
+  document.querySelectorAll('.ov-dot').forEach(d=>{d.classList.remove('on');d.classList.add('ok');});
 }
 
 document.querySelectorAll('.opk[data-v]').forEach(k=>{
   k.addEventListener('click',async()=>{
     if(apin.length>=4)return;
     apin+=k.dataset.v;odots(apin);
+    document.getElementById('ov-err').className='ov-err';
     document.getElementById('ov-err').textContent='';
     if(apin.length<4)return;
-    const p=apin;apin='';odots('');
+    const p=apin;apin='';odots(p); // mantiene los 4 puntos llenos mientras valida
+    adminPinChecking();
     // Try session cache first
     const cached=pinCacheGet(p);
-    if(cached){A.user=cached;unlockAdmin();return;}
+    if(cached){A.user=cached;adminPinOk(cached.nombre);setTimeout(unlockAdmin,450);return;}
     // Validate via GAS
     try{
       const res=await fetch(`${GAS_INC}?file=validate_pin&pin=${encodeURIComponent(p)}&_=${Date.now()}`);
       const d=await res.json();
-      if(d.result==='error'){adminPinErr('PIN incorrecto');return;}
+      if(d.result==='error'){adminPinErr('PIN incorrecto. Intenta nuevamente.');return;}
       // ── Control de acceso por NIVEL (taxonomía del GAS) ──
-      // DIRECCION / JEFATURA / RH → acceso completo
-      // SUPERVISION → acceso solo lectura
-      // (vacío) → sin acceso al panel admin
       const nivel=String(d.nivel||'').toUpperCase();
       const NIVELES_OK=['DIRECCION','JEFATURA','RH','SUPERVISION'];
       if(!NIVELES_OK.includes(nivel)){
-        // Respaldo: PIN en lista de emergencia (para demos/contingencia)
         if(!ADMIN_PINS.includes(p)){adminPinErr('Sin permisos para este panel');return;}
-        d.nivel='JEFATURA';d.puedeAprobar=true; // el respaldo entra como jefatura
+        d.nivel='JEFATURA';d.puedeAprobar=true;
       }
-      pinCacheSet(p,d);A.user=d;unlockAdmin();
+      pinCacheSet(p,d);A.user=d;
+      adminPinOk(d.nombre);
+      setTimeout(unlockAdmin,500); // deja ver el "✓ Bienvenido" medio segundo
     }catch{
-      // Offline fallback: lista de emergencia
-      if(ADMIN_PINS.includes(p)){A.user={nombre:'Administrador',rol:'RH',nivel:'JEFATURA',puedeAprobar:true};unlockAdmin();}
-      else{adminPinErr('Sin conexión');}
+      if(ADMIN_PINS.includes(p)){A.user={nombre:'Administrador',rol:'RH',nivel:'JEFATURA',puedeAprobar:true};adminPinOk('Administrador');setTimeout(unlockAdmin,450);}
+      else{adminPinErr('Sin conexión. Verifica tu internet.');}
     }
   });
 });
-document.getElementById('opk-del').addEventListener('click',()=>{if(apin.length)apin=apin.slice(0,-1);odots(apin);document.getElementById('ov-err').textContent='';});
+document.getElementById('opk-del').addEventListener('click',()=>{if(apin.length)apin=apin.slice(0,-1);odots(apin);const e=document.getElementById('ov-err');e.className='ov-err';e.textContent='';});
 function pinCacheGet(p){try{const c=JSON.parse(sessionStorage.getItem(PCACHE)||'null');if(!c||c.pin!==p||Date.now()-c.ts>PCACHE_TTL)return null;return c;}catch{return null;}}
 function pinCacheSet(p,d){try{sessionStorage.setItem(PCACHE,JSON.stringify({...d,pin:p,ts:Date.now()}));}catch{}}
 function unlockAdmin(){
