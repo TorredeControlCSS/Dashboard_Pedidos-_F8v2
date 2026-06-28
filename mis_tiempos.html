@@ -52,6 +52,9 @@ body{background:var(--navy);color:var(--text);overflow:hidden;height:100dvh}
 .pin-display{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;font-size:24px;font-weight:800;font-family:var(--mono);color:var(--navy);letter-spacing:8px;text-align:center;min-height:56px;margin-bottom:6px;transition:border-color .14s}
 .pin-display.err{border-color:var(--bad);animation:shake .3s ease}
 .pin-display.filled{border-color:var(--navy)}
+.pin-display.ok{border-color:#22c55e;color:#16a34a}
+.pin-err.success{color:#16a34a}
+.pin-err.checking{color:var(--navy)}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 .pin-hint{font-size:11px;color:var(--muted);text-align:center;margin-bottom:14px}
 .pin-spinner{display:none;justify-content:center;align-items:center;gap:8px;margin:4px 0}
@@ -560,26 +563,44 @@ function openWA(msg){window.location.href='https://wa.me/'+PAOLA_WA+'?text='+enc
 let pin='';
 function renderDisplay(){const el=document.getElementById('pin-display');if(!pin){el.textContent='—';el.classList.remove('filled','err');}else{el.textContent='•'.repeat(pin.length);el.classList.add('filled');el.classList.remove('err');}}
 function setSpinner(v){document.getElementById('pin-spinner').classList.toggle('show',v);document.querySelectorAll('.pk').forEach(k=>k.style.pointerEvents=v?'none':'');}
-function pinErr(m){document.getElementById('pin-err').textContent=m;const el=document.getElementById('pin-display');el.classList.add('err');setTimeout(()=>el.classList.remove('err'),400);pin='';renderDisplay();setSpinner(false);}
+function pinErr(m){const e=document.getElementById('pin-err');e.className='pin-err';e.textContent=m;const el=document.getElementById('pin-display');el.classList.remove('ok');el.classList.add('err');setTimeout(()=>el.classList.remove('err'),400);pin='';renderDisplay();setSpinner(false);}
 function pinCacheGet(p){try{const c=JSON.parse(sessionStorage.getItem(PCACHE)||'null');if(!c||c.pin!==p||Date.now()-c.ts>PCACHE_TTL)return null;return c;}catch{return null;}}
 function pinCacheSet(p,d){try{sessionStorage.setItem(PCACHE,JSON.stringify({...d,pin:p,ts:Date.now()}));}catch{}}
 
+function pinOk(nombre){
+  const el=document.getElementById('pin-display');
+  el.classList.remove('err');el.classList.add('ok');
+  const e=document.getElementById('pin-err');
+  e.className='pin-err success';
+  e.textContent=nombre?`✓ Bienvenido, ${nombre.split(' ')[0]}`:'✓ PIN aceptado';
+}
+function pinChecking(){
+  const e=document.getElementById('pin-err');
+  e.className='pin-err checking';
+  e.textContent='Verificando PIN…';
+}
+
 document.querySelectorAll('.pk[data-v]').forEach(k=>{
-  k.addEventListener('click',()=>{if(pin.length>=8)return;pin+=k.dataset.v;renderDisplay();document.getElementById('pin-err').textContent='';});
+  k.addEventListener('click',()=>{if(pin.length>=8)return;pin+=k.dataset.v;renderDisplay();const e=document.getElementById('pin-err');e.className='pin-err';e.textContent='';});
 });
-document.getElementById('pk-del').addEventListener('click',()=>{if(pin.length)pin=pin.slice(0,-1);renderDisplay();document.getElementById('pin-err').textContent='';});
+document.getElementById('pk-del').addEventListener('click',()=>{if(pin.length)pin=pin.slice(0,-1);renderDisplay();const e=document.getElementById('pin-err');e.className='pin-err';e.textContent='';});
 document.getElementById('pk-ok').addEventListener('click',async()=>{
   if(!pin||pin.length<4){pinErr('Mínimo 4 dígitos.');return;}
-  setSpinner(true);await new Promise(r=>setTimeout(r,80));
+  setSpinner(true);pinChecking();await new Promise(r=>setTimeout(r,80));
   const p=pin;pin='';renderDisplay();
+  // re-mostrar puntos llenos durante validación (no dejar el display vacío)
+  document.getElementById('pin-display').textContent='•'.repeat(p.length);
+  document.getElementById('pin-display').classList.add('filled');
   const cached=pinCacheGet(p);
-  if(cached){setSpinner(false);S.user=cached;initApp();return;}
+  if(cached){setSpinner(false);pinOk(cached.nombre);S.user=cached;setTimeout(initApp,450);return;}
   if(!navigator.onLine){setSpinner(false);pinErr('Sin conexión.');return;}
   try{
     const res=await fetch(GAS_INC+'?file=validate_pin&pin='+encodeURIComponent(p)+'&_='+Date.now());
     const d=await res.json();setSpinner(false);
-    if(d.result==='error'){pinErr(d.msg||'PIN incorrecto.');return;}
-    pinCacheSet(p,d);S.user={...d,pin:p};initApp();
+    if(d.result==='error'){pinErr(d.msg||'PIN incorrecto. Intenta nuevamente.');return;}
+    pinCacheSet(p,d);S.user={...d,pin:p};
+    pinOk(d.nombre);
+    setTimeout(initApp,500); // deja ver el "✓ Bienvenido" medio segundo
   }catch{setSpinner(false);pinErr('Error de conexión.');}
 });
 
