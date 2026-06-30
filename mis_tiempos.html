@@ -313,12 +313,14 @@ textarea:focus{outline:none;border-color:var(--navy)}
     <div id="view-summary">
 
       <!-- Hero TXT acumulado — SIEMPRE ARRIBA -->
-      <div class="txt-hero">
-        <div class="txt-hero-lbl">Saldo TXT acumulado</div>
+      <div class="txt-hero" id="txt-hero">
+        <div class="txt-hero-lbl" id="saldo-txt-lbl">Saldo TXT acumulado</div>
         <div class="txt-hero-val" id="saldo-txt">—</div>
-        <div class="txt-hero-sub">horas disponibles para ausentarse con goce de sueldo</div>
+        <div id="saldo-sobregiro-badge" style="display:none;margin-top:8px;background:rgba(220,38,38,.18);border:1px solid rgba(220,38,38,.5);color:#FCA5A5;font-size:11px;font-weight:800;letter-spacing:.6px;padding:4px 12px;border-radius:99px"> SOBREGIRO</div>
+        <div class="txt-hero-sub" id="saldo-txt-sub">horas disponibles para ausentarse con goce de sueldo</div>
         <div id="saldo-txt-detalle" style="display:none;font-size:10px;color:#94a3b8;margin-top:3px"></div>
         <div class="txt-hero-note" id="saldo-ciclos-note">calculando…</div>
+        <div id="saldo-foto-origen" style="display:none;font-size:10px;color:#64748b;margin-top:5px"></div>
       </div>
 
       <!-- KPIs -->
@@ -555,7 +557,17 @@ let S = {user:null, saldo:null, selTipo:null, txtHoras:'8'};
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function toast(msg,ms=2800){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),ms);}
 function goPin(){S={user:null,saldo:null,selTipo:null,txtHoras:'8'};pin='';renderDisplay();setSpinner(false);document.getElementById('pin-err').textContent='';go('scr-pin');}
-function hhmm2m(h){const[hh,mm]=(h||'00:00').split(':').map(Number);return(hh||0)*60+(mm||0);}
+function hhmm2m(h){const s=String(h||'00:00').trim();const neg=s.charAt(0)==='-';const[hh,mm]=s.replace('-','').split(':').map(Number);const m=(hh||0)*60+(mm||0);return neg?-m:m;}
+// Minutos → "HH:MM" preservando el signo (para sobregiros)
+function m2hhmm(min){const neg=min<0;const a=Math.abs(Math.round(min));const hh=Math.floor(a/60),mm=a%60;return (neg?'-':'')+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');}
+// Saldo en minutos de forma robusta: prefiere numérico del backend, cae a string con signo
+function saldoMin_(d){
+  if(d==null) return 0;
+  if(typeof d.saldo_txt_min==='number') return Math.round(d.saldo_txt_min);
+  if(typeof d.saldo_txt_horas==='number') return Math.round(d.saldo_txt_horas*60);
+  if(d.saldo_negativo===true && typeof d.sobregiro==='number') return -Math.round(Math.abs(d.sobregiro)*60);
+  return hhmm2m(d.saldo_txt_hhmm||'00:00');
+}
 function todayISO(){return new Date().toISOString().slice(0,10);}
 function openWA(msg){window.location.href='https://wa.me/'+PAOLA_WA+'?text='+encodeURIComponent(msg);}
 
@@ -943,11 +955,25 @@ async function buscarHistorialEnSegundoPlano(cycles, emp){
 
 function renderSaldo(d){
   const isFallback=d._fallback;
-  // Hero TXT
-  const saldoNeto=d.saldo_txt_hhmm||'00:00';
-  const txtAcum=d.txt_acumulado_hhmm||d.saldo_txt_hhmm||'00:00';
+  // Hero TXT — saldo robusto (numérico si viene, si no parsea string con signo)
+  const netoMin=saldoMin_(d);
+  const esSobregiro=netoMin<0;
+  const saldoNeto=m2hhmm(netoMin);
+  const txtAcum=d.txt_acumulado_hhmm||(esSobregiro?'00:00':saldoNeto);
   const txtUsado=d.txt_usado_hhmm||'00:00';
-  document.getElementById('saldo-txt').textContent=saldoNeto;
+
+  const valEl=document.getElementById('saldo-txt');
+  valEl.textContent=saldoNeto;
+  valEl.style.color=esSobregiro?'var(--bad)':'var(--gold)';
+
+  // Badge SOBREGIRO + texto del subtítulo
+  const badge=document.getElementById('saldo-sobregiro-badge');
+  if(badge) badge.style.display=esSobregiro?'inline-block':'none';
+  const subEl=document.getElementById('saldo-txt-sub');
+  if(subEl) subEl.textContent=esSobregiro
+    ?'tiempo consumido por encima del disponible — debe reponerse'
+    :'horas disponibles para ausentarse con goce de sueldo';
+
   // Mostrar detalle acumulado/usado si hay descuentos
   const usadoEl=document.getElementById('saldo-txt-detalle');
   if(usadoEl){
@@ -957,6 +983,25 @@ function renderSaldo(d){
       :'';
     usadoEl.style.display=usadoMin>0?'block':'none';
   }
+
+  // Origen de la foto inicial del empalme (solo si el backend lo envía)
+  const origEl=document.getElementById('saldo-foto-origen');
+  if(origEl){
+    if(d.foto_encontrada===true){
+      const partes=['Foto inicial del empalme'];
+      if(d.foto_inicial_horas!=null) partes.push(m2hhmm(Math.round(Number(d.foto_inicial_horas)*60))+' h');
+      if(d.foto_fuente) partes.push(String(d.foto_fuente));
+      if(d.foto_fecha) partes.push(String(d.foto_fecha));
+      origEl.textContent='📌 '+partes.join(' · ');
+      origEl.style.display='block';
+    }else if(d.foto_encontrada===false){
+      origEl.textContent='📌 Sin foto inicial — saldo calculado desde cero';
+      origEl.style.display='block';
+    }else{
+      origEl.style.display='none'; // backend viejo: no muestra nada
+    }
+  }
+
   document.getElementById('saldo-he-calc').textContent=d.total_he_calc_hhmm||'00:00';
   const heTrabEl=document.getElementById('saldo-he-trab');if(heTrabEl)heTrabEl.textContent=d.total_he_calc_hhmm||d.total_he_paid_hhmm||'00:00';
   const fc=d._fallback_cycle;
@@ -965,14 +1010,14 @@ function renderSaldo(d){
     :'Desde '+d.fecha_primer_evento+' · '+d.num_ciclos+' ciclo'+(d.num_ciclos===1?'':'s');
 
   // Cycle total row
-  document.getElementById('total-txt-all').textContent=d.saldo_txt_hhmm||'00:00';
+  document.getElementById('total-txt-all').textContent=saldoNeto;
   // USD removido — solo tiempo visible para el colaborador
 
   // Cycle table
   renderCicloList(d.resumen_ciclo||[]);
 
   // Update TXT tab balance
-  renderTXTTab(d.saldo_txt_hhmm||'00:00',hhmm2m(d.saldo_txt_hhmm||'00:00'));
+  renderTXTTab(saldoNeto,netoMin);
 
   // If fallback and has daily data — pre-populate detail view
   if(isFallback&&d._he_daily?.length){
@@ -1131,7 +1176,13 @@ function renderTXTTab(hhmm,min){
   const wrap=document.getElementById('txt-balance-wrap');
   const stepA=document.getElementById('txt-step-a');
   if(min<=0){
-    wrap.innerHTML='<div class="txt-no-bal">✅ No tienes horas en el bolsón TXT disponibles actualmente.</div><div class="empty-state"><div class="empty-ico">⏱</div><div class="empty-msg">Sin saldo TXT</div><div class="empty-sub">Las horas que superen el cap de 40h por ciclo se acumulan aquí.</div></div>';
+    const esSobre=min<0;
+    const titulo=esSobre?'⚠ Estás en SOBREGIRO ('+hhmm+')':'✅ No tienes horas en el bolsón TXT disponibles actualmente.';
+    const sub=esSobre
+      ?'Has consumido más tiempo del disponible. Debes reponerlo antes de solicitar TXT.'
+      :'Las horas que superen el cap de 40h por ciclo se acumulan aquí.';
+    const emptyMsg=esSobre?'Saldo en negativo':'Sin saldo TXT';
+    wrap.innerHTML='<div class="txt-no-bal">'+titulo+'</div><div class="empty-state"><div class="empty-ico">⏱</div><div class="empty-msg">'+emptyMsg+'</div><div class="empty-sub">'+sub+'</div></div>';
     stepA.style.display='none';return;
   }
   wrap.innerHTML='<div class="txt-balance-card"><div class="txt-bal-lbl">Saldo TXT disponible</div><div class="txt-bal-val">'+hhmm+'</div><div class="txt-bal-sub">Úsalas para ausentarte con goce de sueldo</div></div>';
